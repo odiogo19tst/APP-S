@@ -1,0 +1,33 @@
+name: DinoPocket Retro - Amazfit Bip 6
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Extrair projeto
+        run: unzip -q DinoPocket_Bip6_PRONTO_PARA_NUVEM.zip -d dinopocket
+      - name: Testar jogo
+        working-directory: dinopocket
+        run: npm test
+      - name: Instalar Zeus CLI
+        run: npm install --global @zeppos/zeus-cli@1.9.3
+      - name: Compilar para Bip 6
+        working-directory: dinopocket
+        run: zeus build
+      - name: Disponibilizar pacote ZAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: DinoPocket-Bip6-ZAB
+          path: dinopocket/dist/**/*.zab
+          if-no-files-found: error
+          retention-days: 30
