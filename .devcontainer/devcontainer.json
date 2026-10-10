@@ -1,0 +1,28 @@
+{
+  "name": "DinoPocket - teste no relogio",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  },
+  "forwardPorts": [
+    6080
+  ],
+  "portsAttributes": {
+    "6080": {
+      "label": "Desktop DinoPocket",
+      "onAutoForward": "notify",
+      "visibility": "private"
+    }
+  },
+  "containerEnv": {
+    "BROWSER": "firefox-esr"
+  },
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y firefox-esr unzip xterm && npm install -g @zeppos/zeus-cli@1.9.3 && mkdir -p dinopocket && unzip -n DinoPocket_Bip6_PRONTO_PARA_NUVEM.zip -d dinopocket && cd dinopocket && npm install",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.cwd": "${containerWorkspaceFolder}/dinopocket"
+      }
+    }
+  }
+}
