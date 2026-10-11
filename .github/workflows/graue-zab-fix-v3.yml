@@ -1,0 +1,77 @@
+name: Grauê Live V3 - corrigir icone e compilar ZAB
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/graue-zab-fix-v3.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compilar-bip6:
+    name: Bip 6 - corrigir app.json e gerar ZAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Baixar repositorio
+        uses: actions/checkout@v4
+
+      - name: Extrair fonte original do Graue
+        run: unzip -q -o Graue_Live_0.2_GitHub.zip 'Graue_Live_0.2/watch/*' -d .
+
+      - name: Corrigir referencia do icone e validar projeto
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('Graue_Live_0.2/watch')
+          manifest = root / 'app.json'
+          config = json.loads(manifest.read_text(encoding='utf-8'))
+          assert 'bip6' in config.get('targets', {}), 'Target bip6 ausente no app.json'
+          icon = root / 'assets' / 'bip6' / 'icon.png'
+          assert icon.is_file(), f'Icone nao encontrado: {icon}'
+          assert icon.read_bytes()[:8] == b'\x89PNG\r\n\x1a\n', 'Arquivo do icone nao e PNG valido'
+          # O Zepp OS resolve o icone relativo a assets/<target>/.
+          # Portanto usar icon.png, nao assets/bip6/icon.png.
+          config['app']['icon'] = 'icon.png'
+          assert isinstance(config['app'].get('appId'), int), 'appId precisa ser numerico'
+          assert config['app'].get('appName'), 'appName ausente'
+          manifest.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(f"ICON OK: {icon}; app.icon = {config['app']['icon']}; appId = {config['app']['appId']}")
+          PY
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verificar testes do protocolo BLE
+        working-directory: Graue_Live_0.2/watch
+        run: npm test
+
+      - name: Instalar Zeus CLI
+        run: npm install --global @zeppos/zeus-cli@1.9.3
+
+      - name: Compilar ZAB Bip 6
+        working-directory: Graue_Live_0.2/watch
+        run: zeus build
+
+      - name: Confirmar pacote gerado
+        shell: bash
+        run: |
+          set -euo pipefail
+          find Graue_Live_0.2/watch/dist -type f -name '*.zab' -print
+          test -n "$(find Graue_Live_0.2/watch/dist -type f -name '*.zab' -print -quit)"
+
+      - name: Salvar ZAB para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Graue-Live-Bip6-ZAB-V3
+          path: Graue_Live_0.2/watch/dist/**/*.zab
+          if-no-files-found: error
+          retention-days: 14
