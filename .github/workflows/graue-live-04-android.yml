@@ -1,0 +1,72 @@
+name: Graue Live V04 - Android harmonic analysis
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Graue_Live_0.4_Android_Fonte.zip'
+      - '.github/workflows/graue-live-04-android.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android - gerar APK de testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extrair arquivos do Grauê
+        run: unzip -q -o Graue_Live_0.4_Android_Fonte.zip 'Graue_Live_0.4/*' -d .
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Configurar Android SDK nativo do GitHub Runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_DIR="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          echo "Android SDK: $SDK_DIR"
+          test -d "$SDK_DIR" || { echo "::error::Android SDK nao localizado no runner"; exit 1; }
+          echo "ANDROID_HOME=$SDK_DIR" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_DIR" >> "$GITHUB_ENV"
+          echo "$SDK_DIR/platform-tools" >> "$GITHUB_PATH"
+          SDKMANAGER="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$SDK_DIR/cmdline-tools" -name sdkmanager -type f | head -n 1)"
+          fi
+          test -x "$SDKMANAGER" || { echo "::error::sdkmanager nao encontrado"; exit 1; }
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          "$SDKMANAGER" --version
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
+          test -d "$SDK_DIR/platforms/android-35"
+          test -d "$SDK_DIR/build-tools/35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Testar reconhecimento de notas e lógica musical
+        working-directory: Graue_Live_0.4/android
+        run: |
+          mkdir -p build/selftest
+          javac -d build/selftest \
+            app/src/main/java/br/com/doapps/grauelive/PitchDetector.java \
+            app/src/main/java/br/com/doapps/grauelive/ChromaAnalyzer.java \
+            app/src/main/java/br/com/doapps/grauelive/MusicBrain.java \
+            app/src/main/java/br/com/doapps/grauelive/GrauePacket.java \
+            app/src/test/java/br/com/doapps/grauelive/AudioLogicSelfTest.java \
+            app/src/test/java/br/com/doapps/grauelive/Harmony04SelfTest.java
+          java -cp build/selftest br.com.doapps.grauelive.AudioLogicSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.Harmony04SelfTest
+      - name: Compilar APK de depuração
+        working-directory: Graue_Live_0.4/android
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Graue-Live-04-Android-APK
+          path: Graue_Live_0.4/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
