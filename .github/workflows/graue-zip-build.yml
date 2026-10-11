@@ -1,0 +1,76 @@
+name: Graue Live - compilar ZIP para APK e ZAB
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Graue_Live_0.2_GitHub.zip'
+      - '.github/workflows/graue-zip-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android - gerar APK de testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extrair arquivos do Grauê
+        run: unzip -q -o Graue_Live_0.2_GitHub.zip 'Graue_Live_0.2/*' -d .
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Instalar Android SDK 35
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Testar reconhecimento de notas e lógica musical
+        working-directory: Graue_Live_0.2/android
+        run: |
+          mkdir -p build/selftest
+          javac -d build/selftest \
+            app/src/main/java/br/com/doapps/grauelive/PitchDetector.java \
+            app/src/main/java/br/com/doapps/grauelive/MusicBrain.java \
+            app/src/main/java/br/com/doapps/grauelive/GrauePacket.java \
+            app/src/test/java/br/com/doapps/grauelive/AudioLogicSelfTest.java
+          java -cp build/selftest br.com.doapps.grauelive.AudioLogicSelfTest
+      - name: Compilar APK de depuração
+        working-directory: Graue_Live_0.2/android
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Graue-Live-Android-APK
+          path: Graue_Live_0.2/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  bip6:
+    name: Amazfit Bip 6 - gerar ZAB de testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extrair arquivos do Grauê
+        run: unzip -q -o Graue_Live_0.2_GitHub.zip 'Graue_Live_0.2/*' -d .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar protocolo do relógio
+        working-directory: Graue_Live_0.2/watch
+        run: npm test
+      - name: Instalar Zeus CLI
+        run: npm install --global @zeppos/zeus-cli@1.9.3
+      - name: Compilar ZAB para Bip 6
+        working-directory: Graue_Live_0.2/watch
+        run: zeus build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Graue-Live-Bip6-ZAB
+          path: Graue_Live_0.2/watch/dist/**/*.zab
+          if-no-files-found: error
+          retention-days: 14
