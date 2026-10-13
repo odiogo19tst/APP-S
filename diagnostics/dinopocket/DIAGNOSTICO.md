@@ -2,7 +2,7 @@
 
 ## Estado e limites
 
-O teste físico ainda não foi executado nesta investigação. **A causa real de “Failed to unzip the package” permanece não confirmada.** Nenhuma instalação, desinstalação, limpeza ou alteração do estado do pet foi executada. Firmware 4.6.0.3, API 402 e tela 390×450 são informações fornecidas pelo proprietário, não medidas remotamente.
+Uma tentativa de controle foi executada pelo Bridge, mas terminou antes do envio ao relógio. O teste físico de instalação ainda está pendente. **A causa real de “Failed to unzip the package” permanece não confirmada.** Nenhum pacote chegou à etapa de envio nessa tentativa; nenhuma desinstalação, limpeza ou edição do estado do pet foi executada. Firmware 4.6.0.3, API 402 e tela 390×450 são informações fornecidas pelo proprietário, não medidas remotamente.
 
 ## Evidências recuperadas
 
@@ -40,7 +40,7 @@ Todos os arquivos JS do runtime e o manifest da prévia precisam ser idênticos 
 
 1. O Actions recupera o **ZAB original intacto**, verifica seu SHA-256 e o republica no artifact `DinoPocket-1.5.2-CONTROLE-ORIGINAL`, com retenção de 90 dias. Compila também o fonte exato da 1.5.2 e compara runtime, arquivos e orçamento descomprimido com o original. Não altera o version code do controle.
 2. A primeira instalação deve usar o original, pelo mesmo caminho que falhou, mantendo o DinoPocket instalado. Se a ferramenta recusar a mesma versão, registrar a recusa: isso não equivale a “Failed to unzip”. Não desinstalar e não contornar com limpeza de dados.
-3. Gravar Bridge desde a conexão até a resposta da instalação. Confirmar o alvo via `connect`, registrar `info`, versão Zeus/Zepp, horário e pacote exato. A instalação do controle só será executada após reconectar o Zepp Android.
+3. Gravar Bridge desde a conexão até a resposta da instalação. Confirmar o alvo via `connect`, registrar os logs e a versão Zeus/Zepp, horário e pacote exato. A instalação do controle só será executada após reconectar o Zepp Android.
 4. Se o controle falhar com o mesmo erro, parar: não compilar uma nova candidata. Verificar transporte e logs de extração do Android/relógio. Se o controle instalar e o pet mantiver nome, idade e evolução, então compilar a única candidata.
 5. A candidata `1.5.2-limbfix`, code 15, só é compilada no workflow_dispatch quando `candidate=true` e `watch_control_passed=true`. Preserva app ID, runtime e armazenamento; só os membros e os metadados de versão diferem. Este sinal é declaração do resultado físico, não teste automático de hardware.
 6. A instalação da candidata ainda exige teste físico e conferência do pet e poses. Não publicar como versão validada antes desse resultado.
@@ -58,3 +58,13 @@ A compilação local encontrou inicialmente rejeições da revisão automática 
 O Codespace `glowing-space-fortnight-694vg9955p7r35rrr` foi aberto. Os diretórios de versões e alterações locais existentes foram preservados. Na inspeção inicial não havia processo Zeus ativo nem log persistente da tentativa anterior disponível nos caminhos consultados. O Bridge precisa registrar uma tentativa nova de controle, com conexão do telefone.
 
 Referências oficiais: https://docs.zepp.com/docs/guides/faq/developer-bridge-mode/ e https://docs.zepp.com/docs/guides/quick-start/preview/ .
+
+## Resultados desta execução
+
+- Commit de automação: `5bd3c08c372513b5b7c713ba8f99c00680f75d98`. Actions `38335897195`: **success**. Os 67 testes passaram nas duas árvores; a base 1.5.2 compilou e passou na comparação estrita de runtime normalizado, conjunto de arquivos e orçamento de recursos. A compilação da candidata foi pulada pelo gate de controle físico.
+- O original intacto foi preservado também em `DinoPocket_Retro_1.5.2_CONTROLE_ORIGINAL.zab`, com SHA-256 conferido. Os artefatos novos do Actions expiram em 11/01/2027.
+- No Codespace, a árvore de controle foi extraída diretamente do ZIP no commit 74ad38a e passou nos 67 testes. O Bridge conectou: `successfully connected to app-Android`. O log do Android indica `side-4.1.0-release.6-402`; isso não é leitura da versão de firmware do relógio.
+- Controle pelo Bridge: comando `install`, alvo Amazfit Bip 6, fontes 9765120/9765121/10158337. O primeiro seletor recebeu o nome da pasta de assets, rejeitou-o e o alvo Amazfit Bip 6 foi explicitamente escolhido; não houve compilação para outro dispositivo. ROLLUP: 4 arquivos; PNG2TGA: **982 arquivos, 60.541 ms**; QJSC: 2 arquivos, 178 ms. Em seguida apareceu **Disconnected** e o CLI terminou, sem `getting package...` ou `packagePush`. Logo, essa tentativa **não chegou ao instalador do relógio**.
+- A implementação oficial de `disConnectWSCB` em Zeus 1.9.3 faz `process.exit(1)` e não registra o motivo do WebSocket. Um timeout durante a compilação pesada é uma hipótese consistente com o ponto da queda; a causa exata da desconexão não foi comprovada. Esse resultado não prova nem resolve o erro anterior de unzip.
+- Próximo controle: `zeus preview --target "Amazfit Bip 6"` no mesmo fonte intacto. Esse fluxo oficial compila primeiro e fornece QR para o Zepp; não depende de manter uma conexão Bridge durante a conversão de imagens. Só o proprietário consegue completar o scan e conferir o estado real do pet.
+- Logs privados mantidos no Codespace: `/tmp/dinopocket-control-bridge.log` e `/tmp/dinopocket-control-preview.log`. Não publicar tokens, URL temporária de instalação ou logs de conta no repositório.
