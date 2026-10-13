@@ -1,0 +1,269 @@
+{
+  "baseline": {
+    "path": "../package-1.5.2.zab",
+    "sha256": "318209cf977f36a7f0f39f5c5451d11cb173e17b22714ce7366acbf4a38480d2",
+    "zab_bytes": 2856540,
+    "zpk_bytes": 930290,
+    "device_zip_bytes": 1408860,
+    "device_uncompressed_bytes": 47688590,
+    "entries": 1272,
+    "compression": {
+      "8": 1032,
+      "0": 240
+    },
+    "manifest": {
+      "configVersion": "v3",
+      "zpks": [
+        {
+          "name": "e0b3baed4ea7ac5fb91c999f412e9ad1.zpk",
+          "version": {
+            "code": 8,
+            "name": "1.5.2"
+          },
+          "appType": "app",
+          "platforms": [
+            {
+              "deviceSource": 9765120
+            },
+            {
+              "deviceSource": 9765121
+            },
+            {
+              "deviceSource": 10158337
+            }
+          ],
+          "md5": "e0b3baed4ea7ac5fb91c999f412e9ad1"
+        }
+      ],
+      "bundleInfo": {
+        "zpm": "3.4.2",
+        "timeStamp": 1791772143,
+        "csc": ".ip-package"
+      }
+    },
+    "device_app": {
+      "configVersion": "v2",
+      "app": {
+        "appId": 29318764,
+        "appName": "DinoPocket Retro",
+        "appType": "app",
+        "version": {
+          "code": 8,
+          "name": "1.5.2"
+        },
+        "icon": "icon.png",
+        "vender": "DinoPocket Studio",
+        "description": "DinoPocket 1.5.2: pet animado e colorido, pacote otimizado para Bip 6, bebidas e interacoes."
+      },
+      "permissions": [
+        "device:os.local_storage",
+        "device:os.accelerometer"
+      ],
+      "runtime": {
+        "apiVersion": {
+          "compatible": "4.0",
+          "target": "4.0",
+          "minVersion": "4.0"
+        },
+        "type": 2
+      },
+      "i18n": {
+        "pt-BR": {
+          "appName": "DinoPocket Retro"
+        },
+        "en-US": {
+          "appName": "DinoPocket Retro"
+        }
+      },
+      "defaultLanguage": "pt-BR",
+      "debug": false,
+      "module": {
+        "page": {
+          "pages": [
+            "page/index"
+          ]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        },
+        "setting": {
+          "path": "setting/index"
+        }
+      },
+      "designWidth": 390,
+      "platforms": [
+        {
+          "deviceSource": 9765120
+        },
+        {
+          "deviceSource": 9765121
+        },
+        {
+          "deviceSource": 10158337
+        }
+      ],
+      "largeAppIcon": {
+        "icon": "icon.png",
+        "size": [
+          124,
+          0
+        ],
+        "type": "appIcon"
+      },
+      "packageInfo": {
+        "mode": "production",
+        "timeStamp": 1791772143,
+        "expiredTime": 172800,
+        "zpm": "3.4.2"
+      }
+    },
+    "crc_all_layers": "PASS"
+  },
+  "comparison": {
+    "path": "../package-1.5.8.zab",
+    "sha256": "0566158f398f20b559f522095a4db1a3fe75058a54856b38c41054480d7fba7c",
+    "zab_bytes": 2900127,
+    "zpk_bytes": 916756,
+    "device_zip_bytes": 1366077,
+    "device_uncompressed_bytes": 32140629,
+    "entries": 1272,
+    "compression": {
+      "8": 1032,
+      "0": 240
+    },
+    "manifest": {
+      "configVersion": "v3",
+      "zpks": [
+        {
+          "name": "17cb057fca4f965034457e21bf306330.zpk",
+          "version": {
+            "code": 14,
+            "name": "1.5.8"
+          },
+          "appType": "app",
+          "platforms": [
+            {
+              "deviceSource": 9765120
+            },
+            {
+              "deviceSource": 9765121
+            },
+            {
+              "deviceSource": 10158337
+            }
+          ],
+          "md5": "17cb057fca4f965034457e21bf306330"
+        }
+      ],
+      "bundleInfo": {
+        "zpm": "3.4.2",
+        "timeStamp": 1791854052,
+        "csc": ".ip-package"
+      }
+    },
+    "device_app": {
+      "configVersion": "v2",
+      "app": {
+        "appId": 29318764,
+        "appName": "DinoPocket Retro",
+        "appType": "app",
+        "version": {
+          "code": 14,
+          "name": "1.5.8"
+        },
+        "icon": "icon.png",
+        "vender": "DinoPocket Studio",
+        "description": "DinoPocket 1.5.8: base estavel 1.5.2 com membros corrigidos e sprites mais leves para Bip 6."
+      },
+      "permissions": [
+        "device:os.local_storage",
+        "device:os.accelerometer"
+      ],
+      "runtime": {
+        "apiVersion": {
+          "compatible": "4.0",
+          "target": "4.0",
+          "minVersion": "4.0"
+        },
+        "type": 2
+      },
+      "i18n": {
+        "pt-BR": {
+          "appName": "DinoPocket Retro"
+        },
+        "en-US": {
+          "appName": "DinoPocket Retro"
+        }
+      },
+      "defaultLanguage": "pt-BR",
+      "debug": false,
+      "module": {
+        "page": {
+          "pages": [
+            "page/index"
+          ]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        },
+        "setting": {
+          "path": "setting/index"
+        }
+      },
+      "designWidth": 390,
+      "platforms": [
+        {
+          "deviceSource": 9765120
+        },
+        {
+          "deviceSource": 9765121
+        },
+        {
+          "deviceSource": 10158337
+        }
+      ],
+      "largeAppIcon": {
+        "icon": "icon.png",
+        "size": [
+          124,
+          0
+        ],
+        "type": "appIcon"
+      },
+      "packageInfo": {
+        "mode": "production",
+        "timeStamp": 1791854052,
+        "expiredTime": 172800,
+        "zpm": "3.4.2"
+      }
+    },
+    "crc_all_layers": "PASS"
+  },
+  "compiled_runtime_identical": {
+    "app.bin": true,
+    "page/index.bin": false,
+    "setting.js": true,
+    "app-side.js": true
+  },
+  "physical_install": "NOT_TESTED",
+  "bridge_root_cause": "UNCONFIRMED; CRC/MD5 valid does not prove device unzip succeeds",
+  "changed_device_file_count": 975,
+  "changed_device_files_sample": [
+    "app.json",
+    "app.bin",
+    "page/index.bin",
+    "assets/anim/young/frame_7.png",
+    "assets/anim/young/frame_6.png",
+    "assets/anim/young/frame_5.png",
+    "assets/anim/young/frame_4.png",
+    "assets/anim/young/frame_3.png",
+    "assets/anim/young/frame_2.png",
+    "assets/anim/young/frame_1.png",
+    "assets/anim/young/frame_0.png",
+    "assets/anim/young/wake/frame_3.png",
+    "assets/anim/young/wake/frame_2.png",
+    "assets/anim/young/wake/frame_1.png",
+    "assets/anim/young/wake/frame_0.png",
+    "assets/anim/young/touch/frame_3.png"
+  ]
+}

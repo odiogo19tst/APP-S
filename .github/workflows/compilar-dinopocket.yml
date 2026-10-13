@@ -1,33 +1,108 @@
-name: DinoPocket Retro - Amazfit Bip 6
+name: DinoPocket - controle 1.5.2 e auditoria
 on:
   push:
     branches: [main]
+    paths:
+      - 'diagnostics/dinopocket/**'
+      - '.github/workflows/compilar-dinopocket.yml'
   workflow_dispatch:
+    inputs:
+      candidate:
+        description: 'Compilar a única candidata com correção de membros'
+        type: boolean
+        default: false
+      watch_control_passed:
+        description: 'O controle original 1.5.2 instalou e preservou o pet neste teste'
+        type: boolean
+        default: false
 permissions:
   contents: read
+  actions: read
 jobs:
-  compilar:
+  verificar:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Extrair projeto
-        run: unzip -q DinoPocket_Bip6_PRONTO_PARA_NUVEM.zip -d dinopocket
-      - name: Testar jogo
-        working-directory: dinopocket
-        run: npm test
-      - name: Instalar Zeus CLI
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar biblioteca de imagens
+        run: python -m pip install Pillow==11.3.0
+      - name: Recuperar os dois pacotes originais
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p originals/control originals/failed
+          gh run download 38195928183 -R "$GITHUB_REPOSITORY" -n DinoPocket-Bip6-ZAB -D originals/control
+          gh run download 38331120007 -R "$GITHUB_REPOSITORY" -n DinoPocket-Bip6-ZAB -D originals/failed
+          sha256sum originals/control/*.zab originals/failed/*.zab > originals/SHA256SUMS
+          python - <<'PY'
+          import hashlib,pathlib
+          expected={'control':'318209cf977f36a7f0f39f5c5451d11cb173e17b22714ce7366acbf4a38480d2','failed':'0566158f398f20b559f522095a4db1a3fe75058a54856b38c41054480d7fba7c'}
+          for kind,sha in expected.items():
+            files=list(pathlib.Path('originals',kind).glob('*.zab'));assert len(files)==1
+            assert hashlib.sha256(files[0].read_bytes()).hexdigest()==sha
+          PY
+      - name: Auditar todas as camadas dos pacotes originais
+        run: python diagnostics/dinopocket/packages.py originals/control/*.zab originals/failed/*.zab --report originals/comparison.json
+      - name: Reconstruir base e validar correção de membros
+        env:
+          CANDIDATE: ${{ inputs.candidate || false }}
+          CONTROL_PASSED: ${{ inputs.watch_control_passed || false }}
+        run: |
+          args=()
+          if [ "$CANDIDATE" = true ]; then
+            [ "$CONTROL_PASSED" = true ] || { echo 'Controle físico ainda não confirmado'; exit 1; }
+            args+=(--candidate --watch-control-passed)
+          fi
+          python diagnostics/dinopocket/prepare.py "${args[@]}"
+      - name: Testar base comprovada e correção isolada
+        run: |
+          npm test --prefix build-audit/control
+          npm test --prefix build-audit/limb-preview
+      - name: Instalar compilador oficial fixado
         run: npm install --global @zeppos/zeus-cli@1.9.3
-      - name: Compilar para Bip 6
-        working-directory: dinopocket
+      - name: Compilar controle sem alterar versão, manifest ou assets
+        working-directory: build-audit/control
         run: zeus build
-      - name: Disponibilizar pacote ZAB
+      - name: Verificar controle recompilado contra original
+        run: python diagnostics/dinopocket/packages.py originals/control/*.zab build-audit/control/dist/*.zab --strict --report build-audit/rebuilt-control.json
+      - name: Compilar candidata somente após teste físico confirmado
+        if: ${{ inputs.candidate && inputs.watch_control_passed }}
+        working-directory: build-audit/limb-preview
+        run: zeus build
+      - name: Auditar candidata contra base original
+        if: ${{ inputs.candidate && inputs.watch_control_passed }}
+        run: python diagnostics/dinopocket/packages.py originals/control/*.zab build-audit/limb-preview/dist/*.zab --strict --report build-audit/candidate-package.json
+      - name: Disponibilizar controle ORIGINAL intacto
         uses: actions/upload-artifact@v4
         with:
-          name: DinoPocket-Bip6-ZAB
-          path: dinopocket/dist/**/*.zab
+          name: DinoPocket-1.5.2-CONTROLE-ORIGINAL
+          path: originals/control/*.zab
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
+      - name: Disponibilizar diagnóstico e controle recompilado
+        uses: actions/upload-artifact@v4
+        with:
+          name: DinoPocket-AUDITORIA
+          path: |
+            originals/*.json
+            originals/SHA256SUMS
+            build-audit/*.json
+            build-audit/control/dist/*.zab
+          if-no-files-found: error
+          retention-days: 90
+      - name: Disponibilizar única candidata validada
+        if: ${{ inputs.candidate && inputs.watch_control_passed }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: DinoPocket-1.5.2-LIMBFIX-CANDIDATA
+          path: build-audit/limb-preview/dist/*.zab
+          if-no-files-found: error
+          retention-days: 90
