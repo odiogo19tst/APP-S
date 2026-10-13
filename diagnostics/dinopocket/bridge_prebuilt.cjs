@@ -6,6 +6,8 @@ const archive=path.resolve(process.argv[2]||'');
 if(!fs.statSync(archive).isFile()||!archive.endsWith('.zab'))throw Error('Expected a compiled .zab');
 const zeus=process.env.DINO_ZEUS_BIN||'/usr/local/share/npm-global/bin/zeus';
 const cli=path.dirname(path.dirname(fs.realpathSync(zeus)));
+process.env.NODE_PATH=[path.join(cli,'private-modules'),path.join(cli,'node_modules'),process.env.NODE_PATH].filter(Boolean).join(path.delimiter);
+require('module').Module._initPaths();
 const app=JSON.parse(fs.readFileSync('app.json'));
 if(app.app.appId!==29318764)throw Error('Wrong app ID');
 const digest=crypto.createHash('sha256').update(fs.readFileSync(archive)).digest('hex');

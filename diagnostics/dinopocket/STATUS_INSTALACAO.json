@@ -1,0 +1,9 @@
+{
+  "actions_run": 38339100517,
+  "ci": "success",
+  "original_bridge": "failed_code_1",
+  "candidate_bridge": "failed_code_1",
+  "installation_verified": false,
+  "save_accessed": false,
+  "uninstall_executed": false
+}

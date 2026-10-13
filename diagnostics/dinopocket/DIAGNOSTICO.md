@@ -1,3 +1,11 @@
+## Estado atual: Bridge 13/10/2026
+
+Actions 38339100517 success: testes, compilacao e auditoria estrita da base e candidata. Candidata unica 1.5.2/code15, 700 frames substituidos, nenhum recurso extra.
+
+Original intacto 1.5.2/code8 e candidata foram enviados via Bridge pre-compilado: app-Android conectado, ACK success, Start install lite app, Install lite app result: failed., code1. Sem desconexao nas duas tentativas. ACK nao comprova instalacao. Falha reproduz sem modificar sprites. Causa interna desconhecida; requer log do instalador Android/relogio e consulta de espaco livre. Bridge nao expoe essas consultas; ADB nao conectado. Nao repetir pacotes iguais ou gerar versoes sem evidencia. Nenhuma desinstalacao/limpeza de dados executada.
+
+Logs privados: /tmp/dinopocket-candidate-bridge-retry.log e /tmp/dinopocket-original-prebuilt-bridge.log. NODE_PATH do helper corrigido. Luz ao dormir e demais melhorias registradas, condicionadas ao sucesso fisico. Historico abaixo; escopo final 700 frames.
+
 # DinoPocket Retro: recuperação controlada da base 1.5.2
 
 ## Estado e limites
