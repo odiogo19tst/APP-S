@@ -1,0 +1,78 @@
+name: DinoPocket 1.5.9 - evolucao manual
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'diagnostics/dinopocket/evolution/**'
+      - '.github/workflows/dinopocket-evolution.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: dinopocket-evolution-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  testar-compilar-publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preparar fonte 1.5.9 sobre ZIP imutavel 1.5.8
+        run: python diagnostics/dinopocket/evolution/prepare.py --out work/evolution-build/app
+      - name: Executar todos os testes da base e evolucao
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test --prefix work/evolution-build/app | tee work/evolution-build/tests.log
+      - name: Empacotar fonte revisada
+        run: |
+          python - <<'PY'
+          import pathlib,zipfile
+          root=pathlib.Path('work/evolution-build/app')
+          with zipfile.ZipFile('work/evolution-build/DinoPocket-Retro-1.5.9-FONTE.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for p in sorted(root.rglob('*')):
+                  if p.is_file(): z.write(p,p.relative_to(root).as_posix())
+          PY
+      - name: Instalar Zeus oficial
+        run: npm install --global @zeppos/zeus-cli@1.9.3
+      - name: Compilar para Amazfit Bip 6
+        working-directory: work/evolution-build/app
+        run: zeus build
+      - name: Validar todas as camadas e identidade do pacote
+        run: python diagnostics/dinopocket/evolution/verify_package.py work/evolution-build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DinoPocket-Retro-1.5.9-Bip6
+          path: |
+            work/evolution-build/app/dist/**/*.zab
+            work/evolution-build/DinoPocket-Retro-1.5.9-FONTE.zip
+            work/evolution-build/*.json
+            work/evolution-build/tests.log
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publicar pacote verificado no repositorio
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=dinopocket-v1.5.9-code16
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'Release existente: preservar os arquivos publicados'; exit 1
+          fi
+          cat > work/evolution-build/release.md <<'EOF'
+          DinoPocket Retro 1.5.9, código 16, app ID 29318764. Base: 1.5.8 no commit f6ee5118be3a3d8371660ff03d198c540a55bac3.
+
+          Menu → Mais → Testes → Avançar evolução. Um toque por fase; o adulto não reinicia. Cuidados, conquistas e dinopocket.state.v1 (schema 1) preservados. O teste não é executado ao abrir o app.
+
+          Testes automatizados, compilação e validação estrutural executados neste workflow. Consulte tests.log e os relatórios anexos. Instalação física pendente; a causa do problema anterior de atualização não foi comprovada. Não desinstalar nem limpar dados.
+          EOF
+          gh release create "$tag" work/evolution-build/app/dist/*.zab work/evolution-build/DinoPocket-Retro-1.5.9-FONTE.zip work/evolution-build/provenance.json work/evolution-build/package-verification.json work/evolution-build/tests.log --target "$GITHUB_SHA" --title 'DinoPocket Retro 1.5.9 — evolução manual' --notes-file work/evolution-build/release.md
