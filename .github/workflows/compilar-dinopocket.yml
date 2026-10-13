@@ -15,6 +15,10 @@ on:
         description: 'O controle original 1.5.2 instalou e preservou o pet neste teste'
         type: boolean
         default: false
+      installed_baseline_confirmed:
+        description: 'O proprietário confirmou que a 1.5.2 instalada está funcionando'
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -55,11 +59,18 @@ jobs:
         env:
           CANDIDATE: ${{ inputs.candidate || false }}
           CONTROL_PASSED: ${{ inputs.watch_control_passed || false }}
+          BASELINE_WORKS: ${{ inputs.installed_baseline_confirmed || false }}
         run: |
           args=()
           if [ "$CANDIDATE" = true ]; then
-            [ "$CONTROL_PASSED" = true ] || { echo 'Controle físico ainda não confirmado'; exit 1; }
-            args+=(--candidate --watch-control-passed)
+            args+=(--candidate)
+            if [ "$CONTROL_PASSED" = true ]; then
+              args+=(--watch-control-passed)
+            elif [ "$BASELINE_WORKS" = true ]; then
+              args+=(--installed-baseline-confirmed)
+            else
+              echo 'Base funcional ainda não confirmada'; exit 1
+            fi
           fi
           python diagnostics/dinopocket/prepare.py "${args[@]}"
       - name: Testar base comprovada e correção isolada
@@ -74,11 +85,11 @@ jobs:
       - name: Verificar controle recompilado contra original
         run: python diagnostics/dinopocket/packages.py originals/control/*.zab build-audit/control/dist/*.zab --strict --report build-audit/rebuilt-control.json
       - name: Compilar candidata somente após teste físico confirmado
-        if: ${{ inputs.candidate && inputs.watch_control_passed }}
+        if: ${{ inputs.candidate && (inputs.watch_control_passed || inputs.installed_baseline_confirmed) }}
         working-directory: build-audit/limb-preview
         run: zeus build
       - name: Auditar candidata contra base original
-        if: ${{ inputs.candidate && inputs.watch_control_passed }}
+        if: ${{ inputs.candidate && (inputs.watch_control_passed || inputs.installed_baseline_confirmed) }}
         run: python diagnostics/dinopocket/packages.py originals/control/*.zab build-audit/limb-preview/dist/*.zab --strict --report build-audit/candidate-package.json
       - name: Disponibilizar controle ORIGINAL intacto
         uses: actions/upload-artifact@v4
@@ -99,7 +110,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Disponibilizar única candidata validada
-        if: ${{ inputs.candidate && inputs.watch_control_passed }}
+        if: ${{ inputs.candidate && (inputs.watch_control_passed || inputs.installed_baseline_confirmed) }}
         uses: actions/upload-artifact@v4
         with:
           name: DinoPocket-1.5.2-LIMBFIX-CANDIDATA

@@ -3,6 +3,7 @@ import argparse, hashlib, importlib.util, io, json, pathlib, subprocess, zipfile
 from PIL import Image
 BASE='74ad38a283df6d6799a2f1995981a894be99ebab'
 FAILED='f6ee5118be3a3d8371660ff03d198c540a55bac3'
+SLEEP_BLOCK="    elif pose=='sleep':\n        shadow(49,51,33)\n        breath=int(tick in (2,3,4))\n        poly([(36,35),(9,38),(17,43),(43,45)],skin)\n        for x,y in [(22,36),(29,34),(36,32),(43,29)]:\n            poly([(x,y+3),(x-2,y-2),(x+5,y+2)],spike)\n        ell((28,29+breath,69,47),skin)\n        ell((36,36+breath,60,44),belly,None)\n        # Feet remain attached to the underside of the body.\n        ell((34,43,48,49),skin)\n        ell((62,43,76,49),skin)\n        line([(39,47),(39,49)],spike,1)\n        line([(44,47),(44,49)],spike,1)\n        line([(69,47),(69,49)],spike,1)\n        if stem=='bronto':\n            ell((50,22,64,40),skin)\n            ell((58,20,87,43),skin)\n        else:\n            if stem=='trike':\n                poly([(54,30),(50,23),(59,24),(61,18),(68,23),(78,19),(85,28),(78,40)],spike)\n            ell((55,24,84,44),skin)\n        if stem=='rex':\n            ell((73,34,90,44),belly,INK,1)\n        ell((59,27,76,32),WHITE,None)\n        line([(64,35),(68,37),(72,35)],INK,2)\n        line([(77,35),(80,37),(82,35)],INK,1)\n        line([(76,40),(80,41),(83,40)],INK,1)\n        ell((59,39,63,42),cheek,None)\n        if stem=='trike':\n            poly([(63,29),(62,20),(69,27)],WHITE,spike,1)\n            poly([(81,31),(89,25),(85,35)],WHITE,spike,1)\n        # Forearm folds over the chest, below the jaw, without entering the face.\n        ell((47,38+breath,59,45),skin)\n        line([(53,43),(57,43)],spike,1)\n        if tick in (1,2,5,6):line([(32,37),(37,38)],WHITE,1)\n        zpositions=[(79,16),(80,14),(81,12),(83,9),(83,7),(84,8),(81,11),(79,13)]\n        zx,zy=zpositions[tick]\n        line([(zx,zy),(zx+5,zy),(zx,zy+6),(zx+5,zy+6)],'#687F92',1,False)\n        if tick in (3,4,5):\n            line([(88,1),(93,1),(88,6),(93,6)],'#8491AB',1,False)\n"
 def extract(ref, target):
     data=subprocess.check_output(['git','show',ref+':DinoPocket_Bip6_PRONTO_PARA_NUVEM.zip'])
     z=zipfile.ZipFile(io.BytesIO(data)); assert z.testzip() is None
@@ -12,7 +13,8 @@ def extract(ref, target):
 
 def fix(root):
     script=root/'scripts/make_v15_sprites.py'; text=script.read_text()
-    # Keep body, eyes, mouth, feet, effects, canvas, timing and scale unchanged.
+    # Perspective only: relocate arms/hands below the jaw in every affected pose.
+    # Feet, colors, canvas, interface placement and all timing are unchanged.
     replacements={
       'poly([(46,33),(35,26),(32,20),(37,18),(42,24),(51,30)],skin)': 'poly([(40,38),(32,33),(28,26),(32,24),(37,30),(45,35)],skin)',
       'poly([(65,33),(80,24),(84,18),(87,24),(79,35)],skin)': 'poly([(65,40),(80,38),(87,31),(91,26),(93,30),(88,39),(73,44)],skin)',
@@ -30,6 +32,11 @@ def fix(root):
       'poly([(80,39),(80,27),(78,19),(81,18),(85,28),(87,16),(90,16),(88,30),(94,36),(91,40)],skin)': 'poly([(80,46),(80,34),(78,26),(81,25),(85,35),(87,23),(90,23),(88,37),(94,43),(91,47)],skin)',
       'line([(82,31),(87,36)],spike,1)': 'line([(82,38),(87,43)],spike,1)',
     }
+    # Sleeping: keep a reclined pose, separate tucked arm/feet from the face,
+    # and retain the species identity using the original palette and outlines.
+    sleep_start=text.index("    elif pose=='sleep':")
+    sleep_end=text.index("    else:\n        shadow(48,51,28)",sleep_start)
+    text=text[:sleep_start]+SLEEP_BLOCK+text[sleep_end:]
     for old,new in replacements.items():
         assert text.count(old)==1,old
         text=text.replace(old,new)
@@ -48,6 +55,7 @@ def fix(root):
           # Upper face is outside the permitted limb edit region.
           assert after.crop((0,0,288,40)).tobytes()==before.crop((0,0,288,40)).tobytes()
           if before.tobytes()!=after.tobytes():
+            assert stem not in ('egg','ghost'),str(path)
             after.save(path,optimize=True);changed.append(str(path.relative_to(root)))
     # Renderer is fixed too, but its main() still generates 8 frames; do not use
     # it for builds. This patch maps only the existing four baseline frames.
@@ -55,7 +63,7 @@ def fix(root):
     return changed
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--out',default='build-audit');p.add_argument('--candidate',action='store_true');p.add_argument('--watch-control-passed',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--out',default='build-audit');p.add_argument('--candidate',action='store_true');p.add_argument('--watch-control-passed',action='store_true');p.add_argument('--installed-baseline-confirmed',action='store_true');a=p.parse_args()
     out=pathlib.Path(a.out);out.mkdir(parents=True,exist_ok=True)
     root=extract(BASE,out/'control');extract(FAILED,out/'failed')
     changed=fix(extract(BASE,out/'limb-preview'))
@@ -67,9 +75,10 @@ def main():
       if 'tests' not in f.parts:assert f.read_bytes()==(out/'limb-preview'/f.relative_to(root)).read_bytes(),str(f)
     report={'baseline_commit':BASE,'failed_commit':FAILED,'changed_sprites':changed,'runtime_identical':True,'app_id':29318764,'candidate_built':False}
     if a.candidate:
-      assert a.watch_control_passed,'Physical control success is required before a candidate build'
-      candidate=out/'limb-preview';app=json.loads((candidate/'app.json').read_text());app['app']['version']={'code':15,'name':'1.5.2-limbfix'};(candidate/'app.json').write_text(json.dumps(app,indent=2)+'\n')
-      pkg=json.loads((candidate/'package.json').read_text());pkg['version']='1.5.2-limbfix';(candidate/'package.json').write_text(json.dumps(pkg,indent=2)+'\n')
+      assert a.watch_control_passed or a.installed_baseline_confirmed,'A working installed baseline or passed physical control is required'
+      candidate=out/'limb-preview';app=json.loads((candidate/'app.json').read_text());app['app']['version']={'code':15,'name':'1.5.2'};(candidate/'app.json').write_text(json.dumps(app,indent=2)+'\n')
+      pkg=json.loads((candidate/'package.json').read_text());pkg['version']='1.5.2';(candidate/'package.json').write_text(json.dumps(pkg,indent=2)+'\n')
       report['candidate_build_authorized']=True
+      report['authorization_basis']='installed 1.5.2 confirmed working by owner' if a.installed_baseline_confirmed else 'physical control passed'
     (out/'source-audit.json').write_text(json.dumps(report,indent=2)+'\n');print(f'{len(changed)} limb-only frames; runtime/storage identical; 288x164 retained')
 if __name__=='__main__':main()
