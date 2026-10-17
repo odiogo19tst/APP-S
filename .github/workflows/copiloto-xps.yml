@@ -1,0 +1,41 @@
+name: Copiloto XPS - Android
+on:
+  pull_request:
+    paths: ['copiloto-xps/**', '.github/workflows/copiloto-xps.yml']
+  workflow_dispatch:
+  push:
+    branches: ['feat/copiloto-xps']
+    paths: ['copiloto-xps/**', '.github/workflows/copiloto-xps.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Testar música e MIDI
+        working-directory: copiloto-xps
+        run: |
+          mkdir -p build/selftest
+          SRC=app/src/main/java/br/com/doapps/grauelive
+          javac -d build/selftest "$SRC/PitchDetector.java" "$SRC/ChromaAnalyzer.java" "$SRC/MusicBrain.java" "$SRC/GrauePacket.java" "$SRC/MidiStream.java" app/src/test/java/br/com/doapps/grauelive/*.java
+          java -cp build/selftest br.com.doapps.grauelive.AudioLogicSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.Harmony04SelfTest
+          java -cp build/selftest br.com.doapps.grauelive.MidiStreamSelfTest
+      - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
+        working-directory: copiloto-xps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Copiloto-XPS-0.1-APK
+          path: copiloto-xps/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
