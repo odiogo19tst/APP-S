@@ -29,7 +29,7 @@ Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente p
 - Build/lint e testes automatizados não substituem validação USB/microfone/modelo no S25 e XPS-10.
 
 ## Desenvolvimento e fontes
-Java 17 / Gradle 8.9 / SDK35. `gradle :app:assembleDebug :app:lintDebug`; `node tests/music.test.js`. Workflow também executa testes Java de áudio/harmonia/parser MIDI.
+JDK 21 (fonte Java 17) / Gradle 8.9 / SDK35. `gradle :app:assembleDebug :app:lintDebug`; `node tests/music.test.js`. Workflow também executa testes Java de áudio/harmonia/parser MIDI.
 
 - Roland MIDI implementation: https://static.roland.com/assets/media/pdf/XPS-10_MIDI_Imple_e01.pdf
 - Runtime local: https://developers.google.com/edge/mediapipe/solutions/genai/llm_inference/android
