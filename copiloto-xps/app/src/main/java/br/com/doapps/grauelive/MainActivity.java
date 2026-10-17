@@ -1,146 +1,42 @@
 package br.com.doapps.grauelive;
-
 import android.Manifest;
-import android.app.Activity;
+import android.app.*;
+import android.content.*;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.SystemClock;
-import android.view.Gravity;
+import android.media.midi.MidiDeviceInfo;
+import android.os.*;
+import android.webkit.*;
 import android.view.View;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import java.util.Locale;
+import org.json.*;
+import java.io.*;
+import java.util.concurrent.*;
+import com.google.mediapipe.tasks.genai.llminference.LlmInference;
 
-/** Visible foreground-only prototype: microphone stays active while app is open. */
-public final class MainActivity extends Activity {
-    private static final int BG=0xFF0C1727,CARD=0xFF192C43,WHITE=0xFFF2F6FF,MINT=0xFF68E0AB,MUTED=0xFFABC0D8;
-    private TextView note,key,degree,chords,detectedChord,bleStatus,audioStatus,subtitle;
-    private Button start,bluetooth,demo,modeButton,confirmButton,newSongButton;
-    private AudioAnalyzer audio;private UsbMidi midi;
-    private TextView midiNotes,midiState;private Button connectMidi;
-    private final boolean[][] held=new boolean[16][128];
-    private int keyRoot=-1;
-    private void showMidi(){StringBuilder out=new StringBuilder();
-      for(int n=0;n<128;n++){boolean down=false;for(int c=0;c<16;c++)down|=held[c][n];
-       if(down){out.append(MusicBrain.NOTE[n%12]).append(n/12-1);
-        if(keyRoot>=0){String[] degrees={"1","♭2","2","♭3","3","4","♯4/♭5","5","♭6","6","♭7","7"};out.append(" [").append(degrees[(n-keyRoot+120)%12]).append("]");}out.append("  ");}}
-      midiNotes.setText(out.length()==0?"Nenhuma tecla pressionada":out.toString());}
-
-    private int sequence=0;private long lastPacket=0;
-    private boolean keyIsLocked=false;
-    private final MusicBrain demoBrain=new MusicBrain();
-    @Override public void onCreate(Bundle b){super.onCreate(b);buildUi();
-        midi=new UsbMidi(this,new UsbMidi.Listener(){
- public void status(String s){midiState.setText(s);if(s.contains("desconectado")){for(boolean[] row:held)java.util.Arrays.fill(row,false);showMidi();}}
- public void event(int s,int a,int b){int kind=s&240,ch=s&15;
-  if(kind==144||kind==128){held[ch][a]=kind==144&&b>0;showMidi();}
-  if(kind==176&&(a==120||a==123)){java.util.Arrays.fill(held[ch],false);showMidi();}}
- });
- connectMidi.setOnClickListener(v->{android.media.midi.MidiDeviceInfo[] devices=midi.devices();
- if(devices.length==0){midiState.setText("Nenhum MIDI USB encontrado. Confira cabo e configuração USB do teclado.");return;}
- String[] names=new String[devices.length];for(int i=0;i<names.length;i++)names[i]=devices[i].getProperties().getString(android.media.midi.MidiDeviceInfo.PROPERTY_NAME,"USB MIDI "+i);
- new android.app.AlertDialog.Builder(this).setTitle("Selecione o teclado").setItems(names,(d,i)->midi.connect(devices[i])).show();});
-        audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){
-            @Override public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){
-                long now=SystemClock.elapsedRealtime();
-                // Bluetooth deliberately disabled until the Bip 6 reboot defect is diagnosed.
-                runOnUiThread(()->render(p,h));
-            }
-            @Override public void onError(String s){runOnUiThread(()->audioStatus.setText(s));}
-        });
-        start.setOnClickListener(v->{if(audio.isRunning()){audio.stop();start.setText("Iniciar escuta");audioStatus.setText("Microfone parado");}
-            else if(checkPermission(Manifest.permission.RECORD_AUDIO))startAudio();else requestAllPermissions();});
-        bluetooth.setVisibility(View.GONE); // Bip 6 has rebooted on BLE connect; inhibit until on-device diagnosis.
-        modeButton.setOnClickListener(v->{int next=audio.manualMode()==-1?0:(audio.manualMode()==0?1:-1);audio.setManualMode(next);
-            modeButton.setText(next==-1?"Modo: automático":next==0?"Modo: priorizar MAIOR":"Modo: priorizar MENOR");
-            keyIsLocked=false;confirmButton.setText("Confirmar tom sugerido");
-            key.setText("Reavaliando o tom...");});
-        newSongButton.setOnClickListener(v->{audio.resetAnalysis();keyIsLocked=false;confirmButton.setText("Confirmar tom sugerido");
-            key.setText("Tom: recomeçando análise");degree.setText("Grau: —");chords.setText("Aguardando novas frases");
-            detectedChord.setText("Acorde detectado: aguardando");});
-        confirmButton.setOnClickListener(v->{
-            if(!keyIsLocked){if(audio.confirmKey()){keyIsLocked=true;confirmButton.setText("Liberar tom confirmado");}else{audioStatus.setText("Aguarde melodia ou acordes para confirmar o tom");}}
-            else{audio.unlockKey();keyIsLocked=false;confirmButton.setText("Confirmar tom sugerido");}
-        });
-        demo.setOnClickListener(v->{
-            // Synthetic melody tests the BLE path independently from microphone.
-            int[] melody={67,69,71,72,74,76,74,71,69,67,71,74};
-            demoBrain.reset();MusicBrain.Harmony h=null;
-            for(int m:melody)h=demoBrain.accept(m);
-            if(h!=null)render(new PitchDetector.Result(0,1,0,h.midi),h);
-            audioStatus.setText("Exemplo calculado no celular (sem áudio real, sem Bluetooth)");
-        });
-        // Request microphone only when the user starts listening.
-    }
-    private boolean checkPermission(String p){return Build.VERSION.SDK_INT<31&& !p.equals(Manifest.permission.RECORD_AUDIO)||checkSelfPermission(p)==PackageManager.PERMISSION_GRANTED;}
-    private void requestAllPermissions(){
-        if(Build.VERSION.SDK_INT>=31)requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},101);
-        else requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},101);
-    }
-    private void startAudio(){audio.start();if(audio.isRunning()){start.setText("Parar escuta");audioStatus.setText("Analisando áudio local: voz e acordes prováveis");}}
-    private void buildUi(){
-        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(24,42,24,28);scroll.addView(root);
-        TextView title=txt("♫  COPILOTO XPS",28,WHITE,true);root.addView(title);
-        subtitle=txt("USB MIDI + áudio • laboratório 0.1",14,MUTED,false);root.addView(subtitle);
-        root.addView(space(24));
-        LinearLayout midiCard=card(root);midiCard.addView(txt("SUAS TECLAS • MIDI USB",13,MUTED,true));
-        midiNotes=txt("Conecte o teclado",25,WHITE,true);midiCard.addView(midiNotes);
-        midiState=txt("Desconectado",13,MUTED,false);midiCard.addView(midiState);
-        midiCard.addView(txt("Graus relativos ao tom estimado pelo áudio. Apenas teclas pressionadas; sustain não prolonga a indicação.",12,MUTED,false));
-        connectMidi=action(root,"Conectar teclado USB",0xFF345FE8);
-
-        LinearLayout hero=card(root);hero.addView(txt("NOTA PREDOMINANTE (ESTIMADA)",13,MUTED,true));
-        note=txt("—",72,WHITE,true);note.setGravity(Gravity.CENTER);hero.addView(note);
-        key=txt("Tom: analisando melodia",20,MINT,true);key.setGravity(Gravity.CENTER);hero.addView(key);
-        degree=txt("Grau: —",16,MUTED,false);degree.setGravity(Gravity.CENTER);hero.addView(degree);
-        root.addView(space(16));
-        LinearLayout suggestions=card(root);suggestions.addView(txt("ACOMPANHAMENTO POSSÍVEL",13,MUTED,true));
-        chords=txt("Aguardando notas suficientes",25,WHITE,true);suggestions.addView(chords);
-        detectedChord=txt("Acorde detectado: aguardando",15,MINT,false);suggestions.addView(detectedChord);
-        suggestions.addView(txt("Sugestões, não acordes identificados na gravação",12,MUTED,false));
-        root.addView(space(18));
-        start=action(root,"Iniciar escuta",0xFF297A5D);
-        modeButton=action(root,"Modo: automático",0xFF214C80);
-        newSongButton=action(root,"Nova música: zerar análise",0xFF37465C);
-        confirmButton=action(root,"Confirmar tom sugerido",0xFF37465C);
-        bluetooth=action(root,"Bluetooth suspenso: reinício do Bip 6",0xFF444454);
-        demo=action(root,"Exemplo musical (sem Bluetooth)",0xFF37465C);
-        root.addView(space(20));
-        root.addView(txt("STATUS DO ÁUDIO",12,MUTED,true));audioStatus=txt("Aguardando permissão de microfone",15,WHITE,false);root.addView(audioStatus);
-        root.addView(space(13));
-        root.addView(space(22));
-        root.addView(txt("Versão experimental 0.1 • MIDI e análise de áudio local. Sem IA generativa, integração LouveApp ou envio de efeitos nesta versão. Não grava nem envia áudio. O PA permanece independente.",12,MUTED,false));
-        setContentView(scroll);
-    }
-    private LinearLayout card(LinearLayout root){LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(22,20,22,20);
-        GradientDrawable bg=new GradientDrawable();bg.setColor(CARD);bg.setCornerRadius(22);box.setBackground(bg);root.addView(box,new LinearLayout.LayoutParams(-1,-2));return box;}
-    private Button action(LinearLayout root,String name,int color){Button b=new Button(this);b.setAllCaps(false);b.setText(name);b.setTextSize(16);b.setTextColor(WHITE);
-        GradientDrawable bg=new GradientDrawable();bg.setColor(color);bg.setCornerRadius(16);b.setBackground(bg);
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(56));lp.bottomMargin=dp(12);root.addView(b,lp);return b;}
-    private int dp(int value){return (int)(value*getResources().getDisplayMetrics().density+0.5f);}
-    private TextView txt(String value,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);
-        t.setTypeface(Typeface.DEFAULT,bold?Typeface.BOLD:Typeface.NORMAL);t.setPadding(0,2,0,4);return t;}
-    private View space(int dp){View v=new View(this);v.setLayoutParams(new LinearLayout.LayoutParams(1,dp));return v;}
-    private void render(PitchDetector.Result p,MusicBrain.Harmony h){
-        keyRoot=h.knownKey()?h.root:-1;showMidi();
-        note.setText(h.midi<0?"—":MusicBrain.NOTE[h.midi%12]+(h.midi/12-1));
-        detectedChord.setText("Acorde detectado: "+(h.heardChord<0?"indefinido":MusicBrain.NOTE[h.heardChord]+suffix(h.heardQuality)));
-        if(!h.knownKey()){key.setText("Tom: indefinido (maior/menor ambíguos)");degree.setText("Cante frases ou toque acordes");chords.setText("Aguardando contexto harmônico");return;}
-        key.setText((h.locked?"Tom confirmado: ":"Tom provável: ")+MusicBrain.NOTE[h.root]+(h.mode==0?" maior":" menor")+" · "+h.confidence+"% estimado");
-        degree.setText("Grau melódico: "+(h.degree>0?h.degree+"º":"cromático"));
-        String a=h.chord1<0?"—":MusicBrain.NOTE[h.chord1]+suffix(h.quality1);
-        String b=h.chord2<0?"—":MusicBrain.NOTE[h.chord2]+suffix(h.quality2);
-        chords.setText(a+"    ou    "+b);
-    }
-    private String suffix(int q){return q==1?"m":q==2?"dim":"";}
-    @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==101&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED)startAudio();else audioStatus.setText("Permissão de microfone negada");}
-    @Override protected void onStop(){audio.stop();start.setText("Iniciar escuta");audioStatus.setText("Microfone parado");super.onStop();}
-    @Override protected void onDestroy(){audio.stop();midi.close();super.onDestroy();}
+public class MainActivity extends Activity {
+ private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
+ private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
+ @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
+  web=new WebView(this);setContentView(web);web.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}});
+  web.addJavascriptInterface(new Bridge(),"Native");
+  midi=new UsbMidi(this,new UsbMidi.Listener(){public void status(String t){emit("status",t);emit("clear","");armed=false;emit("armed",false);}public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}});
+  audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",p.midi);o.put("rms",p.rms);emit("audio",o);}catch(Exception ignored){}}});
+  web.loadUrl("file:///android_asset/index.html");
+ }
+ private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+JSONObject.valueToString(data)+")",null);}catch(Exception ignored){} });}
+ public class Bridge {
+  @JavascriptInterface public void connect(){runOnUiThread(()->{MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
+  @JavascriptInterface public void microphone(boolean on){runOnUiThread(()->{if(!on){audio.stop();emit("mic",false);}else if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},1);else{audio.start();emit("mic",audio.isRunning());}});}
+  @JavascriptInterface public void arm(boolean value){runOnUiThread(()->{armed=value;emit("armed",armed);});}
+  @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Ative o envio MIDI antes de aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
+  @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
+  @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
+  @JavascriptInterface public void importFile(boolean model){runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,model?3:2);});}
+  @JavascriptInterface public void exportFile(String text){if(text.length()>1000000)return;runOnUiThread(()->{exportText=text;startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"copiloto-repertorio.json"),4);});}
+  @JavascriptInterface public void ask(String prompt){if(prompt.length()>6000)return;worker.execute(()->{try{if(llm==null){File model=new File(getFilesDir(),"model.task");if(!model.exists()){emit("answer","Importe um modelo compatível .task em Ajustes para conversar com a IA neural offline. O guia musical funciona sem modelo.");return;}emit("answer","Carregando IA no aparelho…");llm=LlmInference.createFromOptions(MainActivity.this,LlmInference.LlmInferenceOptions.builder().setModelPath(model.getAbsolutePath()).setMaxTokens(2048).build());}emit("answer",llm.generateResponse("Você é um assistente musical em português. Dê sugestões curtas e explique incertezas. Não afirme ter aplicado comandos. XPS-10: CC74 cutoff, CC71 ressonância, CC73 attack, CC72 release (64 neutro), CC91 reverb, CC93 chorus. Não invente endereços SysEx. Contexto e pergunta: "+prompt));}catch(Exception e){emit("answer","Não foi possível executar o modelo: "+e.getMessage());}});}
+ }
+ @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
+ @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}File temp=new File(getFilesDir(),"model.tmp");try(InputStream in=getContentResolver().openInputStream(data.getData());OutputStream out=new FileOutputStream(temp)){byte[] buffer=new byte[65536];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);}File dest=new File(getFilesDir(),"model.task");if(!temp.renameTo(dest))throw new IOException("Falha ao salvar modelo");emit("status","Modelo importado. A compatibilidade será verificada na primeira pergunta.");}else{try(InputStream in=getContentResolver().openInputStream(data.getData());ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>1000000)throw new IOException("Arquivo maior que 1 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());}});}
+ @Override protected void onStop(){super.onStop();audio.stop();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
+ @Override protected void onDestroy(){midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;super.onDestroy();}
 }

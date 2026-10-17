@@ -35,10 +35,11 @@ jobs:
           java -cp build/selftest br.com.doapps.grauelive.AudioLogicSelfTest
           java -cp build/selftest br.com.doapps.grauelive.Harmony04SelfTest
           java -cp build/selftest br.com.doapps.grauelive.MidiStreamSelfTest
+      - run: node copiloto-xps/tests/music.test.js
       - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Copiloto-XPS-0.1-APK
+          name: Copiloto-XPS-0.2-APK
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error

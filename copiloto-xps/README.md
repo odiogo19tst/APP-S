@@ -1,37 +1,38 @@
-# Copiloto XPS — laboratório Android 0.1
+# Copiloto XPS 0.2 — prévia funcional Android
 
-Aplicativo independente para Samsung S25 FE + Roland XPS-10 via USB MIDI e microfone. Base de análise de áudio reaproveitada do Grauê Live 0.4 do mesmo repositório. Pacote novo; não substitui o Grauê.
+Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não altera o áudio enviado ao PA. Android 8+; alvo de teste físico: Samsung S25 FE.
 
-## Implementado no código
-- Seleção de dispositivo USB MIDI pelo serviço Android, leitura das teclas por canal e tratamento de desconexão.
-- Parser MIDI com running status, pacotes fragmentados e descarte de SysEx/realtime.
-- Microfone com análise local de nota predominante, acordes simples e hipótese de tonalidade; confirmação manual do tom.
-- Painel escuro de alto contraste: teclas MIDI separadas da nota estimada no áudio; graus cromáticos relativos à tônica estimada.
-- Sem envio de comandos ao teclado, reprodução de áudio, rede ou armazenamento de gravações.
+## Funções implementadas
+- Palco: notas MIDI, sustain por canal, acordes (tríades, sétimas, suspensos e add9), inversões, graus, teclado gráfico e histórico de velocidades.
+- Áudio: captura local, nota monofônica e estimativa heurística de tom. Banda polifônica/ruído pode confundir a análise. Índice de confiança não é probabilidade.
+- Repertório persistente: edição, importação JSON/ChordPro, exportação JSON, transposição da cifra, BPM/tap tempo, avanço programado, rolagem da letra, aviso antecipado, voicing sugerido e exemplo de empréstimo modal.
+- Sons: envio MIDI explicitamente ativado, canal 1–16, CC7/10/11/71/72/73/74/91/93, preparação e aplicação de cenas de controles. Não são patches completos.
+- Copiloto: guia harmônico determinístico e runtime neural offline MediaPipe 0.10.27 com importação de modelo .task. O modelo não está incluído. GGUF não é compatível. Respostas neurais nunca executam comandos.
+- Temas claro/escuro, processamento local, sem permissão de internet.
 
-## Limites desta versão
-Ainda não existe IA generativa ou modelo neural embarcado. O algoritmo musical existente é heurístico e a confiança exibida não é probabilidade calibrada. Não separa instrumentos de uma banda. O painel MIDI mostra teclas pressionadas (não prolonga pelo sustain). Compilação e teste físico devem ser verificados antes de uso em palco.
+## Usar
+1. Instale o APK de `Copiloto-XPS-0.2-APK` nos artifacts do GitHub Actions.
+2. Conecte o XPS-10 por USB e toque em Conectar USB; selecione o dispositivo.
+3. Toque notas e confira o teclado gráfico. O cabo USB transporta MIDI, não o áudio do XPS-10.
+4. Ative Ouvir ambiente e autorize o microfone. Confirme o tom manualmente; a estimativa não muda a referência sozinha.
+5. Salve uma música em Repertório. Iniciar segue o BPM, não a execução da banda. Ajuste o ponto com as setas.
+6. Sons: escolha canal, prepare sliders, ative envio e toque em Aplicar. Confira o efeito no teclado. 64 é neutro nos offsets de cutoff/ressonância/attack/release.
+7. IA: obtenha modelo .task compatível conforme documentação Google, aceite a licença do fornecedor e importe em Ajustes. Primeira pergunta carrega o modelo. Compatibilidade/memória/latência ainda precisam de teste físico.
 
-## Teste no celular
-1. Instale o APK de depuração gerado pelo workflow Copiloto XPS.
-2. Conecte o teclado por cabo USB com suporte a dados/host. Toque em Conectar teclado USB e selecione o dispositivo.
-3. Toque notas/acordes; confirme que notas aparecem e desaparecem corretamente. Teste desconectar e reconectar.
-4. Inicie a escuta e autorize o microfone. Teste primeiro notas isoladas, depois acordes e música ambiente.
-5. Confira os dois painéis simultaneamente. A saída física do teclado continua diretamente na mesa.
-6. Saia do app e confirme que o microfone para.
+## Limitações / trabalho ainda pendente
+- Sem sincronização direta LouveApp/Cifra Club; depende de documentação, credenciais e permissão de integração. Assinatura Pro não é uma credencial API.
+- Sem leitura da tela do editor EXE/APK; o EXE fornecido não contém o código-fonte Android.
+- Sem leitura SysEx do estado real do teclado, editor MFX completo, seleção de patches, splits/camadas ou undo do estado externo. Os sliders são valores preparados no app.
+- Sem correção automática de notas no PA, reconhecimento robusto da posição da banda na música ou tempo estimado do áudio.
+- O teclado gráfico mostra C3–C5; notas fora da faixa aparecem no texto.
+- Modelo neural não acompanha o APK. Nenhuma promessa de inteligência ilimitada ou desempenho por tamanho de arquivo.
+- Build/lint e testes automatizados não substituem validação USB/microfone/modelo no S25 e XPS-10.
 
-## Escopo acordado / próximas etapas
-- Analisar protocolo e parâmetros do editor XPS, implementar somente comandos documentados com leitura de estado, confirmação e desfazer.
-- Timbres: filtros, envelopes, MFX, camadas, splits, cenas e comparação A/B.
-- LouveApp: verificar documentação da API e acesso do administrador, campos de tom/cifra e compartilhamento autorizado. Nenhum token no Git/APK.
-- Repertório offline, rolagem ajustável, posição da música e avisos antecipados sincronizados. Rolagem não equivale a seguir a banda.
-- Inversões, condução de vozes e empréstimos modais com contexto e aviso de possível conflito com banda/melodia.
-- IA local: selecionar modelo/licença/runtime, avaliar RAM, latência e temperatura no S25 FE. Não prometer capacidades antes dos testes.
-- Modo palco/estudo, temas claro/escuro, teclado gráfico, intensidade de sugestões e revisão MIDI.
-- Áudio externo/efeitos e correção de notas exigem outro roteamento e validação de latência.
+## Desenvolvimento e fontes
+Java 17 / Gradle 8.9 / SDK35. `gradle :app:assembleDebug :app:lintDebug`; `node tests/music.test.js`. Workflow também executa testes Java de áudio/harmonia/parser MIDI.
 
-## Editor recebido
-O ZIP recebido contém apenas XPS 10 Editor.exe (92.541.766 bytes), PE32 Windows x86. Não contém APK nem código-fonte. Não executado nem redistribuído; a análise inicial não confirmou framework ou protocolo. Os prints são referência visual, não evidência dos comandos.
+- Roland MIDI implementation: https://static.roland.com/assets/media/pdf/XPS-10_MIDI_Imple_e01.pdf
+- Runtime local: https://developers.google.com/edge/mediapipe/solutions/genai/llm_inference/android
+- LouveApp: https://louveapp.com.br/
 
-## Build
-JDK 17, Android SDK 35, Gradle 8.9 e Android Gradle Plugin 8.6.1. Execute `gradle :app:assembleDebug` nesta pasta ou use o workflow GitHub. Não existem chaves de serviço ou credenciais nesta implementação.
+WebView carrega apenas assets locais, não navega sites e não usa HTML interpretado para letras/importações/respostas. Bridge MIDI valida canal, CC e valores. Importação musical limitada a 1 MB; modelos copiados em streaming. Nenhum executável de terceiros redistribuído.
