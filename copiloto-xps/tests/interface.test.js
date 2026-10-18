@@ -1,7 +1,7 @@
 // Integration smoke test: native MIDI events -> screen, sustain, repertoire and CC output.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 class Element {
- constructor(){this.value='';this.textContent='';this.children=[];this.dataset={};this.clientWidth=360;this.classList={add(){},remove(){},contains(){return false;},toggle(){}};}
+ constructor(){this.value='';this.textContent='';this.children=[];this.dataset={};this.clientWidth=360;this.classes=new Set();this.classList={add:c=>this.classes.add(c),remove:c=>this.classes.delete(c),contains:c=>this.classes.has(c),toggle:c=>this.classes.has(c)?this.classes.delete(c):this.classes.add(c)};}
  append(...a){this.children.push(...a);for(const x of a)if(x.id)els[x.id]=x;}
  showModal(){this.open=true;}
  close(){this.open=false;}
@@ -64,3 +64,13 @@ els.songCategory.value='Adoração';els.saveSong.onclick();els.songFilter.value=
 assert(calls.filter(c=>c[0]==='save').at(-1)[1].songs.some(s=>s.category==='Adoração'));
 ctx.window.receive('hardwareReset',true);const before=calls.length;els.liveApplyVolume.onclick();assert.equal(calls.length,before);
 console.log('Live: category persistence, drum filter, patch selection, pad mapping and actual part channel passed');
+
+for(const method of ['openCifra','showMode','panic','undoHardware'])native[method]=(...a)=>calls.push([method,...a]);
+els.liveCifra.onclick();assert.deepEqual(calls.at(-1),['openCifra']);
+els.liveFocus.onclick();assert.deepEqual(calls.at(-1),['showMode',true]);
+els.liveFocus.onclick();assert.deepEqual(calls.at(-1),['showMode',false]);
+els.livePanic.onclick();assert.deepEqual(calls.at(-1),['panic']);
+els.liveEffects.onclick();assert.equal(els.effectsDrawer.open,true);
+ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});
+els.liveCC.value='74';els.liveCCValue.value='64';els.liveSendCC.onclick();assert.deepEqual(calls.at(-1),['cc',10,74,64]);
+console.log('Show: landscape toggle, embedded browser entry, panic and effect control channel passed');

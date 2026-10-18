@@ -41,6 +41,6 @@ jobs:
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Copiloto-XPS-0.5-APK
+          name: Copiloto-XPS-0.6-APK
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error

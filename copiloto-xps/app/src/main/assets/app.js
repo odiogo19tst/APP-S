@@ -52,7 +52,7 @@ window.receive=(type,data)=>{if(type==='sharedText'){$('sharedText').value=data;
 list();sceneList();updateSong();draw();
 
 $('importShared').onclick=()=>importSongs($('sharedText').value);
-$('openLouve').onclick=()=>invoke('openReference','louve');$('openCifra').onclick=()=>invoke('openReference','cifra');
+$('openLouve').onclick=()=>invoke('openReference','louve');$('openCifra').onclick=()=>invoke('openCifra');
 $('getModel').onclick=()=>invoke('openReference','model');$('testModel').onclick=()=>{document.querySelector('[data-tab="coach"]').click();$('answer').textContent='Carregando e testando no aparelho…';invoke('testModel');};$('effectsManual').onclick=()=>invoke('openReference','effects');
 
 $('songFilter').onchange=list;

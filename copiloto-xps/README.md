@@ -1,4 +1,4 @@
-# Copiloto XPS 0.5 — prévia funcional Android
+# Copiloto XPS 0.6 — prévia funcional Android
 
 Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não processa o áudio do PA; comandos MIDI e pads podem alterar ou produzir som no teclado. Android 8+; alvo de teste físico: Samsung S25 FE.
 
@@ -8,10 +8,10 @@ Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente p
 - Repertório persistente: edição, importação JSON/ChordPro, exportação JSON, transposição da cifra, BPM/tap tempo, avanço programado, rolagem da letra, aviso antecipado, voicing sugerido e exemplo de empréstimo modal.
 - Sons: envio MIDI explicitamente ativado, canal 1–16, CC7/10/11/71/72/73/74/91/93, preparação e aplicação de cenas de controles. Não são patches completos.
 - Copiloto: guia harmônico determinístico e runtime neural offline MediaPipe 0.10.27 com importação de modelo .task. O modelo não está incluído. GGUF não é compatível. Respostas neurais nunca executam comandos.
-- Temas claro/escuro, processamento local, sem permissão de internet.
+- Temas claro/escuro e análise musical local. Permissão de internet usada pelo navegador Cifra Club.
 
 ## Usar
-1. Instale o APK de `Copiloto-XPS-0.5-APK` nos artifacts do GitHub Actions.
+1. Instale o APK de `Copiloto-XPS-0.6-APK` nos artifacts do GitHub Actions.
 2. Conecte o XPS-10 por USB e toque em Conectar USB; selecione o dispositivo.
 3. Toque notas e confira o teclado gráfico. O cabo USB transporta MIDI, não o áudio do XPS-10.
 4. Ative Ouvir ambiente e autorize o microfone. Confirme o tom manualmente; a estimativa não muda a referência sozinha.
@@ -35,7 +35,7 @@ JDK 21 (fonte Java 17) / Gradle 8.9 / SDK35. `gradle :app:assembleDebug :app:lin
 - Runtime local: https://developers.google.com/edge/mediapipe/solutions/genai/llm_inference/android
 - LouveApp: https://louveapp.com.br/
 
-WebView carrega apenas assets locais, não navega sites e não usa HTML interpretado para letras/importações/respostas. Bridge MIDI valida canal, CC e valores. Importação musical limitada a 1 MB; modelos copiados em streaming. Nenhum executável de terceiros redistribuído.
+A WebView dos controles carrega apenas assets locais, bloqueia rede e não usa HTML interpretado para letras/importações/respostas. O navegador online usa outra WebView sem bridge MIDI. Bridge MIDI valida canal, CC e valores. Importação musical limitada a 1 MB; modelos copiados em streaming. Nenhum executável de terceiros redistribuído.
 
 
 ## Novidades 0.3 — timbres e leitura do XPS-10
@@ -85,3 +85,13 @@ Pendências reais: validação física da inferência/USB/áudio no S25; APIs do
 - Pads exigem envio MIDI ativado. As notas emitidas são soltas após 120 ms, ao desativar envio ou ao sair do app. Botão Soltar notas dos pads encerra notas ainda mantidas pelo aplicativo.
 - São pads MIDI na tela, não controle dos AUDIO PAD físicos, sequenciador de batidas, importador de samples ou editor de kits. Esses recursos não estão implementados.
 - Testes da interface cobrem categorias, seleção de kits, troca de programa sem alterar outros campos, mapeamento dos pads e volume no canal lido. Validação física dos novos controles permanece necessária.
+
+
+## Novidades 0.6 — Cifra Club e paisagem
+
+- Navegador Cifra Club incorporado em painel separado: ao lado dos controles em paisagem e abaixo em retrato. Botões Voltar, Recarregar, Início, Externo e Fechar. Cookies próprios da WebView persistem; cookies de terceiros desativados. Sem bridge JavaScript, acesso a arquivos, captura de credenciais ou comandos MIDI no conteúdo remoto.
+- Login feito diretamente no site. Compatibilidade de login e recursos Pro depende de teste físico; provedores como Google podem rejeitar WebViews. Externo abre o navegador do aparelho, mas não transfere sua sessão para o painel. Não contornamos restrições do provedor.
+- Não extrai cifras nem entrega automaticamente a página à IA. Navegação autenticada não equivale a sincronização API ou acompanhamento da rolagem.
+- Rotação liberada sem recriar a Activity nas mudanças de orientação/tamanho. Modo show solicita paisagem e preserva controles do Palco, tom, notas/acorde, acompanhamento, USB/microfone e acesso às demais abas. Sair do show devolve rotação automática.
+- Atalhos para efeitos CC (cutoff, ressonância, ataque, release, reverb, chorus, expressão), desfazer última edição SysEx e liberar sustain/notas nos 16 canais. O último botão é de emergência e pode interromper notas tocadas; não restaura timbres/efeitos.
+- No S25, validar rotação durante MIDI, proporções do painel, acesso ao Cifra Club, login, cookies e resposta dos controles. Testes de interface não substituem esses testes físicos.
