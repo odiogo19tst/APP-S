@@ -31,15 +31,16 @@ jobs:
         run: |
           mkdir -p build/selftest
           SRC=app/src/main/java/br/com/doapps/grauelive
-          javac -d build/selftest "$SRC/PitchDetector.java" "$SRC/ChromaAnalyzer.java" "$SRC/MusicBrain.java" "$SRC/GrauePacket.java" "$SRC/MidiStream.java" app/src/test/java/br/com/doapps/grauelive/*.java
+          javac -d build/selftest "$SRC/PitchDetector.java" "$SRC/ChromaAnalyzer.java" "$SRC/MusicBrain.java" "$SRC/GrauePacket.java" "$SRC/MidiStream.java" "$SRC/XpsProtocol.java" app/src/test/java/br/com/doapps/grauelive/*.java
           java -cp build/selftest br.com.doapps.grauelive.AudioLogicSelfTest
           java -cp build/selftest br.com.doapps.grauelive.Harmony04SelfTest
           java -cp build/selftest br.com.doapps.grauelive.MidiStreamSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.XpsProtocolSelfTest
       - run: node copiloto-xps/tests/music.test.js && node copiloto-xps/tests/interface.test.js
       - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Copiloto-XPS-0.2-APK
+          name: Copiloto-XPS-0.3-APK
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error

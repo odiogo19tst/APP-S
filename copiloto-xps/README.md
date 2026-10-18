@@ -1,4 +1,4 @@
-# Copiloto XPS 0.2 — prévia funcional Android
+# Copiloto XPS 0.3 — prévia funcional Android
 
 Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não altera o áudio enviado ao PA. Android 8+; alvo de teste físico: Samsung S25 FE.
 
@@ -11,7 +11,7 @@ Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente p
 - Temas claro/escuro, processamento local, sem permissão de internet.
 
 ## Usar
-1. Instale o APK de `Copiloto-XPS-0.2-APK` nos artifacts do GitHub Actions.
+1. Instale o APK de `Copiloto-XPS-0.3-APK` nos artifacts do GitHub Actions.
 2. Conecte o XPS-10 por USB e toque em Conectar USB; selecione o dispositivo.
 3. Toque notas e confira o teclado gráfico. O cabo USB transporta MIDI, não o áudio do XPS-10.
 4. Ative Ouvir ambiente e autorize o microfone. Confirme o tom manualmente; a estimativa não muda a referência sozinha.
@@ -22,7 +22,7 @@ Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente p
 ## Limitações / trabalho ainda pendente
 - Sem sincronização direta LouveApp/Cifra Club; depende de documentação, credenciais e permissão de integração. Assinatura Pro não é uma credencial API.
 - Sem leitura da tela do editor EXE/APK; o EXE fornecido não contém o código-fonte Android.
-- Sem leitura SysEx do estado real do teclado, editor MFX completo, seleção de patches, splits/camadas ou undo do estado externo. Os sliders são valores preparados no app.
+- Leitura e edição SysEx implementadas para Performance, partes, zonas e controles gerais MFX/chorus/reverb. Parâmetros específicos de cada algoritmo MFX ainda não possuem editor. Undo restaura somente os campos da última edição SysEx com leitura anterior conhecida. Sliders CC continuam sendo valores preparados no app.
 - Sem correção automática de notas no PA, reconhecimento robusto da posição da banda na música ou tempo estimado do áudio.
 - O teclado gráfico mostra C3–C5; notas fora da faixa aparecem no texto.
 - Modelo neural não acompanha o APK. Nenhuma promessa de inteligência ilimitada ou desempenho por tamanho de arquivo.
@@ -36,3 +36,27 @@ JDK 21 (fonte Java 17) / Gradle 8.9 / SDK35. `gradle :app:assembleDebug :app:lin
 - LouveApp: https://louveapp.com.br/
 
 WebView carrega apenas assets locais, não navega sites e não usa HTML interpretado para letras/importações/respostas. Bridge MIDI valida canal, CC e valores. Importação musical limitada a 1 MB; modelos copiados em streaming. Nenhum executável de terceiros redistribuído.
+
+
+## Novidades 0.3 — timbres e leitura do XPS-10
+
+- Catálogo com 1.564 timbres, extraído da lista oficial Roland eng02: busca por nome, filtro por categoria e favoritos persistentes. Não redistribuímos o PDF nem amostras de áudio.
+- Troca de timbre por parte, via MSB/LSB/programa. A tela mostra programas 1–128; o protocolo envia 0–127.
+- Ler XPS-10 consulta Setup, Performance Common, 16 partes, 16 zonas, 3 MFX, chorus, reverb e 16 patches temporários. Somente blocos que responderam são exibidos como lidos.
+- Ler timbres de usuário consulta as 256 posições User Patch e seus nomes (cerca de 30 segundos), sem trocar o timbre em uso. A lista desta leitura vale para a conexão atual. Não inclui biblioteca de samples de pendrive nem os 8 User Rhythm.
+- Seleção de nome personalizado e envio para a parte escolhida. Dados de timbres de usuário não são confundidos com a lista de fábrica.
+- Camada/split nas partes 1 e 2 e edição individual das zonas por canal. As partes precisam de canais diferentes. Outras zonas podem continuar soando; confira quais estão ativas.
+- Tipo e envios MFX, roteamento da parte, tipos/níveis chorus e reverb. Aplicar MFX seleciona explicitamente a fonte Performance.
+- Cada edição exige leitura anterior e envio ativado. Depois do envio, o app faz nova consulta e informa se os valores foram confirmados. Disconnect/background cancela a fila. Desfazer restaura os campos anteriores, não um backup completo da Performance.
+- Nenhum comando grava bancos User. Para guardar alterações temporárias após desligar, use WRITE no teclado.
+
+### Fluxo para trocar um timbre
+1. Palco > Conectar USB.
+2. Sons > Ler XPS-10. Device ID esperado: 17 (10h).
+3. Se necessário, ative envio e toque em Entrar em Performance; aguarde a nova leitura.
+4. Escolha a parte, busque o nome ou consulte os timbres de usuário e selecione um.
+5. Ative envio MIDI e toque em Trocar timbre nesta parte. Aguarde a confirmação de leitura.
+
+Fonte do catálogo: https://static.roland.com/assets/media/pdf/XPS-10_ToneList_eng02_W.pdf
+Extração reproduzível: `python scripts/extract_tones.py /caminho/lista.pdf` (PyMuPDF).
+Protocolos e testes usam o mapa Roland MIDI e01: endereços base-128, checksum, RQ1 com bloco/tamanho documentado e DT1 apenas em campos permitidos. Os testes incluem pacotes fragmentados, realtime, dados inválidos, faixas, catálogo e fluxo da interface. A validação no equipamento físico continua pendente.
