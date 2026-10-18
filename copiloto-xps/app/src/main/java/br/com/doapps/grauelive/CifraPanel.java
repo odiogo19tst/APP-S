@@ -10,7 +10,8 @@ import android.widget.*;
 /** Online browser isolated from the local MIDI bridge. */
 final class CifraPanel extends LinearLayout {
  private final WebView browser;
- CifraPanel(Activity activity, Runnable close) {
+ interface Importer {void accept(String title,String text);}
+ CifraPanel(Activity activity, Importer importer, Runnable close) {
   super(activity);setOrientation(VERTICAL);setBackgroundColor(0xff101827);
   LinearLayout bar=new LinearLayout(activity);
   addView(bar,new LayoutParams(-1,-2));
@@ -31,6 +32,10 @@ final class CifraPanel extends LinearLayout {
   button(bar,"↻",()->browser.reload());
   button(bar,"Início",()->browser.loadUrl("https://www.cifraclub.com.br/"));
   button(bar,"Externo",()->{String u=browser.getUrl();if(u!=null&&"https".equalsIgnoreCase(Uri.parse(u).getScheme()))try{activity.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(u)));}catch(Exception ignored){address.setText("Nenhum navegador disponível.");}});
+  button(bar,"Importar",()->{
+   Uri uri=Uri.parse(browser.getUrl()==null?"":browser.getUrl());String host=uri.getHost();if(host==null||!(host.equals("cifraclub.com.br")||host.endsWith(".cifraclub.com.br"))){address.setText("Abra a cifra no Cifra Club antes de importar.");return;}
+   browser.evaluateJavascript("(()=>{let p=document.querySelector('pre');return JSON.stringify({title:document.querySelector('h1')?.innerText||document.title,text:p?.innerText?.slice(0,200000)||''});})()",result->{try{String json=(String)new org.json.JSONTokener(result).nextValue();org.json.JSONObject d=new org.json.JSONObject(json);String text=d.getString("text");if(text.trim().isEmpty()){address.setText("Cifra não encontrada nesta página. Abra uma música ou compartilhe o texto.");return;}importer.accept(d.getString("title"),text);address.setText("Texto enviado ao Copiloto; confira o resultado no painel.");}catch(Exception e){address.setText("Não foi possível ler esta cifra. Compartilhe o texto pelo site.");}});
+  });
   button(bar,"Fechar",close);
   browser.loadUrl("https://www.cifraclub.com.br/");
  }

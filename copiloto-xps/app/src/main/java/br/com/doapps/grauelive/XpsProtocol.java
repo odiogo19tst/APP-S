@@ -9,7 +9,7 @@ public final class XpsProtocol {
   public final String section; public final int index,start,size;
   Block(String s,int i,int a,int n){section=s;index=i;start=a;size=n;}
  }
- public static List<Block> blocks(){List<Block> b=new ArrayList<>();b.add(new Block("setup",0,address(1,0,0,0),0x34));b.add(new Block("common",0,address(0x10,0,0,0),0x38));
+ public static List<Block> blocks(){List<Block> b=new ArrayList<>();b.add(new Block("setup",0,address(1,0,0,0),0x34));b.add(new Block("rhythmGroup",0,address(0x1e,0x13,0,0),0x73));b.add(new Block("common",0,address(0x10,0,0,0),0x38));
   for(int i=0;i<16;i++){b.add(new Block("part",i,address(0x10,0,0x20+i,0),0x31));b.add(new Block("zone",i,address(0x10,0,0x50+i,0),0x1b));}
   for(int i=0;i<3;i++)b.add(new Block("mfx",i,address(0x10,0,new int[]{2,8,10}[i],0),145));
   b.add(new Block("chorus",0,address(0x10,0,4,0),0x54));b.add(new Block("reverb",0,address(0x10,0,6,0),0x53));return b;
@@ -24,7 +24,8 @@ public final class XpsProtocol {
  public static Data decode(byte[] p){if(p.length<14||p.length>1024||(p[0]&255)!=240||(p[1]&255)!=65||(p[2]&255)!=DEVICE||p[3]!=0||p[4]!=0||p[5]!=0x3a||p[6]!=0x12||(p[p.length-1]&255)!=247)return null;int sum=0;for(int i=7;i<p.length-1;i++){if((p[i]&255)>127)return null;sum+=p[i]&127;}if(sum%128!=0)return null;int start=address(p[7],p[8],p[9],p[10]);int[] v=new int[p.length-13];for(int i=0;i<v.length;i++)v[i]=p[11+i]&127;return new Data(start,v);}
  public static int writeAddress(String section,int index,int offset,int value){Block b=block(section,index);boolean ok=false;if(value<0||value>127)throw new IllegalArgumentException("Valor MIDI fora da faixa");
   switch(section){
-   case "setup":ok=offset==0&&value==1;break;
+   case "setup":ok=(offset==0&&value==1)||(offset>=10&&offset<=14&&value<=1)||(offset==18&&value>=59&&value<=70)||(offset==19&&value>=61&&value<=67)||(offset==23&&value<=8)||(offset==24&&value<=9)||((offset==25||offset==30||offset==33)&&value<=1)||(offset==27)||(offset==28&&value<=11)||(offset==29&&value>=61&&value<=67)||((offset==31||offset==39)&&value<=100)||offset==32||((offset==35||offset==36)&&value<=15)||(offset==38&&value<=23)||(offset==40&&value>=1);break;
+   case "rhythmGroup":for(int pad=0;pad<6;pad++){int start=21+6*pad;if(offset==start&&value>=1)ok=true;if((offset==start+2||offset==start+3)&&value<=15)ok=true;}break;
    case "part":
     if(offset==0)ok=value<=15;else if(offset==1||offset==0x1b)ok=value<=1;
     else if(offset==0x15)ok=value>=61&&value<=67;

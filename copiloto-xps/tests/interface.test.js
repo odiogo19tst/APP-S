@@ -74,3 +74,18 @@ els.liveEffects.onclick();assert.equal(els.effectsDrawer.open,true);
 ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});
 els.liveCC.value='74';els.liveCCValue.value='64';els.liveSendCC.onclick();assert.deepEqual(calls.at(-1),['cc',10,74,64]);
 console.log('Show: landscape toggle, embedded browser entry, panic and effect control channel passed');
+for(const file of ['mfx-params.js','advanced.js','sequencer.js'])vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/'+file,'utf8'),ctx);
+assert.equal(ctx.window.XPS_MFX_PARAMS.length,79);assert.equal(ctx.window.XPS_MFX_PARAMS[1][0].id,'equalizer-loFreq');assert(ctx.window.XPS_MFX_PARAMS[21][0].id.startsWith('rotary-'));assert(ctx.window.XPS_MFX_PARAMS[78][0].id.startsWith('sympatheticResonance-'));
+for(const params of ctx.window.XPS_MFX_PARAMS){assert.equal(new Set(params.map(p=>p.parameter)).size,params.length);for(const p of params){assert(p.parameter>=0&&p.parameter<32);assert(p.min>=12768&&p.max<=52768);if(p.labels)assert.equal(p.labels.length,p.max-p.min+1);}}
+const fx=Array(145).fill(0);fx[0]=1;for(let i=17;i<145;i+=4)fx[i]=8;
+const setup=Array(52).fill(0);setup[0]=1;setup[29]=64;setup[40]=100;
+const group=Array(115).fill(0);for(let i=0;i<6;i++)group[21+i*6]=100;
+ctx.window.receive('hardware',{'setup:0':setup,'part:0':part,'zone:9':zone,'mfx:0':fx,'rhythmGroup:0':group,readAt:Date.now()});
+assert.equal(els.mfxParameters.children.length,11);
+const gain=els.mfxParameters.children[1],gainInput=gain.children[0];gainInput.value='32783';gain.children[1].onclick();edit=calls.filter(c=>c[0]==='edit').at(-1)[1];assert.equal(edit[0].section,'mfxparam');assert.equal(edit[0].effect,1);assert.equal(edit[0].value,32783);
+els.physicalPattern0.value='256';els.applyPhysicalPads.onclick();edit=calls.filter(c=>c[0]==='edit').at(-1)[1];assert.equal(edit[1].value,15);assert.equal(edit[2].value,15);assert.equal(edit.length,18);
+els.applyArp.onclick();edit=calls.filter(c=>c[0]==='edit').at(-1)[1];assert(edit.some(e=>e.offset===29&&e.value===64));
+for(const method of ['startSequence','stopSequence'])native[method]=(...a)=>calls.push([method,...a]);
+els.sequencePreset.onclick();assert.equal(els.sequenceGrid.children.length,136);els.sequenceBpm.value='90';els.sequenceStart.onclick();let pattern=JSON.parse(calls.at(-1)[1]);assert.equal(pattern.grid[0][0],110);assert.equal(pattern.grid[1][4],100);assert.equal(pattern.channel,10);
+ctx.window.receive('webCifra',{title:'Minha cifra',text:'C Am F G\nTexto de exemplo'});assert.equal(els.songTitle.textContent,'Minha cifra');assert.equal(els.songCategory.value,'Cifra Club');
+console.log('Advanced: 78 MFX mappings, internal effect writes, six pad assignments, arp, sequence and browser import passed');
