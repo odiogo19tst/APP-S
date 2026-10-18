@@ -3,6 +3,8 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 class Element {
  constructor(){this.value='';this.textContent='';this.children=[];this.dataset={};this.clientWidth=360;this.classList={add(){},remove(){},contains(){return false;},toggle(){}};}
  append(...a){this.children.push(...a);for(const x of a)if(x.id)els[x.id]=x;}
+ showModal(){this.open=true;}
+ close(){this.open=false;}
  setAttribute(){}
  replaceChildren(){this.children=[];}
  getContext(){return {scale(){},fillRect(){}};}
@@ -42,3 +44,23 @@ assert.equal(parser('{title: Teste}\n[C7M]linha [Dm7(b5)]outra',parseChord).chor
 assert.throws(()=>parser('https://example.com/cifra',parseChord),/apenas um link/);
 assert.equal(ctx.window.XPS_EFFECTS[21],'Rotary');assert.equal(ctx.window.XPS_EFFECTS.length,79);
 console.log('Share: plain chords, ChordPro, link-only rejection and effect catalog passed');
+
+vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/live.js','utf8'),ctx);
+native.padHit=(...a)=>calls.push(['pad',...a]);native.stopPads=()=>calls.push(['stopPads']);
+assert.equal(els.toneFamilies.children.length,9);
+assert.equal(els.drumPads.children.length,8);
+els.drumVelocity.value='100';els.drumPads.children[0].onpointerdown({preventDefault(){}});
+assert.deepEqual(calls.at(-1),['pad',10,36,100]);
+let padInput=els.padNotes.children[0].children[0];padInput.value='40';padInput.onchange();
+assert.equal(calls.filter(c=>c[0]==='save').at(-1)[1].padNotes[0],40);
+els.drumPads.children[0].onpointerdown({preventDefault(){}});assert.equal(calls.at(-1)[2],40);
+part[0]=9;ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});
+els.liveDrums.onclick();assert.equal(els.toneDrawer.open,true);assert.equal(els.drumChannel.value,'10');
+assert(els.liveToneList.children.length>0);assert(els.liveToneList.children.every(b=>b.textContent.startsWith('Dr')));
+els.liveToneList.children[0].onclick();els.liveApplyTone.onclick();assert.equal(els.toneDrawer.open,false);
+edit=calls.filter(c=>c[0]==='edit').at(-1)[1];assert.equal(JSON.stringify(edit.map(x=>x.offset)),'[4,5,6]');
+els.liveVolume.value='85';els.liveApplyVolume.onclick();assert.deepEqual(calls.at(-1),['cc',10,7,85]);
+els.songCategory.value='Adoração';els.saveSong.onclick();els.songFilter.value='Adoração';els.songFilter.onchange();assert.equal(els.songList.children.length,1);
+assert(calls.filter(c=>c[0]==='save').at(-1)[1].songs.some(s=>s.category==='Adoração'));
+ctx.window.receive('hardwareReset',true);const before=calls.length;els.liveApplyVolume.onclick();assert.equal(calls.length,before);
+console.log('Live: category persistence, drum filter, patch selection, pad mapping and actual part channel passed');

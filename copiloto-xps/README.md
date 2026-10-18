@@ -1,6 +1,6 @@
-# Copiloto XPS 0.4 — prévia funcional Android
+# Copiloto XPS 0.5 — prévia funcional Android
 
-Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não altera o áudio enviado ao PA. Android 8+; alvo de teste físico: Samsung S25 FE.
+Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não processa o áudio do PA; comandos MIDI e pads podem alterar ou produzir som no teclado. Android 8+; alvo de teste físico: Samsung S25 FE.
 
 ## Funções implementadas
 - Palco: notas MIDI, sustain por canal, acordes (tríades, sétimas, suspensos e add9), inversões, graus, teclado gráfico e histórico de velocidades.
@@ -11,7 +11,7 @@ Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente p
 - Temas claro/escuro, processamento local, sem permissão de internet.
 
 ## Usar
-1. Instale o APK de `Copiloto-XPS-0.4-APK` nos artifacts do GitHub Actions.
+1. Instale o APK de `Copiloto-XPS-0.5-APK` nos artifacts do GitHub Actions.
 2. Conecte o XPS-10 por USB e toque em Conectar USB; selecione o dispositivo.
 3. Toque notas e confira o teclado gráfico. O cabo USB transporta MIDI, não o áudio do XPS-10.
 4. Ative Ouvir ambiente e autorize o microfone. Confirme o tom manualmente; a estimativa não muda a referência sozinha.
@@ -74,3 +74,14 @@ Protocolos e testes usam o mapa Roland MIDI e01: endereços base-128, checksum, 
 Fontes: https://huggingface.co/litert-community/Gemma3-1B-IT e https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf
 
 Pendências reais: validação física da inferência/USB/áudio no S25; APIs dos serviços externos; mapeamento completo de parâmetros internos MFX; acompanhamento automático da posição e andamento da banda; correção de notas no áudio PA. Nenhuma dessas funções é simulada como concluída.
+
+
+## Novidades 0.5 — operação ao vivo e pads
+
+- Painel Ao vivo reúne repertório, timbres/favoritos, kits de bateria, leitura, ativação MIDI, parte e volume. Modo palco oculta gráficos de estudo e dicas extras.
+- Seleção de timbre em janela dentro do Palco, por famílias equivalentes aos grupos do teclado; aplicação explícita na parte escolhida. A confirmação ainda exige retorno MIDI do equipamento.
+- Músicas com categoria editável e filtro no Repertório; categorias preservadas na exportação/importação JSON. Timbres agrupados por Piano, Teclas, Cordas/Guitarra, Metais/Baixo, Synth, World, Bateria/FX, Sample e Usuário.
+- Oito pads na tela enviam Note On/Off por MIDI, com canal, intensidade e notas configuráveis/persistentes. Ao abrir Kits de bateria após leitura, o canal dos pads acompanha o canal da parte escolhida. Selecione o kit e aplique antes de tocar. Os nomes dos pads são referências GM e podem variar nos kits eletrônicos.
+- Pads exigem envio MIDI ativado. As notas emitidas são soltas após 120 ms, ao desativar envio ou ao sair do app. Botão Soltar notas dos pads encerra notas ainda mantidas pelo aplicativo.
+- São pads MIDI na tela, não controle dos AUDIO PAD físicos, sequenciador de batidas, importador de samples ou editor de kits. Esses recursos não estão implementados.
+- Testes da interface cobrem categorias, seleção de kits, troca de programa sem alterar outros campos, mapeamento dos pads e volume no canal lido. Validação física dos novos controles permanece necessária.
