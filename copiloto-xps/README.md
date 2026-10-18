@@ -1,4 +1,4 @@
-# Copiloto XPS 0.3 — prévia funcional Android
+# Copiloto XPS 0.4 — prévia funcional Android
 
 Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não altera o áudio enviado ao PA. Android 8+; alvo de teste físico: Samsung S25 FE.
 
@@ -11,7 +11,7 @@ Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente p
 - Temas claro/escuro, processamento local, sem permissão de internet.
 
 ## Usar
-1. Instale o APK de `Copiloto-XPS-0.3-APK` nos artifacts do GitHub Actions.
+1. Instale o APK de `Copiloto-XPS-0.4-APK` nos artifacts do GitHub Actions.
 2. Conecte o XPS-10 por USB e toque em Conectar USB; selecione o dispositivo.
 3. Toque notas e confira o teclado gráfico. O cabo USB transporta MIDI, não o áudio do XPS-10.
 4. Ative Ouvir ambiente e autorize o microfone. Confirme o tom manualmente; a estimativa não muda a referência sozinha.
@@ -60,3 +60,17 @@ WebView carrega apenas assets locais, não navega sites e não usa HTML interpre
 Fonte do catálogo: https://static.roland.com/assets/media/pdf/XPS-10_ToneList_eng02_W.pdf
 Extração reproduzível: `python scripts/extract_tones.py /caminho/lista.pdf` (PyMuPDF).
 Protocolos e testes usam o mapa Roland MIDI e01: endereços base-128, checksum, RQ1 com bloco/tamanho documentado e DT1 apenas em campos permitidos. Os testes incluem pacotes fragmentados, realtime, dados inválidos, faixas, catálogo e fluxo da interface. A validação no equipamento físico continua pendente.
+
+
+## Novidades 0.4 — instalação da IA e compartilhamento
+
+- O Android oferece Copiloto XPS como destino de compartilhamento `text/plain`. O texto recebido fica para revisão em Repertório; importar exige toque explícito. Links isolados não são buscados nem tratados como cifra.
+- Importação de linhas de acordes e ChordPro. Ampliação da notação: maj9, 7M, m9, m11, m6, m7b5/m7(b5), dim7, aug, 6, 9, 11, 13, 7sus4.
+- Botões abrem LouveApp/Cifra Club no navegador externo. Isso não é sincronização de contas/API. Não foi encontrada documentação oficial suficiente para implementar a sincronização nesta sessão.
+- Tipos MFX pelo nome (78 algoritmos + sem efeito), conforme a lista Roland. O manual de parâmetros abre no navegador externo. A lista descreve controles, mas não fornece a correspondência completa de cada controle ao índice MIDI interno: editor detalhado ainda depende dessa validação.
+- Instalação neural: botão para a página do modelo compatível, status/tamanho local, progresso de cópia, carregamento de verificação antes de substituir o modelo anterior e teste de uma resposta. Contexto limitado a 1024 tokens e pergunta a 1500 caracteres. O arquivo .task deve ser compatível com MediaPipe; formatos GGUF/.litertlm não são aceitos pelo runtime atual.
+- A página Gemma exige login e aceite da licença do fornecedor. O modelo não é redistribuído pelo app. Sem um modelo importado, o guia musical determinístico funciona, mas não há conversa neural.
+
+Fontes: https://huggingface.co/litert-community/Gemma3-1B-IT e https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf
+
+Pendências reais: validação física da inferência/USB/áudio no S25; APIs dos serviços externos; mapeamento completo de parâmetros internos MFX; acompanhamento automático da posição e andamento da banda; correção de notas no áudio PA. Nenhuma dessas funções é simulada como concluída.

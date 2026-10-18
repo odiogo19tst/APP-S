@@ -10,7 +10,7 @@ class Element {
 const els={},html=fs.readFileSync(__dirname+'/../app/src/main/assets/index.html','utf8');for(const m of html.matchAll(/id="([^"]+)"/g))els[m[1]]=new Element();
 const calls=[],document={getElementById:id=>els[id],createElement:()=>new Element(),createTextNode:text=>({text}),body:new Element(),querySelectorAll:s=>s==='.key'?els.piano.children:[]};
 const native={load:()=>'{"songs":[],"scenes":[]}',save:s=>calls.push(['save',JSON.parse(s)]),editHardware:s=>calls.push(['edit',JSON.parse(s)]),readUserTones:()=>calls.push(['readUserTones']),cc:(...a)=>calls.push(['cc',...a])};
-const ctx={document,window:{Native:native},Music:require('../app/src/main/assets/music.js'),performance:{now:()=>1000},devicePixelRatio:1,getComputedStyle:()=>({getPropertyValue:()=>''}),setInterval(){},console};
+const ctx={parseSharedCifra:require('../app/src/main/assets/import-text.js'),document,window:{Native:native},Music:require('../app/src/main/assets/music.js'),performance:{now:()=>1000},devicePixelRatio:1,getComputedStyle:()=>({getPropertyValue:()=>''}),setInterval(){},console};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/app.js','utf8'),ctx);
 const event=a=>ctx.window.receive('midi',a);
 event([144,60,90]);event([144,64,80]);event([144,67,85]);assert.equal(els.chord.textContent,'C');assert.match(els.feedback.textContent,/pertencem/);
@@ -21,7 +21,7 @@ ctx.window.receive('import','{title: ChordPro}\n[C]Linha [Am]outra');assert.equa
 console.log('Interface: MIDI, sustain, chord comparison, repertoire, transpose and CC passed');
 
 els.hardwarePart.value='0';els.mfxUnit.value='0';
-for(const file of ['hardware.js','tones-data.js','tones.js'])vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/'+file,'utf8'),ctx);
+for(const file of ['effects-data.js','hardware.js','tones-data.js','tones.js'])vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/'+file,'utf8'),ctx);
 assert.equal(els.applyTone.disabled,true);
 const part=Array(49).fill(0),zone=Array(27).fill(0);part[4]=87;part[5]=64;part[6]=0;part[7]=100;part[21]=64;zone[13]=127;
 ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:0':zone,readAt:Date.now()});
@@ -35,3 +35,10 @@ ctx.window.receive('hardwareReset',true);assert.equal(els.applyTone.disabled,tru
 assert.equal(ctx.window.XPS_TONES.length,1564);assert.equal(new Set(ctx.window.XPS_TONES.map(t=>t.code)).size,1564);
 assert.equal(ctx.window.XPS_TONES.find(t=>t.code==='Dr020').name,'GM2 STANDARD');
 console.log('Hardware UI: read gating, patch-only write, favorites, user patches and disconnect reset passed');
+
+const parser=require('../app/src/main/assets/import-text.js'),parseChord=ctx.Music.parse;
+assert.equal(parser('C Am7 F G7\nUma linha de letra',parseChord).chords.join(' '),'C Am7 F G7');
+assert.equal(parser('{title: Teste}\n[C7M]linha [Dm7(b5)]outra',parseChord).chords[0],'C7M');
+assert.throws(()=>parser('https://example.com/cifra',parseChord),/apenas um link/);
+assert.equal(ctx.window.XPS_EFFECTS[21],'Rotary');assert.equal(ctx.window.XPS_EFFECTS.length,79);
+console.log('Share: plain chords, ChordPro, link-only rejection and effect catalog passed');

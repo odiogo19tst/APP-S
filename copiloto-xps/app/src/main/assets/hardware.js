@@ -3,6 +3,7 @@ let hw={},busy=false;
 const field=id=>document.getElementById(id), msg=t=>field('status').textContent=t;
 const call=(method,...args)=>{if(window.Native)window.Native[method](...args);else msg('Esta função precisa do APK conectado ao XPS-10.');};
 const add=(id,label,value)=>{let o=document.createElement('option');o.textContent=label;o.value=value;field(id).append(o);};
+(window.XPS_EFFECTS||[]).forEach((name,i)=>add('mfxType',i+' • '+name,i));
 for(let i=0;i<16;i++)add('hardwarePart','Parte '+(i+1),i);
 for(let n=0;n<128;n++)for(let id of ['zoneLow','zoneHigh','splitPoint'])add(id,Music.names[n%12]+(Math.floor(n/12)-1)+' • '+n,n);
 field('splitPoint').value=60;
