@@ -10,10 +10,15 @@ public final class ModelImport {
  public static void checkBundle(File file)throws IOException {
   if(!file.getName().endsWith(".task"))throw new IOException("O arquivo de trabalho precisa manter a extensão .task.");
   try(ZipFile zip=new ZipFile(file)){
-   for(String name:new String[]{"TF_LITE_PREFILL_DECODE","TOKENIZER_MODEL","METADATA"}){
-    ZipEntry entry=zip.getEntry(name);if(entry==null||entry.getSize()<=0)throw new IOException("Pacote sem "+name+". Use o modelo Android .task indicado em Ajustes.");if(entry.getMethod()!=ZipEntry.STORED)throw new IOException("O pacote foi recomprimido. Selecione o arquivo .task original do fornecedor.");
+   // Container sanity only: entry names and compression are runtime-specific.
+   // MediaPipe, not this importer, decides whether the model schema is supported.
+   boolean hasData=false;
+   java.util.Enumeration<? extends ZipEntry> entries=zip.entries();
+   while(entries.hasMoreElements()){
+    ZipEntry entry=entries.nextElement();
+    if(!entry.isDirectory()&&entry.getSize()>0){hasData=true;break;}
    }
-   try(InputStream in=zip.getInputStream(zip.getEntry("TF_LITE_PREFILL_DECODE"))){byte[] header=new byte[8];int n=0,r;while(n<8&&(r=in.read(header,n,8-n))>0)n+=r;if(n!=8||header[4]!='T'||header[5]!='F'||header[6]!='L'||header[7]!='3')throw new IOException("O pacote não contém um modelo TensorFlow Lite válido.");}
+   if(!hasData)throw new IOException("O pacote .task está vazio. Selecione o arquivo completo do modelo.");
   }catch(ZipException e){throw new IOException("Arquivo incompleto ou formato incompatível. Selecione o .task baixado, não uma página HTML, GGUF ou .litertlm.",e);}
  }
  public static long install(InputStream source,File directory,Validator validator,Progress progress)throws Exception {

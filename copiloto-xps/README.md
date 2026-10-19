@@ -1,4 +1,4 @@
-# Copiloto XPS 0.7.1 — prévia funcional Android
+# Copiloto XPS 0.7.2 — prévia funcional Android
 
 Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não processa o áudio do PA; comandos MIDI e pads podem alterar ou produzir som no teclado. Android 8+; alvo de teste físico: Samsung S25 FE.
 
@@ -11,7 +11,7 @@ Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente p
 - Temas claro/escuro e análise musical local. Permissão de internet usada pelo navegador Cifra Club.
 
 ## Usar
-1. Instale o APK de `Copiloto-XPS-0.7.1-APK` nos artifacts do GitHub Actions.
+1. Instale o APK de `Copiloto-XPS-0.7.2-APK` nos artifacts do GitHub Actions.
 2. Conecte o XPS-10 por USB e toque em Conectar USB; selecione o dispositivo.
 3. Toque notas e confira o teclado gráfico. O cabo USB transporta MIDI, não o áudio do XPS-10.
 4. Ative Ouvir ambiente e autorize o microfone. Confirme o tom manualmente; a estimativa não muda a referência sozinha.
@@ -122,3 +122,9 @@ O importador anterior passava `model.tmp` ao runtime antes de instalar `model.ta
 Verificação estrutural antes da inferência: ZIP válido, entradas TF_LITE_PREFILL_DECODE/TOKENIZER_MODEL/METADATA não vazias e sem compressão, assinatura TFL3. Rejeita HTML de login, arquivos truncados e outros formatos com mensagem legível. O modelo instalado só é substituído por movimentação atômica após validação do runtime; candidato é removido em caso de falha. Mensagens longas quebram linha.
 
 Referência do formato: código oficial MediaPipe v0.10.26, `tasks/python/genai/bundler/llm_bundler.py` e `tasks/python/metadata/metadata_writers/model_asset_bundle_utils.py`. O runtime permanece 0.10.27. Testes Java usam um pacote mínimo de teste para verificar nome/extensão, rejeição de arquivo inválido, preservação do anterior, limpeza e promoção. Isso não constitui teste neural: não há S25 conectado nem cópia autorizada do modelo do usuário no ambiente. A troca para `.task` corrige uma falha do fluxo, mas a causa exata do erro no dispositivo e a geração da resposta ainda precisam ser confirmadas no aparelho.
+
+## Correção 0.7.2 — validação do pacote
+
+A verificação de 0.7.1 exigia nomes internos específicos e entradas sem compressão, barrando outros pacotes antes de chamar o runtime. Agora a pré-verificação exige apenas um ZIP não vazio: o MediaPipe valida a compatibilidade do modelo. Mantém o arquivo temporário com extensão .task, a substituição atômica e a preservação do modelo anterior em caso de falha.
+
+Teste de regressão usa arquivos sintéticos com nomes alternativos e compressão, verifica que chegam ao validador e que falhas preservam o modelo instalado. Não demonstra inferência real; o arquivo do usuário e a execução no S25 ainda precisam ser testados.
