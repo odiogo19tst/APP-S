@@ -1,4 +1,4 @@
-# Copiloto XPS 0.7 — prévia funcional Android
+# Copiloto XPS 0.7.1 — prévia funcional Android
 
 Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não processa o áudio do PA; comandos MIDI e pads podem alterar ou produzir som no teclado. Android 8+; alvo de teste físico: Samsung S25 FE.
 
@@ -11,7 +11,7 @@ Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente p
 - Temas claro/escuro e análise musical local. Permissão de internet usada pelo navegador Cifra Club.
 
 ## Usar
-1. Instale o APK de `Copiloto-XPS-0.7-APK` nos artifacts do GitHub Actions.
+1. Instale o APK de `Copiloto-XPS-0.7.1-APK` nos artifacts do GitHub Actions.
 2. Conecte o XPS-10 por USB e toque em Conectar USB; selecione o dispositivo.
 3. Toque notas e confira o teclado gráfico. O cabo USB transporta MIDI, não o áudio do XPS-10.
 4. Ative Ouvir ambiente e autorize o microfone. Confirme o tom manualmente; a estimativa não muda a referência sozinha.
@@ -113,3 +113,12 @@ Pendências externas/avançadas: validação física da inferência/USB/áudio n
 Compilação Android, lint, testes de harmonia/MIDI e integração de interface são executados em CI. Os testes novos verificam limites dos parâmetros, encoding, endereços, atribuições de pads, sequenciador e importação da página com dados de teste. Não certificam áudio físico, login externo ou latência.
 
 O projeto não pode ser declarado integralmente validado sem XPS-10/S25 conectados. Permanecem fora desta entrega: modelo neural redistribuído (licença/importação do fornecedor), sincronização oficial LouveApp/Cifra Club, OCR em lote, transferência do sequenciador para memória de padrões, edição/carregamento de samples dos AUDIO PAD, seguimento automático da banda e correção automática do áudio no PA. O app não apresenta esses itens como operacionais.
+
+
+## Correção 0.7.1 — importação neural
+
+O importador anterior passava `model.tmp` ao runtime antes de instalar `model.task`. Agora copia para um nome temporário único terminado em `.task` e preserva essa extensão durante a validação. Não exige outro download: reimporte o arquivo original já salvo em Downloads.
+
+Verificação estrutural antes da inferência: ZIP válido, entradas TF_LITE_PREFILL_DECODE/TOKENIZER_MODEL/METADATA não vazias e sem compressão, assinatura TFL3. Rejeita HTML de login, arquivos truncados e outros formatos com mensagem legível. O modelo instalado só é substituído por movimentação atômica após validação do runtime; candidato é removido em caso de falha. Mensagens longas quebram linha.
+
+Referência do formato: código oficial MediaPipe v0.10.26, `tasks/python/genai/bundler/llm_bundler.py` e `tasks/python/metadata/metadata_writers/model_asset_bundle_utils.py`. O runtime permanece 0.10.27. Testes Java usam um pacote mínimo de teste para verificar nome/extensão, rejeição de arquivo inválido, preservação do anterior, limpeza e promoção. Isso não constitui teste neural: não há S25 conectado nem cópia autorizada do modelo do usuário no ambiente. A troca para `.task` corrige uma falha do fluxo, mas a causa exata do erro no dispositivo e a geração da resposta ainda precisam ser confirmadas no aparelho.

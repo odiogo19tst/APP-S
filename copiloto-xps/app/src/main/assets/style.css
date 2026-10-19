@@ -9,3 +9,5 @@ button:disabled{opacity:.4;cursor:default}#partSummary{font-size:13px;color:var(
 @media(orientation:landscape) and (min-width:700px){.live-focus #stage.active{display:grid;grid-template-columns:minmax(300px,1fr) minmax(280px,1fr);gap:10px;align-items:start}.live-focus .live-console{grid-row:1/5}.live-focus #stage>.muted{grid-column:1/-1}}
 
 .sequence-scroll{overflow:auto}#sequenceGrid{display:grid;grid-template-columns:90px repeat(16,34px);gap:4px;padding:8px 0}#sequenceGrid button{padding:4px;min-height:38px;border-radius:6px;font-size:11px}#sequenceGrid .beat-on{background:var(--accent);color:var(--bg)}#sequenceGrid .beat-current{outline:2px solid #ffbc57;outline-offset:-2px}#mfxParameters label{border-bottom:1px solid var(--line);padding:8px}#mfxParameters button{margin:6px}#mfxParameters select{width:100%}
+
+#status,#modelInfo,#answer{overflow-wrap:anywhere;word-break:break-word;max-width:100%}
