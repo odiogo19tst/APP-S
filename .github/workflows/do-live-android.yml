@@ -1,0 +1,46 @@
+name: DO LIVE Android Debug APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [do-live-mvp]
+    paths:
+      - 'DO-LIVE/**'
+      - '.github/workflows/do-live-android.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'DO-LIVE/**'
+      - '.github/workflows/do-live-android.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Preparar SDK Android
+        shell: bash
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          MANAGER=$(find "$SDK/cmdline-tools" -path "*/bin/sdkmanager" -type f | head -1)
+          test -n "$MANAGER" || { echo "sdkmanager não encontrado"; exit 1; }
+          "$MANAGER" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Compile MVP
+        run: gradle --no-daemon --project-dir DO-LIVE :app:assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DO-LIVE-MVP-debug-apk
+          path: DO-LIVE/app/build/outputs/apk/debug/app-debug.apk
