@@ -4,7 +4,7 @@ const java=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/JarvisMu
 const native=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/MainActivity.java'),'utf8');
 const ux=fs.readFileSync(path.join(root,'assets/ux-v2.js'),'utf8');
 const css=fs.readFileSync(path.join(root,'assets/ux-v2.css'),'utf8');
-for(const sentence of ['Jarvis Musical','Roland XPS-10','SOMENTE TEXTO NA TELA','não detecção da banda','Não invente timbres','não execute','não recebeu notas medidas','Não invente'])assert(java.includes(sentence)||java.toLowerCase().includes(sentence.toLowerCase()),'Missing trustworthy music behaviour: '+sentence);
+for(const sentence of ['Jarvis Musical','Roland XPS-10','SOMENTE TEXTO NA TELA','não detecção da banda','Não invente timbres','Apenas os botões autorizados executam ações','não recebeu notas medidas','Não invente'])assert(java.includes(sentence)||java.toLowerCase().includes(sentence.toLowerCase()),'Missing trustworthy music behaviour: '+sentence);
 for(const field of ['cleanNotes','buildPrompt','MAX_NOTES=550','MAX_REQUEST=2400'])assert(java.includes(field),'Prompt validation absent: '+field);
 for(const name of ['getJarvisMemory','saveJarvisMemory','clearJarvisMemory'])assert(native.includes('@JavascriptInterface public void '+name),'Missing editable persistent memory: '+name);
 assert(native.includes('getPreferences(MODE_PRIVATE).edit().putString("jarvisMusicalNotes"'),'Memory must stay on device');
