@@ -38,7 +38,7 @@ public class MainActivity extends Activity {
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
-  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emitCachedUsers();}});
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));emitCachedUsers();}});
   web.addJavascriptInterface(new Bridge(),"Native");
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
@@ -201,7 +201,38 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void cancelGemma(){gemmaCancel.set(true);}
   @JavascriptInterface public void importFile(boolean model){runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);if(!model)i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(i,model?3:2);});}
   @JavascriptInterface public void exportFile(String text){if(text.length()>1000000)return;runOnUiThread(()->{exportText=text;startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"copiloto-repertorio.json"),4);});}
-  @JavascriptInterface public void ask(String prompt){if(prompt.length()>2400){emit("answer","Encurte a pergunta para até 1500 caracteres.");return;}worker.execute(()->{try{if(llm==null){File model=new File(getFilesDir(),"model.task");if(!model.exists()){emit("answer","Importe um modelo compatível .task em Ajustes para conversar com a IA neural offline. O guia musical funciona sem modelo.");return;}emit("answer","Carregando IA no aparelho…");llm=openModel(model);}emit("answer",llm.generateResponse("Você é um assistente musical em português. Dê sugestões curtas e explique incertezas. Não afirme ter aplicado comandos. XPS-10: CC74 cutoff, CC71 ressonância, CC73 attack, CC72 release (64 neutro), CC91 reverb, CC93 chorus. Não invente endereços SysEx. Contexto e pergunta: "+prompt));}catch(Exception e){emit("answer","Não foi possível executar o modelo: "+e.getMessage());}});}
+  @JavascriptInterface public void getJarvisMemory(){
+   emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));
+  }
+  @JavascriptInterface public void saveJarvisMemory(String notes){
+   if(notes==null||notes.length()>JarvisMusicalProfile.MAX_NOTES){
+    emit("status","As preferências do Jarvis devem ter no máximo 550 caracteres.");return;
+   }
+   String cleaned=JarvisMusicalProfile.cleanNotes(notes);
+   getPreferences(MODE_PRIVATE).edit().putString("jarvisMusicalNotes",cleaned).apply();
+   emit("jarvisMemory",cleaned);
+   emit("status",cleaned.isEmpty()?"Preferências locais limpas.":"Preferências do Jarvis salvas somente neste celular.");
+  }
+  @JavascriptInterface public void clearJarvisMemory(){saveJarvisMemory("");}
+  @JavascriptInterface public void ask(String prompt){
+   if(prompt==null||prompt.length()>JarvisMusicalProfile.MAX_REQUEST){
+    emit("answer","Encurte a pergunta para até 2400 caracteres.");return;
+   }
+   String notes=getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes","");
+   final String prepared=JarvisMusicalProfile.buildPrompt(prompt,notes);
+   worker.execute(()->{
+    try{
+     if(llm==null){
+      File model=new File(getFilesDir(),"model.task");
+      if(!model.exists()){
+       emit("answer","A Gemma ainda não está instalada. Abra Ajustes → IA local. O guia de acordes e timbres continua funcionando sem modelo.");return;
+      }
+      llm=openModel(model);
+     }
+     emit("answer",llm.generateResponse(prepared));
+    }catch(Exception e){emit("answer","A IA local não respondeu: "+e.getMessage());}
+   });
+  }
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
