@@ -1,0 +1,71 @@
+name: Graue Live V07 - Controlador Roland XPS-10
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Graue_Live_0.7_Android_Fonte.zip'
+      - '.github/workflows/graue-live-07-android.yml'
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extrair pacote Grauê 0.7
+        run: unzip -q -o Graue_Live_0.7_Android_Fonte.zip 'Graue_Live_0.7/*' -d .
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Usar SDK Android instalado no runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_DIR="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK_DIR" || { echo '::error::SDK Android nao encontrado'; exit 1; }
+          echo "ANDROID_HOME=$SDK_DIR" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_DIR" >> "$GITHUB_ENV"
+          SDKMANAGER="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$SDK_DIR/cmdline-tools" -name sdkmanager -type f | head -n 1)"
+          fi
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verificar motor musical e MIDI
+        working-directory: Graue_Live_0.7/android
+        run: |
+          mkdir -p build/selftest
+          javac -d build/selftest \
+            app/src/main/java/br/com/doapps/grauelive/PitchDetector.java \
+            app/src/main/java/br/com/doapps/grauelive/ChromaAnalyzer.java \
+            app/src/main/java/br/com/doapps/grauelive/MusicBrain.java \
+            app/src/main/java/br/com/doapps/grauelive/GrauePacket.java \
+            app/src/main/java/br/com/doapps/grauelive/CifraLinks.java \
+            app/src/main/java/br/com/doapps/grauelive/MidiChordClassifier.java \
+            app/src/main/java/br/com/doapps/grauelive/XpsPreset.java \
+            app/src/main/java/br/com/doapps/grauelive/XpsCatalog.java \
+            app/src/test/java/br/com/doapps/grauelive/AudioLogicSelfTest.java \
+            app/src/test/java/br/com/doapps/grauelive/Harmony04SelfTest.java \
+            app/src/test/java/br/com/doapps/grauelive/CifraLinksSelfTest.java \
+            app/src/test/java/br/com/doapps/grauelive/MidiChordSelfTest.java \
+            app/src/test/java/br/com/doapps/grauelive/XpsControlSelfTest.java
+          java -cp build/selftest br.com.doapps.grauelive.AudioLogicSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.Harmony04SelfTest
+          java -cp build/selftest br.com.doapps.grauelive.CifraLinksSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.MidiChordSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.XpsControlSelfTest
+      - name: Compilar APK debug
+        working-directory: Graue_Live_0.7/android
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Graue-Live-07-Android-APK
+          path: Graue_Live_0.7/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
