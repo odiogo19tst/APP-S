@@ -33,3 +33,10 @@ assert(!ux.includes('window.Native.cc(p[0]+1,7'), 'Mixer não pode aplicar CC7 e
 assert.match(ux,/setInterval\(\(\)=>\{if\(active==='stage'/, 'Palco deve acompanhar o BPM real');
 assert.match(ux,/window.Native.importCifra/, 'Ação Importar deve chamar o navegador existente');
 console.log('Grauê 0.9 redesign: 4 screens, real commands, safety gates and responsive CSS passed');
+
+for(const name of ['backups','stage','repertoire','sound','coach','settings'])assert(ux.includes('data-gx-screen="'+name+'"'),'Tela ausente: '+name);
+for(const id of ['gx-backup-import','gx-backup-refresh','gx-backup-export-index','gx-backup-merge','gx-backup-list','gx-user-patches'])assert(ux.includes('id="'+id+'"'),'Controle não criado: '+id);
+assert(ux.includes('window.Native.importXpsBackups'),'Importar backup deve acionar o Android');
+assert(ux.includes('window.Native.exportXpsBackup'),'Exportar backup deve preservar arquivo');
+assert(ux.includes('window.Native.readUserTones'),'Leitura de timbres USER não conectada');
+assert(ux.includes('gx-backup-merge')&&ux.includes('disabled'),'Mesclagem proprietária não deve estar habilitada sem validação');

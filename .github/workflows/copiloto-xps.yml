@@ -42,6 +42,6 @@ jobs:
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Graue-XPS-0.9.1-APK
+          name: Graue-XPS-1.0.0-APK
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
