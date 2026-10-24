@@ -83,7 +83,7 @@
  $x('gx-assist-channel').value=String(saved.assistChannel||3);
  $x('gx-assist-channel').onchange=()=>{saved.assistChannel=+$x('gx-assist-channel').value;persist();};
  $x('gx-assist-play').onclick=()=>{
-  const name=String(song.chords?.[idx]||'').trim(),notes=M.voicing(name,[]).slice(0,5);
+  const name=String(song.chords?.[idx]||'').trim(),notes=M.voicing(name,[60,64,67]).slice(0,5);
   if(!notes.length){notify('Selecione uma cifra com acordes identificáveis primeiro.');return;}
   if(!window.Native?.playAssistChord){notify('Controle MIDI de apoio indisponível. Atualize o APK.');return;}
   window.Native.playAssistChord(JSON.stringify({channel:+$x('gx-assist-channel').value,notes,velocity:58,duration:900}));
@@ -428,6 +428,7 @@
   $x('gx-section').textContent='Acorde '+String(idx+1);
   $x('gx-progress-bar').style.width=((idx+1)/Math.max(1,song.chords.length)*100)+'%';
   $x('gx-next-line').textContent=song.chords?.[idx]||'Sem acorde';
+  $x('gx-assist-chord').textContent=song.chords?.[idx]||'—';
   $x('gx-transpose').textContent=(transposeSteps>0?'+':'')+transposeSteps;
   $x('gx-arm').textContent=$x('arm')?.checked?'Desabilitar envio MIDI':'Habilitar envio MIDI';
  }
