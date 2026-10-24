@@ -1,6 +1,10 @@
 name: Graue Live V07 - Controlador Roland XPS-10
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Graue_Live_0.7_Android_Fonte.zip'
+      - '.github/workflows/graue-live-07-android.yml'
   push:
     paths:
       - 'Graue_Live_0.7_Android_Fonte.zip'
