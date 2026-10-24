@@ -79,7 +79,7 @@ public final class JarvisCloudGateway {
   Answer(String text,String model){this.text=text;this.model=model;}
  }
  public Answer request(String prompt)throws Exception {
-  if(prompt==null||prompt.length()>3300)throw new IOException("Texto longo demais para o Jarvis online");
+  if(prompt==null||prompt.length()>4500)throw new IOException("Texto longo demais para o Jarvis online");
   String url,model,token;
   synchronized(this){
    url=prefs.getString("url","");
