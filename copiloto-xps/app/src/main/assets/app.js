@@ -37,7 +37,15 @@ function normalize(s){if(!s||typeof s.title!=='string'||!Array.isArray(s.chords)
 function select(s){song=normalize(s);pause();idx=0;elapsed=0;root=song.root;minor=song.minor;$('key').value=root;$('mode').value=minor?1:0;$('tempo').value=song.bpm;$('songCategory').value=song.category;$('title').value=song.title;$('changes').value=song.chords.join(' ');$('beats').value=song.beats;$('text').value=song.text;updateSong();renderNotes();status('Música carregada: '+song.title);}
 function list(){let box=$('songList');box.replaceChildren();let selectedCategory=$('songFilter').value;let options=[...new Set(songs.map(s=>s.category||'Sem categoria'))].sort();$('songFilter').replaceChildren();option($('songFilter'),'Todas','');options.forEach(c=>option($('songFilter'),c,c));$('songFilter').value=options.includes(selectedCategory)?selectedCategory:'';songs.forEach((s,i)=>{if($('songFilter').value&&(s.category||'Sem categoria')!==$('songFilter').value)return;let row=document.createElement('div');row.className='song';let b=document.createElement('button');b.textContent=(i+1)+'. '+s.title;b.onclick=()=>select(s);let d=document.createElement('button');d.textContent='Excluir';d.onclick=()=>{songs.splice(i,1);persist();list();if(window.refreshLiveSongs)window.refreshLiveSongs();};row.append(b,d);box.append(row);});}
 $('saveSong').onclick=()=>{try{let s=normalize({title:$('title').value,chords:$('changes').value.trim().split(/\s+/),beats:+$('beats').value,bpm:+$('tempo').value,root,minor,text:$('text').value,category:$('songCategory').value});let i=songs.findIndex(x=>x.title===s.title);if(i<0)songs.push(s);else songs[i]=s;persist();list();select(s);if(window.refreshLiveSongs)window.refreshLiveSongs();}catch(e){status(e.message);}};
-function transpose(n){song={...song,root:M.mod(root+n),chords:song.chords.map(c=>M.transpose(c,n))};select(song);status('Transposição apenas da cifra. Salve para guardar; notas MIDI não são alteradas.');}
+function transpose(n){
+  const updatedChords=song.chords.map(c=>M.transpose(c,n));
+  const updatedText=(typeof GraueCifraTranspose==='function')?GraueCifraTranspose(song.text,n,M.parse,M.transpose):song.text;
+  song={...song,root:M.mod(root+n),chords:updatedChords,text:updatedText};
+  // Preserva acorde atual e andamento, mesmo se o acompanhamento já estiver rodando.
+  root=song.root;$('key').value=root;$('changes').value=updatedChords.join(' ');$('text').value=updatedText;
+  updateSong();renderNotes();
+  status('Cifra transposta. A execução e o MIDI não foram modificados. Salve a música para guardar.');
+}
 $('up').onclick=()=>transpose(1);$('down').onclick=()=>transpose(-1);
 $('import').onclick=()=>invoke('importFile',false);$('model').onclick=()=>invoke('importFile',true);$('export').onclick=()=>invoke('exportFile',JSON.stringify({version:1,songs},null,2));
 function importSongs(text){try{let incoming;if(/^\s*(?:\{\s*"|\[\s*(?:\{|\]))/.test(text)){let j=JSON.parse(text);incoming=Array.isArray(j)?j:j.songs;if(!Array.isArray(incoming))throw Error('JSON deve conter songs.');}else{incoming=[parseSharedCifra(text,M.parse)];}let valid=incoming.map(normalize);songs.push(...valid);persist();list();if(window.refreshLiveSongs)window.refreshLiveSongs();status(valid.length+' música(s) importada(s).');}catch(e){status('Importação: '+e.message);}}
