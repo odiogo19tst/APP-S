@@ -46,6 +46,15 @@ assert.equal(ctx.window.XPS_EFFECTS[21],'Rotary');assert.equal(ctx.window.XPS_EF
 console.log('Share: plain chords, ChordPro, link-only rejection and effect catalog passed');
 
 vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/live.js','utf8'),ctx);
+// Grauê XPS: painel de palco deve respeitar permissões de envio MIDI.
+assert.equal(els.livePartsGrid.children.length,16);
+assert.equal(els.liveConnection.textContent,'Aguardando leitura MIDI');
+const quick=els.liveQuickFavorites;
+assert(quick.children.length>=1);
+const qCount=calls.filter(c=>c[0]==='edit').length;
+if(quick.children[0].onclick)quick.children[0].onclick();
+assert.equal(calls.filter(c=>c[0]==='edit').length,qCount); // Sem leitura, não transmite.
+
 native.padHit=(...a)=>calls.push(['pad',...a]);native.stopPads=()=>calls.push(['stopPads']);
 assert.equal(els.toneFamilies.children.length,9);
 assert.equal(els.drumPads.children.length,8);
@@ -74,6 +83,21 @@ els.liveEffects.onclick();assert.equal(els.effectsDrawer.open,true);
 ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});
 els.liveCC.value='74';els.liveCCValue.value='64';els.liveSendCC.onclick();assert.deepEqual(calls.at(-1),['cc',10,74,64]);
 console.log('Show: landscape toggle, embedded browser entry, panic and effect control channel passed');
+
+// Dados lidos habilitam seleção local de parte, sem transmissão imediata.
+ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});
+assert.equal(els.liveConnection.textContent,'Performance lida');
+const countBeforeSelect=calls.filter(c=>c[0]==='edit').length;
+els.livePartsGrid.children[1].onclick();
+assert.equal(els.livePart.value,'1');
+assert.equal(calls.filter(c=>c[0]==='edit').length,countBeforeSelect);
+els.livePartsGrid.children[0].onclick();
+assert.equal(els.livePart.value,'0');
+els.arm.checked=true; // Apenas simula autorização; envio real não ocorre nos testes.
+if(els.liveQuickFavorites.children[0].onclick)els.liveQuickFavorites.children[0].onclick();
+assert.equal(calls.filter(c=>c[0]==='edit').length,countBeforeSelect+1);
+console.log('Grauê XPS: 16 partes, leitura, favoritos e segurança de envio passaram');
+
 for(const file of ['mfx-params.js','advanced.js','sequencer.js'])vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/'+file,'utf8'),ctx);
 assert.equal(ctx.window.XPS_MFX_PARAMS.length,79);assert.equal(ctx.window.XPS_MFX_PARAMS[1][0].id,'equalizer-loFreq');assert(ctx.window.XPS_MFX_PARAMS[21][0].id.startsWith('rotary-'));assert(ctx.window.XPS_MFX_PARAMS[78][0].id.startsWith('sympatheticResonance-'));
 for(const params of ctx.window.XPS_MFX_PARAMS){assert.equal(new Set(params.map(p=>p.parameter)).size,params.length);for(const p of params){assert(p.parameter>=0&&p.parameter<32);assert(p.min>=12768&&p.max<=52768);if(p.labels)assert.equal(p.labels.length,p.max-p.min+1);}}
