@@ -30,7 +30,7 @@
  '<div class="gx-panel gx-analysis"><h3>Resultado da análise</h3><div class="gx-analysis-grid"><div class="gx-reading"><small>NOTA DETECTADA</small><strong id="gx-heard-note">—</strong><span>Voz / instrumento dominante</span></div><div class="gx-reading"><small>TOM SUGERIDO</small><strong id="gx-heard-key">—</strong><span id="gx-heard-mode">Aguardando áudio</span></div><div class="gx-reading"><small>MODO</small><select id="gx-mode"><option value="0">Maior</option><option value="1">Menor</option></select><span>Referência da música</span></div><div class="gx-reading"><small>ACORDE MIDI</small><strong id="gx-heard-chord">—</strong><span>Teclas pressionadas</span></div><div class="gx-reading"><small>ÍNDICE DE CONFIANÇA</small><strong id="gx-heard-confidence">—</strong><span>Heurístico, não probabilidade</span></div><div class="gx-reading"><small>GRAU ATUAL</small><strong id="gx-heard-degree">—</strong><span>Baseado no tom de referência</span></div></div><div class="gx-section-label">HISTÓRICO DE NOTAS</div><div id="gx-note-history" class="gx-history">Aguardando notas reais…</div></div>',
  '<aside class="gx-panel gx-coach-tips"><h3>✦ Dicas do Copiloto</h3><p id="gx-tip-text">Inicie a escuta para analisar a voz. Conecte o XPS-10 para ler os acordes tocados por MIDI.</p><button id="gx-ai-settings">Configurar IA local</button><button id="gx-ai-ask">Abrir assistente</button><label>Sensibilidade / áudio <input id="gx-sense" type="range" min="1" max="10" value="5" disabled title="Calibração de sensibilidade ainda não disponível"></label></aside></div></div>',
  '<div class="gx-screen" data-gx-screen="backups"><div class="gx-backups gx-panel"><div class="gx-section-label">BACKUPS DO ROLAND XPS-10 <small>Biblioteca de cópias originais</small></div><p class="gx-backup-intro">Importe os arquivos do pendrive. O Grauê guarda cópias locais, verifica duplicados e permite exportar o mesmo conteúdo. Nenhum arquivo é restaurado no XPS-10.</p><div class="gx-backup-actions"><button id="gx-backup-import" class="gx-start">↥ Importar backups</button><button id="gx-backup-refresh">↻ Atualizar biblioteca</button><button id="gx-backup-export-index">↓ Exportar catálogo JSON</button><button id="gx-backup-merge" disabled title="Mesclagem requer validação do formato de backups Roland">Mesclar timbres — indisponível</button></div><div id="gx-backup-list" class="gx-backup-list" aria-live="polite"><p class="gx-empty">Carregando cópias disponíveis…</p></div><p id="gx-backup-comparison" class="gx-backup-compare"></p><p class="gx-backup-warning">Atenção: restaurar no teclado pode substituir os dados atuais. A mesclagem de backups ainda não é compatível nem validada; não altere arquivos proprietários manualmente.</p></div></div>',
- '<div class="gx-screen" data-gx-screen="settings"><div class="gx-panel gx-settings"><h2>Ajustes e integrações</h2><div class="gx-settings-grid"><button id="gx-connect-settings">♬ Conexão USB-MIDI<br><small>Selecionar dispositivo</small></button><button id="gx-read-settings">▤ Ler XPS-10<br><small>Carregar Performance atual</small></button><button id="gx-legacy-editor">⚙ Editor avançado<br><small>Efeitos, splits e 16 partes</small></button><button id="gx-legacy-repertoire">▥ Repertório e arquivos<br><small>Importar e exportar setlists</small></button><button id="gx-legacy-ai">✧ Modelo de IA local<br><small>Selecionar e testar modelo</small></button><button id="gx-legacy-settings">☷ Ajustes completos<br><small>Configurações do dispositivo</small></button><button id="gx-backups-settings">▦ Biblioteca de backups<br><small>Importação segura do pendrive</small></button><button id="gx-cifra-settings">♫ Cifra Club<br><small>Abrir sessão no navegador</small></button></div><p>O Bip 6 permanece desativado enquanto houver reinicializações no relógio. A análise de voz acompanhada por instrumentos ainda é experimental.</p></div></div>'
+ '<div class="gx-screen" data-gx-screen="settings"><div class="gx-panel gx-settings"><h2>Ajustes e integrações</h2><section class="gx-gemma-panel" id="gx-gemma-panel"><div class="gx-gemma-heading"><strong>✦ Gemma 3 270M — IA local</strong><span id="gx-gemma-status">Verificando instalação…</span></div><p>Instalação de aproximadamente 304 MB, uma única vez. Depois, o Copiloto responde offline sem enviar perguntas para servidores. Este modelo conversa sobre música, mas não escuta áudio diretamente.</p><p class="gx-gemma-source">Pesos publicados por um espelho comunitário, não hospedados pelo Google. O arquivo é verificado por assinatura SHA-256 antes da instalação.</p><div class="gx-gemma-links"><button id="gx-gemma-terms">Ler Termos de Uso Gemma ↗</button><button id="gx-gemma-source">Origem do modelo ↗</button></div><label class="gx-gemma-license"><input id="gx-gemma-accept" type="checkbox"> Li e aceito os Termos de Uso Gemma e estou ciente da origem do arquivo.</label><div class="gx-gemma-controls"><button id="gx-gemma-install" disabled>Instalar Gemma 270M</button><button id="gx-gemma-cancel" hidden>Pausar</button><button id="gx-gemma-try">Testar IA</button></div><progress id="gx-gemma-progress" value="0" max="100" hidden></progress><div id="gx-gemma-info" role="status" aria-live="polite">Modelo ainda não configurado.</div></section><div class="gx-settings-grid"><button id="gx-connect-settings">♬ Conexão USB-MIDI<br><small>Selecionar dispositivo</small></button><button id="gx-read-settings">▤ Ler XPS-10<br><small>Carregar Performance atual</small></button><button id="gx-legacy-editor">⚙ Editor avançado<br><small>Efeitos, splits e 16 partes</small></button><button id="gx-legacy-repertoire">▥ Repertório e arquivos<br><small>Importar e exportar setlists</small></button><button id="gx-legacy-ai">✧ Modelo de IA local<br><small>Selecionar e testar modelo</small></button><button id="gx-legacy-settings">☷ Ajustes completos<br><small>Configurações do dispositivo</small></button><button id="gx-backups-settings">▦ Biblioteca de backups<br><small>Importação segura do pendrive</small></button><button id="gx-cifra-settings">♫ Cifra Club<br><small>Abrir sessão no navegador</small></button></div><p>O Bip 6 permanece desativado enquanto houver reinicializações no relógio. A análise de voz acompanhada por instrumentos ainda é experimental.</p></div></div>'
  ].join('');
  const oldMain=document.querySelector('main');oldMain.parentNode.insertBefore(shell,oldMain);
  document.body.classList.add('gx-ready');
@@ -104,7 +104,25 @@
  $x('gx-connect-settings').onclick=connect;$x('gx-read-settings').onclick=read;
  $x('gx-backups-settings').onclick=()=>switchTab('backups');
  $x('gx-cifra-settings').onclick=openCifra;
- $x('gx-ai-settings').onclick=()=>openLegacy('settings');$x('gx-ai-ask').onclick=()=>openLegacy('coach');
+ const gemmaAccept=$x('gx-gemma-accept');
+ const gemmaInstall=$x('gx-gemma-install');
+ const gemmaCancel=$x('gx-gemma-cancel');
+ const gemmaProgress=$x('gx-gemma-progress');
+ const gemmaInfo=$x('gx-gemma-info');
+ const gemmaStatus=$x('gx-gemma-status');
+ gemmaAccept.onchange=()=>{if(!gemmaInstall.dataset.busy)gemmaInstall.disabled=!gemmaAccept.checked;};
+ $x('gx-gemma-terms').onclick=()=>{if(window.Native?.openReference)window.Native.openReference('gemmaTerms');};
+ $x('gx-gemma-source').onclick=()=>{if(window.Native?.openReference)window.Native.openReference('gemmaSource');};
+ gemmaInstall.onclick=()=>{if(!gemmaAccept.checked){notify('Leia os termos antes de instalar.');return;}
+  if(!window.Native?.installGemma){notify('Esta instalação requer o aplicativo Android atualizado.');return;}
+  window.Native.installGemma(true);
+  gemmaInstall.dataset.busy='1';gemmaInstall.disabled=true;gemmaCancel.hidden=false;
+  gemmaProgress.hidden=false;gemmaStatus.textContent='Iniciando download…';
+ };
+ gemmaCancel.onclick=()=>{window.Native?.cancelGemma?.();gemmaStatus.textContent='Pausando transferência…';};
+ $x('gx-gemma-try').onclick=()=>{if(!window.Native?.testModel){notify('Motor local indisponível.');return;}window.Native.testModel();switchTab('coach');notify('Teste enviado à IA. Confira a resposta no assistente.');};
+
+ $x('gx-ai-settings').onclick=()=>{switchTab('settings');$x('gx-gemma-panel').scrollIntoView({behavior:'smooth',block:'start'});};$x('gx-ai-ask').onclick=()=>openLegacy('coach');
  for(const [id,tab] of [['gx-legacy-settings','settings'],['gx-legacy-editor','sound'],['gx-legacy-repertoire','songs'],['gx-legacy-ai','settings']])$x(id).onclick=()=>openLegacy(tab);
  function showSoundPanel(){
    shell.querySelectorAll('[data-gx-sound]').forEach(b=>b.classList.toggle('on',b.dataset.gxSound===soundSection));
@@ -251,6 +269,22 @@
   if(kind==='hardware'||kind==='hardwareReset'){renderMixer();renderFavorites();syncStage();return;}
   if(kind==='armed'){syncStage();return;}
   if(kind==='backups'){backupRows=Array.isArray(data)?data:[];renderBackups();}
+  if(kind==='gemmaProgress'){
+    const busy=!!data.busy,progress=Number(data.progress);
+    gemmaInstall.dataset.busy=busy?'1':'';
+    gemmaInstall.disabled=busy||!gemmaAccept.checked;
+    gemmaCancel.hidden=!busy;
+    gemmaProgress.hidden=!busy;
+    if(Number.isFinite(progress)&&progress>=0)gemmaProgress.value=Math.max(0,Math.min(100,progress));
+    gemmaStatus.textContent=data.message||'Verificando...';
+    gemmaInfo.textContent=data.message||'';
+  }
+  if(kind==='gemmaState'){
+    gemmaStatus.textContent=data.installed?(data.gemma270?'Gemma 3 270M instalada':'Outro modelo já instalado'):'Nenhuma IA instalada';
+    if(data.gemma270){gemmaInstall.textContent='Reinstalar Gemma';gemmaInfo.textContent='Gemma disponível para o Copiloto. Teste usando uma pergunta.';}
+  }
+  if(kind==='modelInfo')gemmaInfo.textContent=String(data);
+  if(kind==='answer'){notify('A IA respondeu. Veja a aba Copiloto ou o assistente.');}
   if(kind==='status')notify(data);
   if(kind==='webCifra'||kind==='import')sync();
  };
