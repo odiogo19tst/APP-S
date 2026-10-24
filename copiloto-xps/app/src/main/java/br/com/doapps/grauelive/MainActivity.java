@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
-  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();}});
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emitCachedUsers();}});
   web.addJavascriptInterface(new Bridge(),"Native");
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
@@ -49,7 +49,7 @@ public class MainActivity extends Activity {
  padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
  emit("status",t);emit("clear","");armed=false;emit("armed",false);
  if(t!=null&&t.startsWith("USB conectado")){
-  autoUserRead=true;emit("xpsConnection",true);
+  autoUserRead=!hasCachedUsers();emit("xpsConnection",true);
   emitCachedUsers(); // user names are cached, not re-scanned at every opening
   new Handler(Looper.getMainLooper()).postDelayed(()->xps.read(),250);
  }else{autoUserRead=false;emit("xpsConnection",false);}
@@ -66,6 +66,9 @@ public class MainActivity extends Activity {
   if(midi==null||midi.isConnected())return;
   MidiDeviceInfo[] list=midi.devices();
   if(list.length==1)midi.connect(list[0]);
+  else if(list.length==0)new Handler(Looper.getMainLooper()).postDelayed(()->{
+   if(midi!=null&&!midi.isConnected()){MidiDeviceInfo[] retry=midi.devices();if(retry.length==1)midi.connect(retry[0]);}
+  },2000);
   else if(list.length>1)emit("status","Mais de um dispositivo USB-MIDI detectado. Selecione o XPS-10 em Conectar USB.");
  }
  private void layoutPanels(){boolean wide=getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;rootLayout.setOrientation(wide?android.widget.LinearLayout.HORIZONTAL:android.widget.LinearLayout.VERTICAL);web.setLayoutParams(new android.widget.LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,1));if(cifraPanel!=null)cifraPanel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,wide?1.15f:1));}
@@ -102,6 +105,13 @@ public class MainActivity extends Activity {
 
   @JavascriptInterface public void readUserTones(){runOnUiThread(()->{autoUserRead=false;xps.readUsers();});}
   @JavascriptInterface public void restoreCachedTones(){runOnUiThread(()->emitCachedUsers());}
+  @JavascriptInterface public void selectToneWithVolume(int msb,int lsb,int program,int part,int volume){
+   runOnUiThread(()->{
+    if(volume<0||volume>127||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>15){emit("status","Dados inválidos para testar timbre.");return;}
+    if(xps.hasPerformancePart(part))xps.auditionToneConfig(part,msb,lsb,program,volume);
+    else emit("status","Para testar volume e timbre juntos, primeiro leia uma Performance válida. Não alterei a configuração.");
+   });
+  }
   @JavascriptInterface public void selectTone(int msb,int lsb,int program,int part){
    runOnUiThread(()->{
     if(msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>=16){
