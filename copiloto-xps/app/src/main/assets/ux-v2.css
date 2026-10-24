@@ -380,3 +380,25 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 #gx-shell #gx-assist-stop{background:#57354a;border-color:#a16976}
 .gx-assist>small{font-size:10px;color:#8fbabe;display:block;line-height:1.4}
 @media(max-width:700px){#gx-shell .gx-assist-controls button{flex:1;min-width:125px}}
+
+
+/* Jarvis Musical: sugestões sem voz para momentos de ministração. */
+.gx-silent-advisor{border:1px solid #1d887d!important;background:linear-gradient(115deg,#0b2930,#11283b);display:flex;flex-direction:column;gap:7px}
+.gx-silent-head{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.gx-silent-head strong{color:#59e3c8;font-size:12px;letter-spacing:.02em}
+.gx-silent-head span{font-size:10px;color:#a3bdc9}
+.gx-silent-content{display:grid;grid-template-columns:1fr 1.8fr;gap:7px}
+.gx-silent-content>div{display:flex;flex-direction:column;gap:3px;border:1px solid #2a5060;background:#10212c;border-radius:9px;padding:8px 10px;min-width:0}
+.gx-silent-content small{font-size:10px;color:#a6c3ca;line-height:1.3}
+.gx-silent-content strong{font-size:17px;line-height:1.2;color:#f4fffc;overflow-wrap:anywhere}
+.gx-silent-actions{display:grid;grid-template-columns:1.35fr 1.1fr 1.1fr .65fr;gap:6px}
+#gx-shell .gx-silent-actions button{min-height:46px;padding:8px 6px;font-size:12px;margin:0;line-height:1.15}
+#gx-shell #gx-silent-accept{background:#09876d;border:1px solid #28baa1;font-weight:700;color:white}
+#gx-shell .gx-silent-actions button:disabled{opacity:.4}
+.gx-silent-note{font-size:10px;color:#9eb8c0;line-height:1.4;margin:0!important}
+#gx-silent-ai-text{font-size:12px;color:#cbfff6;font-weight:500;line-height:1.45;margin:0!important;white-space:pre-line;max-height:74px;overflow-y:auto}
+#gx-silent-ai-text:empty{display:none}
+.gx-silent-muted .gx-silent-content,.gx-silent-muted .gx-silent-note{display:none}
+.gx-silent-muted{border-color:#3a4c55!important}
+@media(max-width:700px){.gx-silent-content{grid-template-columns:minmax(0,.75fr) minmax(0,1.3fr)}.gx-silent-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-silent-content strong{font-size:15px}.gx-silent-head span{font-size:9px}}
+@media(max-width:380px){.gx-silent-actions{grid-template-columns:1fr 1fr}}
