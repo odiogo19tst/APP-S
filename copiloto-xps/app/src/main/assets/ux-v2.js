@@ -6,7 +6,7 @@
  const callOld=(id)=>{let el=$x(id);if(el)el.click();};
  const shell=document.createElement('div');shell.id='gx-shell';
  shell.innerHTML=[
- '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não lido</small></span><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
+ '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não conectado</small></span><button id="gx-unified-usb" class="gx-usb-main">Conectar USB</button><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
  '<nav class="gx-nav" aria-label="Áreas do aplicativo"><button data-gx-tab="stage" class="on">Palco</button><button data-gx-tab="repertoire">Repertório</button><button data-gx-tab="sound">Sons</button><button data-gx-tab="coach">Copiloto</button><button data-gx-tab="backups">Backups</button><button data-gx-tab="settings">Ajustes</button></nav>',
  '<div class="gx-screen on" data-gx-screen="stage">',
  '<div class="gx-stage-summary"><section class="gx-current gx-panel"><small>● TOCANDO AGORA</small><strong id="gx-song-name">Selecione uma música</strong><span id="gx-song-cat">Seu repertório</span><div class="gx-progress"><i id="gx-progress-bar"></i></div></section>',
@@ -32,7 +32,7 @@
  '<div class="gx-panel gx-analysis"><h3>Resultado da análise</h3><div class="gx-analysis-grid"><div class="gx-reading"><small>NOTA DETECTADA</small><strong id="gx-heard-note">—</strong><span>Voz / instrumento dominante</span></div><div class="gx-reading"><small>TOM SUGERIDO</small><strong id="gx-heard-key">—</strong><span id="gx-heard-mode">Aguardando áudio</span></div><div class="gx-reading"><small>MODO</small><select id="gx-mode"><option value="0">Maior</option><option value="1">Menor</option></select><span>Referência da música</span></div><div class="gx-reading"><small>ACORDE MIDI</small><strong id="gx-heard-chord">—</strong><span>Teclas pressionadas</span></div><div class="gx-reading"><small>ÍNDICE DE CONFIANÇA</small><strong id="gx-heard-confidence">—</strong><span>Heurístico, não probabilidade</span></div><div class="gx-reading"><small>GRAU ATUAL</small><strong id="gx-heard-degree">—</strong><span>Baseado no tom de referência</span></div></div><div class="gx-section-label">HISTÓRICO DE NOTAS</div><div id="gx-note-history" class="gx-history">Aguardando notas reais…</div></div>',
  '<aside class="gx-panel gx-coach-tips"><h3>✦ Dicas do Copiloto</h3><p id="gx-tip-text">Inicie a escuta para analisar a voz. Conecte o XPS-10 para ler os acordes tocados por MIDI.</p><button id="gx-ai-settings">Configurar IA local</button><div class="gx-gemma-chat"><label for="gx-gemma-question">Pergunte ao Jarvis Musical (online ou offline)</label><textarea id="gx-gemma-question" rows="3" maxlength="1200" placeholder="Ex.: Como harmonizar essa música com pads e piano?"></textarea><button id="gx-gemma-send">Perguntar ao Jarvis</button><div id="gx-gemma-answer" role="status" aria-live="polite">Aguardando pergunta. Configure a API ou instale a Gemma em Ajustes.</div></div><button id="gx-ai-ask">Editor completo do assistente</button><label>Sensibilidade / áudio <input id="gx-sense" type="range" min="1" max="10" value="5" disabled title="Calibração de sensibilidade ainda não disponível"></label></aside></div></div>',
  '<div class="gx-screen" data-gx-screen="backups"><div class="gx-backups gx-panel"><div class="gx-section-label">BACKUPS DO ROLAND XPS-10 <small>Biblioteca de cópias originais</small></div><p class="gx-backup-intro">Importe os arquivos do pendrive. O Grauê guarda cópias locais, verifica duplicados e permite exportar o mesmo conteúdo. Nenhum arquivo é restaurado no XPS-10.</p><div class="gx-backup-actions"><button id="gx-backup-import" class="gx-start">↥ Importar backups</button><button id="gx-backup-refresh">↻ Atualizar biblioteca</button><button id="gx-backup-export-index">↓ Exportar catálogo JSON</button><button id="gx-backup-merge" disabled title="Mesclagem requer validação do formato de backups Roland">Mesclar timbres — indisponível</button></div><div id="gx-backup-list" class="gx-backup-list" aria-live="polite"><p class="gx-empty">Carregando cópias disponíveis…</p></div><p id="gx-backup-comparison" class="gx-backup-compare"></p><p class="gx-backup-warning">Atenção: restaurar no teclado pode substituir os dados atuais. A mesclagem de backups ainda não é compatível nem validada; não altere arquivos proprietários manualmente.</p></div></div>',
- '<div class="gx-screen" data-gx-screen="settings"><div class="gx-panel gx-settings"><h2>Ajustes e integrações</h2><section id="gx-online-panel" class="gx-online-panel"><div class="gx-online-heading"><strong>✦ Jarvis Online · OpenAI</strong><small id="gx-online-state">Servidor ainda não conectado</small></div><p>A chave OpenAI deve ficar somente no servidor. Aqui você configura o endereço HTTPS do seu Worker e um token separado para este celular. O modo automático usa Gemma quando a rede falha.</p><label for="gx-online-mode">Motor do Jarvis</label><select id="gx-online-mode"><option value="offline">Gemma offline</option><option value="automatico">Automático: Luna + Gemma de reserva</option><option value="online">Somente API online</option></select><label for="gx-online-model">Modelo online</label><select id="gx-online-model"><option value="gpt-6-luna">Luna · econômico</option><option value="gpt-6.1-sol">Sol · avançado</option></select><label for="gx-online-url">Endereço HTTPS do Worker</label><input id="gx-online-url" type="url" autocapitalize="off" spellcheck="false" maxlength="220" placeholder="https://graue-jarvis-api.seusubdominio.workers.dev"><label for="gx-online-token">Token do DISPOSITIVO (não é a chave OpenAI)</label><input id="gx-online-token" type="password" autocorrect="off" autocapitalize="off" autocomplete="off" placeholder="Cole somente o GRAUE_DEVICE_TOKEN"><div class="gx-online-buttons"><button id="gx-online-save">Salvar conexão</button><button id="gx-online-test">Testar servidor</button></div><small id="gx-online-feedback" role="status" aria-live="polite">Sem conexão online. Sua Gemma continua independente.</small><small>Online requer internet e consumo pago da API. Apenas texto e contexto musical enviado pelo Grauê serão processados no servidor; não envia áudio nem realiza MIDI automaticamente.</small></section><section class="gx-gemma-panel" id="gx-gemma-panel"><div class="gx-gemma-heading"><strong>✦ Gemma 3 270M — IA local</strong><span id="gx-gemma-status">Verificando instalação…</span></div><p>Instalação de aproximadamente 304 MB, uma única vez. Depois, o Copiloto responde offline sem enviar perguntas para servidores. Este modelo conversa sobre música, mas não escuta áudio diretamente.</p><p class="gx-gemma-source">Pesos publicados por um espelho comunitário, não hospedados pelo Google. O arquivo é verificado por assinatura SHA-256 antes da instalação.</p><div class="gx-gemma-links"><button id="gx-gemma-terms">Ler Termos de Uso Gemma ↗</button><button id="gx-gemma-source">Origem do modelo ↗</button></div><label class="gx-gemma-license"><input id="gx-gemma-accept" type="checkbox"> Li e aceito os Termos de Uso Gemma e estou ciente da origem do arquivo.</label><div class="gx-gemma-controls"><button id="gx-gemma-install" disabled>Instalar Gemma 270M</button><button id="gx-gemma-cancel" hidden>Pausar</button><button id="gx-gemma-try">Testar IA</button></div><progress id="gx-gemma-progress" value="0" max="100" hidden></progress><div id="gx-gemma-info" role="status" aria-live="polite">Modelo ainda não configurado.</div></section><section class="gx-jarvis-memory" id="gx-jarvis-memory"><h3>✦ Memória do Jarvis Musical</h3><p>O que o Jarvis deve lembrar para sugerir melhor durante o culto? Fica somente neste celular; você pode editar ou apagar quando quiser.</p><label for="gx-jarvis-notes">Suas preferências musicais</label><textarea id="gx-jarvis-notes" maxlength="550" rows="4" placeholder="Ex.: Priorizar piano e pad em oração; piano acústico nas músicas animadas. Evitar trocar sons automaticamente."></textarea><div class="gx-jarvis-memory-actions"><button id="gx-jarvis-save">Salvar memória local</button><button id="gx-jarvis-clear">Apagar preferências</button></div><small id="gx-jarvis-notes-status" role="status" aria-live="polite">Memória local pronta para configurar.</small></section><div class="gx-settings-grid"><button id="gx-connect-settings">♬ Conexão USB-MIDI<br><small>Selecionar dispositivo</small></button><button id="gx-read-settings">▤ Ler XPS-10<br><small>Carregar Performance atual</small></button><button id="gx-legacy-editor">⚙ Editor avançado<br><small>Efeitos, splits e 16 partes</small></button><button id="gx-legacy-repertoire">▥ Repertório e arquivos<br><small>Importar e exportar setlists</small></button><button id="gx-legacy-ai">✧ Modelo de IA local<br><small>Selecionar e testar modelo</small></button><button id="gx-legacy-settings">☷ Ajustes completos<br><small>Configurações do dispositivo</small></button><button id="gx-backups-settings">▦ Biblioteca de backups<br><small>Importação segura do pendrive</small></button><button id="gx-cifra-settings">♫ Cifra Club<br><small>Abrir sessão no navegador</small></button></div><p>O Bip 6 permanece desativado enquanto houver reinicializações no relógio. A análise de voz acompanhada por instrumentos ainda é experimental.</p></div></div>'
+ '<div class="gx-screen" data-gx-screen="settings"><div class="gx-panel gx-settings"><h2>Ajustes e integrações</h2><section class="gx-direct-api" id="gx-direct-api"><h3>✦ Jarvis Online — colar sua chave no aplicativo</h3><p>Use sua chave pessoal da OpenAI Platform depois de instalar. Não envie a chave por chat, prints ou GitHub. O Grauê criptografa no Android e conecta diretamente à OpenAI por HTTPS. Esta alternativa dispensa servidor extra, mas oferece menos proteção que um backend próprio.</p><label for="gx-direct-mode">Usar a IA</label><select id="gx-direct-mode"><option value="automatico">Automático (OpenAI + Gemma offline)</option><option value="online">Somente OpenAI</option><option value="offline">Somente Gemma offline</option></select><label for="gx-direct-model">Modelo para conversar</label><select id="gx-direct-model"><option value="gpt-6-luna">Luna — econômico</option><option value="gpt-6.1-sol">Sol — avançado</option></select><label for="gx-direct-key">Cole sua chave OpenAI aqui (após instalar)</label><input type="password" autocomplete="off" autocapitalize="off" spellcheck="false" id="gx-direct-key" placeholder="sk-proj-…" maxlength="500"><div class="gx-direct-actions"><button id="gx-direct-save">Salvar no celular</button><button id="gx-direct-test">Testar API</button><button id="gx-direct-clear">Apagar chave</button></div><small id="gx-direct-state" role="status">Sem chave configurada.</small><small>Uso cobrado pela OpenAI conforme sua conta. Limite de saída por resposta; não equivale a um teto de gastos. Defina seu orçamento na OpenAI Platform.</small></section><details class="gx-advanced-cloud"><summary>Integração por servidor (opcional / avançada)</summary><section id="gx-online-panel" class="gx-online-panel"><div class="gx-online-heading"><strong>✦ Jarvis Online · OpenAI</strong><small id="gx-online-state">Servidor ainda não conectado</small></div><p>A chave OpenAI deve ficar somente no servidor. Aqui você configura o endereço HTTPS do seu Worker e um token separado para este celular. O modo automático usa Gemma quando a rede falha.</p><label for="gx-online-mode">Motor do Jarvis</label><select id="gx-online-mode"><option value="offline">Gemma offline</option><option value="automatico">Automático: Luna + Gemma de reserva</option><option value="online">Somente API online</option></select><label for="gx-online-model">Modelo online</label><select id="gx-online-model"><option value="gpt-6-luna">Luna · econômico</option><option value="gpt-6.1-sol">Sol · avançado</option></select><label for="gx-online-url">Endereço HTTPS do Worker</label><input id="gx-online-url" type="url" autocapitalize="off" spellcheck="false" maxlength="220" placeholder="https://graue-jarvis-api.seusubdominio.workers.dev"><label for="gx-online-token">Token do DISPOSITIVO (não é a chave OpenAI)</label><input id="gx-online-token" type="password" autocorrect="off" autocapitalize="off" autocomplete="off" placeholder="Cole somente o GRAUE_DEVICE_TOKEN"><div class="gx-online-buttons"><button id="gx-online-save">Salvar conexão</button><button id="gx-online-test">Testar servidor</button></div><small id="gx-online-feedback" role="status" aria-live="polite">Sem conexão online. Sua Gemma continua independente.</small><small>Online requer internet e consumo pago da API. Apenas texto e contexto musical enviado pelo Grauê serão processados no servidor; não envia áudio nem realiza MIDI automaticamente.</small></section></details><section class="gx-gemma-panel" id="gx-gemma-panel"><div class="gx-gemma-heading"><strong>✦ Gemma 3 270M — IA local</strong><span id="gx-gemma-status">Verificando instalação…</span></div><p>Instalação de aproximadamente 304 MB, uma única vez. Depois, o Copiloto responde offline sem enviar perguntas para servidores. Este modelo conversa sobre música, mas não escuta áudio diretamente.</p><p class="gx-gemma-source">Pesos publicados por um espelho comunitário, não hospedados pelo Google. O arquivo é verificado por assinatura SHA-256 antes da instalação.</p><div class="gx-gemma-links"><button id="gx-gemma-terms">Ler Termos de Uso Gemma ↗</button><button id="gx-gemma-source">Origem do modelo ↗</button></div><label class="gx-gemma-license"><input id="gx-gemma-accept" type="checkbox"> Li e aceito os Termos de Uso Gemma e estou ciente da origem do arquivo.</label><div class="gx-gemma-controls"><button id="gx-gemma-install" disabled>Instalar Gemma 270M</button><button id="gx-gemma-cancel" hidden>Pausar</button><button id="gx-gemma-try">Testar IA</button></div><progress id="gx-gemma-progress" value="0" max="100" hidden></progress><div id="gx-gemma-info" role="status" aria-live="polite">Modelo ainda não configurado.</div></section><section class="gx-jarvis-memory" id="gx-jarvis-memory"><h3>✦ Memória do Jarvis Musical</h3><p>O que o Jarvis deve lembrar para sugerir melhor durante o culto? Fica somente neste celular; você pode editar ou apagar quando quiser.</p><label for="gx-jarvis-notes">Suas preferências musicais</label><textarea id="gx-jarvis-notes" maxlength="550" rows="4" placeholder="Ex.: Priorizar piano e pad em oração; piano acústico nas músicas animadas. Evitar trocar sons automaticamente."></textarea><div class="gx-jarvis-memory-actions"><button id="gx-jarvis-save">Salvar memória local</button><button id="gx-jarvis-clear">Apagar preferências</button></div><small id="gx-jarvis-notes-status" role="status" aria-live="polite">Memória local pronta para configurar.</small></section><div class="gx-settings-grid"><button id="gx-connect-settings">♬ Conexão USB-MIDI<br><small>Selecionar dispositivo</small></button><button id="gx-read-settings">▤ Ler XPS-10<br><small>Carregar Performance atual</small></button><button id="gx-legacy-editor">⚙ Editor avançado<br><small>Efeitos, splits e 16 partes</small></button><button id="gx-legacy-repertoire">▥ Repertório e arquivos<br><small>Importar e exportar setlists</small></button><button id="gx-legacy-ai">✧ Modelo de IA local<br><small>Selecionar e testar modelo</small></button><button id="gx-legacy-settings">☷ Ajustes completos<br><small>Configurações do dispositivo</small></button><button id="gx-backups-settings">▦ Biblioteca de backups<br><small>Importação segura do pendrive</small></button><button id="gx-cifra-settings">♫ Cifra Club<br><small>Abrir sessão no navegador</small></button></div><p>O Bip 6 permanece desativado enquanto houver reinicializações no relógio. A análise de voz acompanhada por instrumentos ainda é experimental.</p></div></div>'
  ].join('');
  const oldMain=document.querySelector('main');oldMain.parentNode.insertBefore(shell,oldMain);
  document.body.classList.add('gx-ready');
@@ -106,12 +106,14 @@
  };
 
  const friendlyNote=midi=>Number.isInteger(midi)&&midi>=0&&midi<=127?M.names[midi%12]+String(Math.floor(midi/12)-1):'—';
+ let usbConnected=false;
  const switchTab=name=>{active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();if(name==='backups'&&window.Native?.listBackups)window.Native.listBackups();};
  tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');
  const openLegacy=tab=>{document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
  const arm=()=>callOld('liveArm');
  const connect=()=>callOld('connect');
+ $x('gx-unified-usb').onclick=()=>{if(!usbConnected)connect();else notify('USB-MIDI já conectado. A leitura é automática; a ausência de SysEx pode indicar modo MIDI ou Device ID diferente.');};
  const openCifra=()=>{switchTab('repertoire');callOld('liveCifra');};
  const stageParts=[['▥','Lower','Parte 1'],['▥','Upper','Parte 2'],['▣','Split','Divisão'],['▤','Layer','Camadas'],['♩','Piano','Timbres'],['♫','E.Piano','Timbres'],['♬','Órgão','Timbres'],['♮','Strings','Timbres'],['♧','Brass','Timbres'],['♬','Synth','Timbres'],['▦','Pads','Bateria'],['✧','FX','Efeitos']];
  stageParts.forEach(([glyph,title,desc],i)=>{
@@ -176,7 +178,23 @@
  gemmaAccept.onchange=()=>{if(!gemmaInstall.dataset.busy)gemmaInstall.disabled=!gemmaAccept.checked;};
  $x('gx-gemma-terms').onclick=()=>{if(window.Native?.openReference)window.Native.openReference('gemmaTerms');};
  $x('gx-gemma-source').onclick=()=>{if(window.Native?.openReference)window.Native.openReference('gemmaSource');};
- const onlineMode=$x('gx-online-mode'),onlineModel=$x('gx-online-model'),onlineUrl=$x('gx-online-url'),onlineToken=$x('gx-online-token');
+ const directMode=$x('gx-direct-mode'),directModel=$x('gx-direct-model'),directKey=$x('gx-direct-key'),directState=$x('gx-direct-state');
+ $x('gx-direct-save').onclick=()=>{
+  if(!window.Native?.configureDirectApi)return notify('Instale o novo APK para configurar a OpenAI.');
+  const value=directKey.value.trim();
+  if(!value&&directState.dataset.configured!=='1'&&directMode.value!=='offline'){directState.textContent='Cole sua chave OpenAI para ativar a conexão.';return;}
+  window.Native.configureDirectApi(value,directMode.value,directModel.value);
+  directKey.value='';directState.textContent='Salvando em armazenamento protegido…';
+ };
+ $x('gx-direct-test').onclick=()=>{
+  if(!window.Native?.testDirectApi)return notify('Função não disponível neste APK.');
+  directState.textContent='Verificando resposta da OpenAI (pode gerar cobrança)…';
+  window.Native.testDirectApi();
+ };
+ $x('gx-direct-clear').onclick=()=>{
+  if(confirm('Apagar a chave OpenAI armazenada neste celular?')){window.Native?.forgetDirectApi?.();directKey.value='';}
+ };
+  const onlineMode=$x('gx-online-mode'),onlineModel=$x('gx-online-model'),onlineUrl=$x('gx-online-url'),onlineToken=$x('gx-online-token');
  const onlineState=$x('gx-online-state'),onlineFeedback=$x('gx-online-feedback');
  $x('gx-online-save').onclick=()=>{
   if(!window.Native?.configureJarvisOnline){notify('Recurso disponível apenas no APK atualizado.');return;}
@@ -233,8 +251,8 @@
    const tonesMode=soundSection==='tones'||soundSection==='favorites';
    $x('gx-one-touch').hidden=!tonesMode;
    $x('gx-advanced-mixer').hidden=tonesMode;
-   if(soundSection==='favorites'){toneOnlyFavs=true;renderToneList();}
-   if(soundSection==='tones'){toneOnlyFavs=false;renderToneList();}
+   if(soundSection==='favorites'){toneOnlyFavs=true;$x('gx-tone-favorites').classList.add('on');renderToneList();}
+   if(soundSection==='tones'){toneOnlyFavs=false;$x('gx-tone-favorites').classList.remove('on');renderToneList();}
    if(soundSection==='split'||soundSection==='effects'||soundSection==='arpeggio')openLegacy('sound');
    if(!tonesMode)renderMixer();
  }
@@ -300,14 +318,15 @@
  function renderToneList(){
   const grid=$x('gx-tone-list');if(!grid)return;
   let q=$x('gx-tone-search').value.toLocaleLowerCase('pt-BR').trim();
-  let tones=(toneLib()?.list()||[]).filter(t=>{
+  let tones=(toneLib()?.list()||window.XPS_TONES||[]).filter(t=>{
    const cat=t.code?.startsWith('USER')?'USER':String(t.code||'').slice(0,2);
    return (!toneCategory||toneCategory===cat)&&(!toneOnlyFavs||toneLib().favorites().has(t.code))
     &&(t.name+' '+t.code+' '+t.category).toLocaleLowerCase('pt-BR').includes(q);
   });
-  $x('gx-tone-count').textContent=tones.length+' timbres nesta seleção · toque para enviar · segure 3s para editar';
+  const total=(toneLib()?.list()||window.XPS_TONES||[]).length;
+  $x('gx-tone-count').textContent=tones.length+' de '+total+' timbres disponíveis'+(toneOnlyFavs?' · filtro FAVORITOS ativo':'')+' · toque para enviar · segure 3s para editar';
   grid.replaceChildren();
-  if(!tones.length){const el=document.createElement('p');el.textContent=toneCategory==='USER'?'Conecte o XPS-10 para carregar os 256 USER uma única vez.':'Nenhum timbre encontrado nesta categoria.';grid.append(el);}
+  if(!tones.length){const el=document.createElement('p');el.textContent=toneOnlyFavs?'Nenhum timbre favorito cadastrado no Grauê. Toque em Todas e marque ☆ nos sons desejados. Os bancos físicos 0–9 do Roland não são legíveis por esta implementação SysEx.':toneCategory==='USER'?'Conecte o XPS-10 e confirme uma leitura SysEx dos USER; a lista de fábrica continua disponível offline.':total===0?'Catálogo não carregado. Confira os arquivos do APK.':'Nenhum timbre encontrado nesta categoria.';grid.append(el);}
   tones.slice(0,90).forEach(t=>{
    const line=document.createElement('div');line.className='gx-tone-line';
    const pick=document.createElement('button');pick.className='gx-tone-pick';pick.textContent=t.code+' · '+(t.name||'Sem nome');
@@ -319,13 +338,13 @@
   });
  }
  toneCategories.forEach(([key,label])=>{
-  const b=document.createElement('button');b.textContent=label;b.onclick=()=>{toneCategory=key;toneOnlyFavs=false;renderToneList();renderCategories();};b.dataset.category=key;$x('gx-tone-categories').append(b);
+  const b=document.createElement('button');b.textContent=label;b.onclick=()=>{toneCategory=key;toneOnlyFavs=false;soundSection='tones';$x('gx-tone-favorites').classList.remove('on');renderToneList();renderCategories();shell.querySelectorAll('[data-gx-sound]').forEach(x=>x.classList.toggle('on',x.dataset.gxSound==='tones'));};b.dataset.category=key;$x('gx-tone-categories').append(b);
  });
  function renderCategories(){
   $x('gx-tone-categories').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.category===toneCategory));
  }
  $x('gx-tone-search').oninput=renderToneList;
- $x('gx-tone-favorites').onclick=()=>{toneOnlyFavs=!toneOnlyFavs;$x('gx-tone-favorites').classList.toggle('on',toneOnlyFavs);renderToneList();};
+ $x('gx-tone-favorites').onclick=()=>{toneOnlyFavs=!toneOnlyFavs;soundSection=toneOnlyFavs?'favorites':'tones';$x('gx-tone-favorites').classList.toggle('on',toneOnlyFavs);shell.querySelectorAll('[data-gx-sound]').forEach(x=>x.classList.toggle('on',x.dataset.gxSound===soundSection));renderToneList();};
  for(let i=0;i<10;i++){
   const b=document.createElement('button');b.textContent='Banco '+i;b.dataset.bank=String(i);
   b.onclick=()=>{toneBank=i;renderBanks();};$x('gx-bank-tabs').append(b);
@@ -530,7 +549,7 @@
   $x('gx-note-history').textContent=notesHistory.length?notesHistory.join('  •  '):'Aguardando notas reais…';
   $x('gx-tip-text').textContent=v&&v.root>=0?'Tom sugerido: '+M.names[v.root]+(v.mode===1?' menor':' maior')+'. Confira a resolução e os acordes tocados antes de confirmar.':'O tom maior ou menor pode ser ambíguo com poucas notas. Use MIDI para os acordes e microfone para a voz; a análise de áudio ainda é experimental.';
  }
- function sync(){syncStage();renderSongs();renderRepertoire();renderFavorites();renderMixer();renderCoach();$x('gx-usb').innerHTML='● XPS-10<br><small>'+(hw['setup:0']?'Dados lidos':'Aguardando')+'</small>';}
+ function sync(){syncStage();renderSongs();renderRepertoire();renderFavorites();renderMixer();renderCoach();$x('gx-usb').textContent=hw['setup:0']?'● XPS-10 lido':usbConnected?'● MIDI conectado':'● USB desligado';}
  // Recepção passiva: os dados provêm dos serviços originais; a interface nunca simula notas, status nem conexão.
  const prior=window.receive;
  window.receive=(kind,data)=>{
@@ -546,7 +565,16 @@
   if(kind==='armed'){syncStage();return;}
   if(kind==='backups'){backupRows=Array.isArray(data)?data:[];renderBackups();}
   if(kind==='userTones'){renderToneList();renderBanks();renderFavorites();}
-  if(kind==='xpsConnection'){$x('gx-usb').textContent=data?'● XPS-10 conectado':'● USB desconectado';}
+  if(kind==='status'&&/Sem resposta SysEx/.test(String(data||''))){
+    $x('gx-device-state').textContent='● USB-MIDI presente · XPS-10 sem resposta SysEx';
+  }
+  if(kind==='xpsConnection'){
+   usbConnected=!!data;
+   $x('gx-unified-usb').textContent=usbConnected?'USB conectado':'Conectar USB';
+   $x('gx-unified-usb').classList.toggle('connected',usbConnected);
+   $x('gx-usb').textContent=usbConnected?'● MIDI conectado':'● USB desconectado';
+   $x('gx-device-state').textContent=usbConnected?'● MIDI conectado · aguardando resposta SysEx':'● USB desconectado';
+  }
   if(kind==='answer'){
     if(silentPending){
      silentPending=false;
@@ -569,6 +597,11 @@
     if(data.gemma270){gemmaInstall.textContent='Reinstalar Gemma';gemmaInfo.textContent='Gemma disponível para o Copiloto. Teste usando uma pergunta.';}
   }
   if(kind==='modelInfo')gemmaInfo.textContent=String(data);
+  if(kind==='directApiState'){
+   const x=data||{};directMode.value=x.mode||'offline';directModel.value=x.model||'gpt-6-luna';
+   directState.dataset.configured=x.configured?'1':'0';
+   directState.textContent=x.configured?'Chave protegida no celular. Use Testar API para confirmar.':'Sem chave configurada. Cole sua chave somente no aplicativo.';
+  }
   if(kind==='jarvisGateway'){
    const g=data||{};onlineMode.value=g.mode||'offline';onlineModel.value=g.model||'gpt-6-luna';
    onlineUrl.value=g.endpoint||'';
@@ -593,6 +626,7 @@
  if(window.Native?.restoreCachedTones)window.Native.restoreCachedTones();
  if(window.Native?.getJarvisMemory)window.Native.getJarvisMemory();
  if(window.Native?.getJarvisOnlineStatus)window.Native.getJarvisOnlineStatus();
+ if(window.Native?.getDirectApiState)window.Native.getDirectApiState();
  if(window.Native?.listBackups)window.Native.listBackups();
  // O sequenciador progride por BPM; atualizar continuamente o resumo sem redesenhar o mixer.
  setInterval(()=>{if(active==='stage'&&document.visibilityState!=='hidden')syncStage();},300);

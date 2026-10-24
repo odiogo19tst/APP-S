@@ -430,3 +430,36 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 #gx-shell #gx-online-save{background:#0d8a78;border-color:#25cbb5;font-weight:700}
 .gx-online-panel>small{font-size:11px;color:#9fc6d2;line-height:1.4}
 #gx-online-feedback{min-height:15px}
+
+
+/* Grauê 1.6: a conexão USB é global. Demais ações de diagnóstico ficam no editor avançado. */
+#gx-shell #gx-connect,
+#gx-shell #gx-read,
+#gx-shell #gx-device-connect,
+#gx-shell #gx-connect-settings,
+#gx-shell #gx-read-settings,
+#gx-shell #gx-perf-read,
+#gx-shell #gx-user-patches {display:none!important}
+#gx-shell .gx-usb-main{flex-shrink:0;min-height:44px;padding:8px 11px;border:1px solid #22c4af;background:#0b6d66;border-radius:10px;color:#fff;font-size:12px;font-weight:700}
+#gx-shell .gx-usb-main.connected{background:#154541;color:#75e6c8;border-color:#387668}
+.gx-direct-api{border:1px solid #28a7a1;border-radius:12px;background:linear-gradient(115deg,#112e40,#0b2831);padding:13px;display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.gx-direct-api h3{font-size:16px;color:#74e8da;margin:0}
+.gx-direct-api p{font-size:12px;line-height:1.55;color:#c3d8d9;margin:0!important}
+.gx-direct-api label{font-size:12px;font-weight:700}
+#gx-shell .gx-direct-api input,#gx-shell .gx-direct-api select{box-sizing:border-box;width:100%;min-height:45px;border:1px solid #316879;border-radius:9px;background:#0a1c29;color:#edfafd;font-size:13px;padding:10px}
+.gx-direct-actions{display:flex;gap:6px;flex-wrap:wrap}
+#gx-shell .gx-direct-actions button{min-height:44px;font-size:12px;flex:1;min-width:130px;padding:8px}
+#gx-shell #gx-direct-save{background:#0b8b75;border-color:#28e1c1;font-weight:700}
+#gx-shell .gx-direct-api>small{font-size:11px;line-height:1.5;color:#a9cbd0}
+.gx-advanced-cloud{margin-top:8px;color:#bcd1e3}
+.gx-advanced-cloud>summary{cursor:pointer;min-height:44px;padding:11px;background:#102635;border:1px solid #315360;border-radius:9px;font-size:12px}
+.gx-advanced-cloud[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+#gx-shell .gx-tone-line .gx-tone-pick{font-weight:650}
+@media(max-width:700px){
+ #gx-shell .gx-usb-main{font-size:10px;max-width:105px;padding:7px 8px}
+ #gx-shell .gx-usb{font-size:10px;max-width:100px}
+ #gx-shell .gx-direct-actions button{min-width:40%;flex:1}
+}
+
+/* Even in the legacy editor, the global USB entry point is the only connector. */
+body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {display:none!important}

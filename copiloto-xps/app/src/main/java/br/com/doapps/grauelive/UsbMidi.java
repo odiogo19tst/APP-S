@@ -11,16 +11,20 @@ public final class UsbMidi implements AutoCloseable {
  private final Handler handler=new Handler(Looper.getMainLooper());
  private final MidiStream parser; private final XpsProtocol.Stream sysex;
  private final MidiManager.DeviceCallback callback=new MidiManager.DeviceCallback(){
+  public void onDeviceAdded(MidiDeviceInfo info){
+   if(info.getType()!=MidiDeviceInfo.TYPE_USB||info.getInputPortCount()<1||info.getOutputPortCount()<1)return;
+   handler.postDelayed(()->{if(device==null&&devices().length==1)connect(info);},450);
+  }
   public void onDeviceRemoved(MidiDeviceInfo info){if(device!=null&&device.getInfo().getId()==info.getId()){disconnect();listener.status("USB desconectado");}}
  };
  public UsbMidi(Context context,Listener l){listener=l;sysex=new XpsProtocol.Stream(p->handler.post(()->listener.sysex(p)));parser=new MidiStream((s,a,b)->handler.post(()->listener.event(s,a,b)));manager=(MidiManager)context.getSystemService(Context.MIDI_SERVICE);if(manager!=null)manager.registerDeviceCallback(callback,handler);}
- public MidiDeviceInfo[] devices(){if(manager==null)return new MidiDeviceInfo[0];return java.util.Arrays.stream(manager.getDevices()).filter(d->d.getType()==MidiDeviceInfo.TYPE_USB&&d.getOutputPortCount()>0).toArray(MidiDeviceInfo[]::new);}
+ public MidiDeviceInfo[] devices(){if(manager==null)return new MidiDeviceInfo[0];return java.util.Arrays.stream(manager.getDevices()).filter(d->d.getType()==MidiDeviceInfo.TYPE_USB&&d.getOutputPortCount()>0&&d.getInputPortCount()>0).toArray(MidiDeviceInfo[]::new);}
  public void connect(MidiDeviceInfo info){disconnect();final int request= generation;listener.status("Conectando USB…");manager.openDevice(info,d->{
   if(request!=generation){if(d!=null)try{d.close();}catch(IOException ignored){}return;}
   if(d==null){listener.status("Não foi possível abrir o dispositivo");return;}device=d;port=d.openOutputPort(0);sendPort=d.openInputPort(0);
-  if(port==null){disconnect();listener.status("Porta MIDI indisponível");return;}
+  if(port==null||sendPort==null){disconnect();listener.status("Entrada ou saída USB-MIDI indisponível.");return;}
   port.connect(new MidiReceiver(){public void onSend(byte[] b,int o,int n,long t){parser.feed(b,o,n);sysex.feed(b,o,n);}});
-  listener.status("USB conectado • notas ativas");
+  listener.status("USB conectado • entrada/saída MIDI disponíveis. Verificando SysEx…");
  },handler);}
  public boolean send(byte[] bytes){if(sendPort==null)return false;try{sendPort.send(bytes,0,bytes.length);return true;}catch(IOException e){return false;}}
  public boolean isConnected(){return sendPort!=null&&port!=null;}
