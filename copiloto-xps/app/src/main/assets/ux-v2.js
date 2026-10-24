@@ -303,11 +303,14 @@
  $x('gx-edit-test').onclick=()=>{
   const v=toneVariants[toneVariant];if(!v)return;
   if(!window.Native?.selectTone)return notify('Conecte USB-MIDI antes de testar.');
-  window.Native.selectTone(v.msb,v.lsb,v.program,+$x('gx-tone-part').value);
-  if(hw['setup:0']?.[0]===1&&hw['part:'+(+$x('gx-tone-part').value)]){
-   // Volume is a separate temporary edit; available only after MIDI readback.
-   $x('gx-edit-status').textContent='Timbre solicitado. Confira a troca no teclado e ajuste volume pelo mixer, se desejar.';
-  }else $x('gx-edit-status').textContent='Comando de timbre enviado; o modo Patch pode ignorar mensagens externas.';
+  const part=+$x('gx-tone-part').value;
+  if(hw['setup:0']?.[0]===1&&hw['part:'+part]){
+   window.Native.selectToneWithVolume?.(v.msb,v.lsb,v.program,part,v.volume);
+   $x('gx-edit-status').textContent='Timbre e volume enviados para teste temporário. Aguarde a confirmação MIDI.';
+  }else{
+   window.Native.selectTone(v.msb,v.lsb,v.program,part);
+   $x('gx-edit-status').textContent='Modo Patch ou leitura não confirmada. Program Change enviado; confira o teclado.';
+  }
  };
  $x('gx-edit-save').onclick=()=>{$x('gx-edit-confirm').hidden=false;};
  $x('gx-edit-yes').onclick=()=>{
