@@ -1,6 +1,10 @@
 name: Graue Live V07 - Controlador Roland XPS-10
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Graue_Live_0.7_Android_Fonte.zip'
+      - '.github/workflows/graue-live-07-android.yml'
   push:
     paths:
       - 'Graue_Live_0.7_Android_Fonte.zip'
@@ -15,6 +19,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extrair pacote Grauê 0.7
         run: unzip -q -o Graue_Live_0.7_Android_Fonte.zip 'Graue_Live_0.7/*' -d .
+      - name: Corrigir IOException no monitor MIDI
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('Graue_Live_0.7/android/app/src/main/java/br/com/doapps/grauelive/XpsMidiMonitor.java')
+          s = p.read_text(encoding='utf-8')
+          original = 'if(!listening){if(device!=null)device.close();return;}'
+          fix = 'if(!listening){if(device!=null)try{device.close();}catch(java.io.IOException ignored){}return;}'
+          assert original in s, 'Trecho de fechamento MIDI nao encontrado'
+          p.write_text(s.replace(original, fix, 1), encoding='utf-8')
+          print('Monitor MIDI corrigido antes da compilacao')
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
