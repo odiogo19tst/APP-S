@@ -17,7 +17,7 @@ for(const id of referenced)assert(ids.has(id),'Referenced element not in redesig
 for(const id of ['gx-start','gx-next','gx-panic','gx-down','gx-up','gx-import-cifra','gx-save-cifra','gx-mic','gx-mixer-parts','gx-songs','gx-sound-favorites','gx-note-history']){
  assert(ids.has(id),'Missing approved UX feature: '+id);
 }
-for(const key of ['window.Native.importCifra','window.Native.cc','window.ToneLibrary','const prior=window.receive']){
+for(const key of ['window.Native.importCifra','window.Native.editHardware','window.ToneLibrary','const prior=window.receive']){
  assert(ux.includes(key),'Missing real action binding: '+key);
 }
 assert(ux.includes("if(!$x('arm').checked)"),'Mixer must not transmit when disarmed');
