@@ -37,11 +37,11 @@ jobs:
           java -cp build/selftest br.com.doapps.grauelive.MidiStreamSelfTest
           java -cp build/selftest br.com.doapps.grauelive.XpsProtocolSelfTest
           java -cp build/selftest br.com.doapps.grauelive.ModelImportSelfTest
-      - run: node --check copiloto-xps/app/src/main/assets/ux-v2.js && node copiloto-xps/tests/music.test.js && node copiloto-xps/tests/interface.test.js && node copiloto-xps/tests/ux-v2.test.js && node copiloto-xps/tests/cifra-transpose.test.js && node copiloto-xps/tests/gemma270.test.js && node copiloto-xps/tests/one-touch-v12.test.js
+      - run: node --check copiloto-xps/app/src/main/assets/ux-v2.js && node copiloto-xps/tests/music.test.js && node copiloto-xps/tests/interface.test.js && node copiloto-xps/tests/ux-v2.test.js && node copiloto-xps/tests/cifra-transpose.test.js && node copiloto-xps/tests/gemma270.test.js && node copiloto-xps/tests/one-touch-v12.test.js && node copiloto-xps/tests/silent-stage.test.js
       - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Graue-XPS-1.2.0-MIDI-AoVivo-APK
+          name: Graue-XPS-1.3.0-Jarvis-Silencioso-APK
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
