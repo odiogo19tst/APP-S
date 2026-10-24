@@ -16,6 +16,7 @@
  '<section class="gx-panel gx-mini"><small>PRÓXIMO ACORDE</small><strong id="gx-next-chord">—</strong><span id="gx-next-line">Acompanhamento</span></section></div>',
  '<div class="gx-stage-actions"><button class="gx-start" id="gx-start">▶<span>Iniciar</span></button><button id="gx-pause">Ⅱ<span>Pausar</span></button><button id="gx-next">⏭<span>Próxima música</span></button><button class="gx-danger" id="gx-panic">⚠<span>Parar MIDI</span></button><div class="gx-transpose"><button id="gx-down" aria-label="Transpor abaixo">−</button><strong id="gx-transpose">0</strong><button id="gx-up" aria-label="Transpor acima">+</button><small>Transpor cifra</small></div><button id="gx-show-favorites">★<span>Favoritos</span></button></div>',
  '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
+ '<div class="gx-panel gx-assist"><div class="gx-section-label">✦ JARVIS MUSICAL · ACORDE DE APOIO <small>Som gerado pelo XPS-10 por MIDI</small></div><div class="gx-assist-controls"><div><strong id="gx-assist-chord">—</strong><small>acorde atual da música</small></div><label>Canal<select id="gx-assist-channel"></select></label><button id="gx-assist-play">▶ Tocar acorde</button><button id="gx-assist-stop">■ Parar</button></div><small>Um toque envia o acorde por 900 ms, somente com MIDI ativado. Escolha um canal de recepção que não interfira nas notas que você está tocando. Nunca toca sem seu comando.</small></div>',
  '<div class="gx-panel gx-zone"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
  '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm">Habilitar envio MIDI</button><button id="gx-show-mode">Modo show ↔</button></div></div>',
  '<div class="gx-screen" data-gx-screen="repertoire"><div class="gx-rep-layout">',
@@ -78,6 +79,17 @@
  $x('gx-down').onclick=()=>{callOld('down');transposeSteps--;sync();};
  $x('gx-up').onclick=()=>{callOld('up');transposeSteps++;sync();};
  $x('gx-show-favorites').onclick=()=>{let e=$x('gx-live-favorites');e.scrollIntoView({behavior:'smooth',block:'center'});};
+ for(let i=1;i<=16;i++){let option=document.createElement('option');option.value=String(i);option.textContent=String(i);$x('gx-assist-channel').append(option);}
+ $x('gx-assist-channel').value=String(saved.assistChannel||3);
+ $x('gx-assist-channel').onchange=()=>{saved.assistChannel=+$x('gx-assist-channel').value;persist();};
+ $x('gx-assist-play').onclick=()=>{
+  const name=String(song.chords?.[idx]||'').trim(),notes=M.voicing(name,[]).slice(0,5);
+  if(!notes.length){notify('Selecione uma cifra com acordes identificáveis primeiro.');return;}
+  if(!window.Native?.playAssistChord){notify('Controle MIDI de apoio indisponível. Atualize o APK.');return;}
+  window.Native.playAssistChord(JSON.stringify({channel:+$x('gx-assist-channel').value,notes,velocity:58,duration:900}));
+ };
+ $x('gx-assist-stop').onclick=()=>window.Native?.stopAssistChord?.();
+
  $x('gx-edit-fav').onclick=()=>{switchTab('sound');soundSection='favorites';showSoundPanel();};
  $x('gx-connect').onclick=connect;$x('gx-read').onclick=read;$x('gx-arm').onclick=arm;$x('gx-show-mode').onclick=()=>callOld('liveFocus');
  $x('gx-search').oninput=renderSongs;
