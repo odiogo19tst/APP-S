@@ -15,7 +15,8 @@
  '<section class="gx-panel gx-mini"><small>SEÇÃO ATUAL</small><strong id="gx-section">Em execução</strong></section>',
  '<section class="gx-panel gx-mini"><small>PRÓXIMO ACORDE</small><strong id="gx-next-chord">—</strong><span id="gx-next-line">Acompanhamento</span></section></div>',
  '<div class="gx-stage-actions"><button class="gx-start" id="gx-start">▶<span>Iniciar</span></button><button id="gx-pause">Ⅱ<span>Pausar</span></button><button id="gx-next">⏭<span>Próxima música</span></button><button class="gx-danger" id="gx-panic">⚠<span>Parar MIDI</span></button><div class="gx-transpose"><button id="gx-down" aria-label="Transpor abaixo">−</button><strong id="gx-transpose">0</strong><button id="gx-up" aria-label="Transpor acima">+</button><small>Transpor cifra</small></div><button id="gx-show-favorites">★<span>Favoritos</span></button></div>',
- '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
+ '<div class="gx-panel gx-silent-advisor" id="gx-silent-advisor"><div class="gx-silent-head"><strong>✦ JARVIS · SUGESTÕES SILENCIOSAS</strong><span id="gx-silent-source">Cifra e favoritos do celular</span></div><div class="gx-silent-content"><div><small>PRÓXIMA HARMONIA</small><strong id="gx-silent-next">—</strong><small id="gx-silent-detail">Abra uma música do repertório.</small></div><div><small>TIMBRE PREPARADO</small><strong id="gx-silent-tone">—</strong><small id="gx-silent-tone-detail">Marque sons como favoritos para receber sugestões.</small></div></div><div class="gx-silent-actions"><button id="gx-silent-accept" disabled>Aplicar timbre</button><button id="gx-silent-alternate" disabled>Outra sugestão</button><button id="gx-silent-ai">Dica da IA local</button><button id="gx-silent-dismiss">Ignorar</button></div><p id="gx-silent-ai-text" role="status" aria-live="polite"></p><p class="gx-silent-note">Sugestões visuais, sem fala nem som. Timbres só mudam com seu toque. A próxima harmonia vem da cifra, não de reconhecimento automático da banda.</p></div>',
+'<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
  '<div class="gx-panel gx-assist"><div class="gx-section-label">✦ JARVIS MUSICAL · ACORDE DE APOIO <small>Som gerado pelo XPS-10 por MIDI</small></div><div class="gx-assist-controls"><div><strong id="gx-assist-chord">—</strong><small>acorde atual da música</small></div><label>Canal<select id="gx-assist-channel"></select></label><button id="gx-assist-play">▶ Tocar acorde</button><button id="gx-assist-stop">■ Parar</button></div><small>Um toque envia o acorde por 900 ms, somente com MIDI ativado. Escolha um canal de recepção que não interfira nas notas que você está tocando. Nunca toca sem seu comando.</small></div>',
  '<div class="gx-panel gx-zone"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
  '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm">Habilitar envio MIDI</button><button id="gx-show-mode">Modo show ↔</button></div></div>',
@@ -54,6 +55,56 @@
  let active='stage',filter='all',section='cifra',soundSection='tones',selectedIndex=-1,partPage=0,transposeSteps=0;
  let lastAudio=null,hw={},connected=false,recording=false,notesHistory=[],keyName='—',lastCh='—';
  let backupRows=[],backupSelection=new Set();
+ let silentDismissedKey='',silentToneIndex=0,silentPending=false,silentSuggested=null,silentMusicKey='';
+ const stageKey=()=>[song?.title||'',idx,root,minor].join(':');
+ function preferredTones(){
+  const lib=window.ToneLibrary;
+  if(!lib?.favorites||!lib?.list)return [];
+  const favorites=lib.favorites();
+  const all=lib.list().filter(t=>t&&favorites.has(t.code)&&Number.isInteger(t.msb)&&Number.isInteger(t.lsb)&&Number.isInteger(t.program));
+  const context=(S(song?.title)+' '+S(song?.category)).toLocaleLowerCase('pt-BR');
+  const soft=/oração|oracao|adoração|adoracao|medita|lento|worship|intimidade/.test(context);
+  const energetic=/celebra|alegr|júbilo|jubilo|festa|rápid|rapido/.test(context);
+  const priority=t=>{
+   const v=(S(t.name)+' '+S(t.category)).toLocaleLowerCase('pt-BR');
+   if(soft)return /pad|strings|warm|ambient|choir|string|synth/.test(v)?3:0;
+   if(energetic)return /piano|brass|organ|lead|epiano/.test(v)?3:0;
+   return /piano|pad|strings/.test(v)?2:0;
+  };
+  return all.map((t,i)=>({t,i,priority:priority(t)})).sort((a,b)=>b.priority-a.priority||a.i-b.i).map(v=>v.t);
+ }
+ function renderSilentAdvisor(){
+  const key=stageKey(),tones=preferredTones();
+  if(key!==silentMusicKey){silentMusicKey=key;silentToneIndex=0;silentPending=false;$x('gx-silent-ai-text').textContent='';}
+  const hidden=silentDismissedKey===key;
+  $x('gx-silent-advisor').classList.toggle('gx-silent-muted',hidden);
+  const current=Array.isArray(song?.chords)?song.chords:[];
+  const next=current.length?current[(idx+1)%current.length]:null;
+  $x('gx-silent-next').textContent=hidden?'Sugestão ignorada':(next||'Sem cifra');
+  $x('gx-silent-detail').textContent=hidden?'Toque em Mostrar para reabrir.':(next?'Próximo acorde registrado na cifra, após '+S(current[idx]||'—')+'.':'Selecione uma música com acordes.');
+  silentSuggested=!hidden&&tones.length?tones[silentToneIndex%tones.length]:null;
+  $x('gx-silent-tone').textContent=hidden?'—':(silentSuggested?.name||'Sem favorito');
+  $x('gx-silent-tone-detail').textContent=hidden?'Sem trocas automáticas.':(silentSuggested?'Sugestão por favoritos e perfil da música. Confirme antes de tocar.':'Favorite timbres em Sons para sugestões rápidas.');
+  $x('gx-silent-source').textContent=hidden?'Pausado para esta música':'Cifra e favoritos do celular';
+  $x('gx-silent-accept').disabled=!silentSuggested;
+  $x('gx-silent-alternate').disabled=hidden||tones.length<2;
+  $x('gx-silent-ai').disabled=hidden||silentPending;
+  $x('gx-silent-dismiss').textContent=hidden?'Mostrar':'Ignorar';
+ }
+ $x('gx-silent-accept').onclick=()=>{if(silentSuggested)chooseTone(silentSuggested);};
+ $x('gx-silent-alternate').onclick=()=>{const count=preferredTones().length;if(count>1){silentToneIndex=(silentToneIndex+1)%count;renderSilentAdvisor();}};
+ $x('gx-silent-dismiss').onclick=()=>{silentDismissedKey=silentDismissedKey===stageKey()?'':stageKey();renderSilentAdvisor();};
+ $x('gx-silent-ai').onclick=()=>{
+  if(silentPending)return;
+  if(!window.Native?.ask){$x('gx-silent-ai-text').textContent='IA local não disponível. Configure a Gemma em Ajustes.';return;}
+  const current=Array.isArray(song?.chords)?song.chords.slice(0,16):[];
+  if(!current.length){$x('gx-silent-ai-text').textContent='Escolha uma música com cifras antes de pedir a dica.';return;}
+  silentPending=true;renderSilentAdvisor();
+  $x('gx-silent-ai-text').textContent='Consultando IA local — a cifra e os favoritos continuam acessíveis.';
+  const prompt='Seja um copiloto de palco SILENCIOSO. Responda em português em até 24 palavras, com uma sugestão prática para o tecladista no culto. Não alegue ouvir a banda. Não execute MIDI. Música: '+S(song.title).slice(0,90)+'. Categoria: '+S(song.category).slice(0,40)+'. Tom declarado: '+M.names[root]+(minor?' menor':' maior')+'. Progressão registrada: '+current.join(' ').slice(0,120)+'. Acorde atual na cifra: '+S(current[idx]||'').slice(0,24)+'. Favoritos: '+preferredTones().slice(0,5).map(t=>t.name).join(', ').slice(0,130)+'.';
+  window.Native.ask(prompt);
+ };
+
  const friendlyNote=midi=>Number.isInteger(midi)&&midi>=0&&midi<=127?M.names[midi%12]+String(Math.floor(midi/12)-1):'—';
  const switchTab=name=>{active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();if(name==='backups'&&window.Native?.listBackups)window.Native.listBackups();};
  tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');
@@ -429,6 +480,7 @@
   $x('gx-progress-bar').style.width=((idx+1)/Math.max(1,song.chords.length)*100)+'%';
   $x('gx-next-line').textContent=song.chords?.[idx]||'Sem acorde';
   $x('gx-assist-chord').textContent=song.chords?.[idx]||'—';
+  renderSilentAdvisor();
   $x('gx-transpose').textContent=(transposeSteps>0?'+':'')+transposeSteps;
   $x('gx-arm').textContent=$x('arm')?.checked?'Desabilitar envio MIDI':'Habilitar envio MIDI';
  }
@@ -463,7 +515,13 @@
   if(kind==='backups'){backupRows=Array.isArray(data)?data:[];renderBackups();}
   if(kind==='userTones'){renderToneList();renderBanks();renderFavorites();}
   if(kind==='xpsConnection'){$x('gx-usb').textContent=data?'● XPS-10 conectado':'● USB desconectado';}
-  if(kind==='answer')onToneAiAnswer(data);
+  if(kind==='answer'){
+    if(silentPending){
+     silentPending=false;
+     $x('gx-silent-ai-text').textContent=S(data||'Nenhuma sugestão disponível.').slice(0,500);
+     renderSilentAdvisor();
+    }else onToneAiAnswer(data);
+  }
   if(kind==='gemmaProgress'){
     const busy=!!data.busy,progress=Number(data.progress);
     gemmaInstall.dataset.busy=busy?'1':'';
@@ -486,6 +544,7 @@
  const priorPersist=window.refreshLiveSongs;
  if(typeof priorPersist==='function')window.refreshLiveSongs=()=>{priorPersist();renderSongs();renderRepertoire();};
  sync();
+ renderSilentAdvisor();
  showSoundPanel();
  if(window.Native?.restoreCachedTones)window.Native.restoreCachedTones();
  if(window.Native?.listBackups)window.Native.listBackups();
