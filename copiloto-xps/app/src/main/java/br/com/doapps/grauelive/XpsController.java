@@ -19,7 +19,8 @@ public final class XpsController {
   return Integer.valueOf(1).equals(state.get(XpsProtocol.address(1,0,0,0)))
    &&state.containsKey(b.start+4)&&state.containsKey(b.start+5)&&state.containsKey(b.start+6);
  }
- public void auditionTone(int part,int msb,int lsb,int program){
+ public void auditionTone(int part,int msb,int lsb,int program){auditionToneConfig(part,msb,lsb,program,-1);}
+ public void auditionToneConfig(int part,int msb,int lsb,int program,int volume){
   if(part<0||part>=16||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128){
    io.emit("status","Endereço do timbre inválido.");return;
   }
@@ -30,6 +31,7 @@ public final class XpsController {
     .put(new JSONObject().put("section","part").put("index",part).put("offset",4).put("value",msb))
     .put(new JSONObject().put("section","part").put("index",part).put("offset",5).put("value",lsb))
     .put(new JSONObject().put("section","part").put("index",part).put("offset",6).put("value",program-1));
+   if(volume>=0&&volume<=127)edits.put(new JSONObject().put("section","part").put("index",part).put("offset",7).put("value",volume));
    write(edits.toString(),true); // single explicit tap; guarded snapshot+readback, never WRITE to user memory
   }catch(JSONException e){io.emit("status","Não foi possível selecionar o timbre: "+e.getMessage());}
  }
