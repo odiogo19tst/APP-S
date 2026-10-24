@@ -366,3 +366,17 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 #gx-edit-confirm{background:#153849;border:1px solid #32baa7;padding:10px;margin:9px 0;border-radius:8px}
 .gx-tone-dialog small{font-size:11px;color:#a7c5c8}
 @media(max-width:700px){.gx-tone-line{grid-template-columns:minmax(0,1fr) 43px 56px}.gx-tone-list{max-height:38vh}.gx-bank-slots,.gx-live-bank-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-bank-tabs,.gx-live-bank-tabs{grid-template-columns:repeat(5,minmax(0,1fr))}.gx-tone-dialog{padding:11px}.gx-tone-dialog .gx-edit-actions button{flex:1}}
+
+
+.gx-assist{border:1px solid #208c86!important;background:linear-gradient(135deg,#0d2432,#102b34)}
+.gx-assist-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:7px 0}
+.gx-assist-controls>div{flex:1;min-width:92px}
+.gx-assist-controls strong{font-size:25px;display:block;color:#5de8c1}
+.gx-assist-controls small{font-size:11px;color:#9fc7c9}
+.gx-assist-controls label{font-size:11px;color:#9fc7c9;display:flex;gap:5px;align-items:center}
+#gx-shell .gx-assist-controls select{min-width:54px;min-height:44px;background:#0c2533;color:#fff;border:1px solid #39666b;border-radius:8px;padding:5px}
+#gx-shell .gx-assist-controls button{min-height:50px;padding:10px 12px;font-size:12px}
+#gx-shell #gx-assist-play{background:#0a966e;color:#fff;font-weight:700;border-color:#34ccae}
+#gx-shell #gx-assist-stop{background:#57354a;border-color:#a16976}
+.gx-assist>small{font-size:10px;color:#8fbabe;display:block;line-height:1.4}
+@media(max-width:700px){#gx-shell .gx-assist-controls button{flex:1;min-width:125px}}
