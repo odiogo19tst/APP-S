@@ -58,6 +58,15 @@ public class MainActivity extends Activity {
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
   captureShare(getIntent());
   layoutPanels();web.loadUrl("file:///android_asset/index.html");
+  // Passive discovery only. Auto-connect when there is exactly one MIDI USB device.
+  // The OS still owns USB access permissions; never choose among multiple devices silently.
+  new Handler(Looper.getMainLooper()).postDelayed(()->autoConnectUsb(),1100);
+ }
+ private void autoConnectUsb(){
+  if(midi==null||midi.isConnected())return;
+  MidiDeviceInfo[] list=midi.devices();
+  if(list.length==1)midi.connect(list[0]);
+  else if(list.length>1)emit("status","Mais de um dispositivo USB-MIDI detectado. Selecione o XPS-10 em Conectar USB.");
  }
  private void layoutPanels(){boolean wide=getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;rootLayout.setOrientation(wide?android.widget.LinearLayout.HORIZONTAL:android.widget.LinearLayout.VERTICAL);web.setLayoutParams(new android.widget.LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,1));if(cifraPanel!=null)cifraPanel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,wide?1.15f:1));}
  private void showCifra(){if(cifraPanel==null){cifraPanel=new CifraPanel(this,(title,text)->{try{JSONObject data=new JSONObject();data.put("title",title);data.put("text",text);emit("webCifra",data);}catch(JSONException ignored){}},()->{rootLayout.removeView(cifraPanel);cifraPanel.destroy();cifraPanel=null;layoutPanels();});rootLayout.addView(cifraPanel);}layoutPanels();}
@@ -104,7 +113,7 @@ public class MainActivity extends Activity {
     int channel=0;
     boolean ok=midi.send(0xb0+channel,0,msb);
     if(ok)ok=midi.send(0xb0+channel,32,lsb);
-    if(ok)ok=midi.send(0xc0+channel,program-1,0); // replaced below with true 2-byte message
+    if(ok)ok=midi.sendProgram(channel+1,program-1);
     emit("status",ok?"Bank/Program enviado via canal 1. Confira o som no teclado; modo Patch pode ignorar a troca.":"Sem porta USB-MIDI de saída. Conecte o XPS-10.");
    });
   }
