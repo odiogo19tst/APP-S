@@ -460,3 +460,6 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
  #gx-shell .gx-usb{font-size:10px;max-width:100px}
  #gx-shell .gx-direct-actions button{min-width:40%;flex:1}
 }
+
+/* Even in the legacy editor, the global USB entry point is the only connector. */
+body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {display:none!important}
