@@ -22,5 +22,44 @@ const defaults=[['Bumbo',36],['Caixa',38],['Chimbal fechado',42],['Chimbal abert
 let notes=Array.isArray(saved.padNotes)&&saved.padNotes.length===8?saved.padNotes:defaults.map(p=>p[1]);notes=notes.map((n,i)=>Number.isInteger(n)&&n>=0&&n<=127?n:defaults[i][1]);
 defaults.forEach(([label],i)=>{let b=document.createElement('button');b.textContent=label;b.onpointerdown=e=>{e.preventDefault();native('padHit',+f('drumChannel').value,notes[i],+f('drumVelocity').value);};f('drumPads').append(b);let l=document.createElement('label');l.textContent=label+' • nota MIDI';let input=document.createElement('input');input.type='number';input.min=0;input.max=127;input.value=notes[i];input.onchange=()=>{let n=+input.value;if(!Number.isInteger(n)||n<0||n>127){input.value=notes[i];return;}notes[i]=n;saved.padNotes=notes;persist();};l.append(input);f('padNotes').append(l);});
 f('stopPads').onclick=()=>native('stopPads');
-const prev=window.receive;window.receive=(k,d)=>{prev(k,d);if(k==='hardware')hw=d;if(k==='hardwareReset')hw={};if(k==='armed')f('liveArm').textContent=d?'Envio MIDI ligado':'Ativar envio MIDI';};
+
+function refreshPerformanceQuick(){
+ const parts=f('livePartsGrid'),box=f('liveQuickFavorites');
+ if(!parts||!box)return;
+ parts.replaceChildren();
+ const selected=+f('livePart').value,ready=!!hw['setup:0'];
+ f('liveConnection').textContent=ready?'Performance lida':'Aguardando leitura MIDI';
+ for(let i=0;i<16;i++){
+  const p=hw['part:'+i],b=document.createElement('button');
+  const n=document.createElement('strong');n.textContent=String(i+1).padStart(2,'0');
+  const label=document.createElement('small');
+  const tone=p?lib.list().find(x=>x.msb===p[4]&&x.lsb===p[5]&&x.program===p[6]+1):null;
+  label.textContent=p?(tone?tone.name:'Canal '+(p[0]+1)):'Sem leitura';
+  b.append(n,label);b.setAttribute('aria-label','Selecionar parte '+(i+1));b.setAttribute('aria-pressed',String(i===selected));
+  b.onclick=()=>{f('livePart').value=String(i);f('livePart').onchange();};
+  parts.append(b);
+ }
+ box.replaceChildren();
+ const favorites=lib.list().filter(x=>lib.favorites().has(x.code)).slice(0,12);
+ if(!favorites.length){const p=document.createElement('p');p.className='muted';p.textContent='Favoritos marcados em Sons aparecem aqui.';box.append(p);return;}
+ favorites.forEach(t=>{
+  const b=document.createElement('button');b.textContent='★ '+t.name;
+  b.onclick=()=>{
+   const i=+f('livePart').value;
+   if(!f('arm').checked){f('status').textContent='Ative o envio MIDI antes de trocar timbres.';return;}
+   if(!hw['setup:0']||!hw['part:'+i]){f('status').textContent='Leia o XPS-10 antes de trocar timbres.';return;}
+   if(hw['setup:0'][0]!==1){f('status').textContent='Modo Performance ainda não confirmado.';return;}
+   f('hardwarePart').value=String(i);f('hardwarePart').onchange();lib.choose(t);
+   f('applyTone').onclick();
+   f('status').textContent='Timbre solicitado: '+t.name+'. Aguarde confirmação pela leitura MIDI.';
+  };
+  box.append(b);
+ });
+}
+window.refreshPerformanceQuick=refreshPerformanceQuick;
+const previousPartChange=f('livePart').onchange;
+f('livePart').onchange=()=>{previousPartChange();refreshPerformanceQuick();};
+refreshPerformanceQuick();
+
+const prev=window.receive;window.receive=(k,d)=>{prev(k,d);if(k==='hardware')hw=d;if(k==='hardwareReset')hw={};if(k==='armed')f('liveArm').textContent=d?'Envio MIDI ligado':'Ativar envio MIDI';if(k==='hardware'||k==='hardwareReset')refreshPerformanceQuick();};
 })();
