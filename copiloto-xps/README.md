@@ -128,3 +128,11 @@ Referência do formato: código oficial MediaPipe v0.10.26, `tasks/python/genai/
 A verificação de 0.7.1 exigia nomes internos específicos e entradas sem compressão, barrando outros pacotes antes de chamar o runtime. Agora a pré-verificação exige apenas um ZIP não vazio: o MediaPipe valida a compatibilidade do modelo. Mantém o arquivo temporário com extensão .task, a substituição atômica e a preservação do modelo anterior em caso de falha.
 
 Teste de regressão usa arquivos sintéticos com nomes alternativos e compressão, verifica que chegam ao validador e que falhas preservam o modelo instalado. Não demonstra inferência real; o arquivo do usuário e a execução no S25 ainda precisam ser testados.
+
+## Unificação Grauê + Copiloto XPS (prévia 0.8)
+
+- Projeto-base: **Copiloto XPS** (mantém applicationId e dados existentes). O Grauê passa a ser o módulo musical integrado: microfone, estimativa de tom e sugestões; USB MIDI continua sendo a fonte confiável do que o músico toca.
+- Referência funcional independente: XPS Mobile Editor (Smart Edições / Eddie Tavares). Não copiar telas, ativos, textos ou código proprietários.
+- Modo Ao Vivo: seleção tátil das 16 partes e atalhos de timbres favoritos; nenhum comando enviado só por navegar. Trocar um favorito exige leitura prévia do teclado e envio MIDI explicitamente habilitado.
+- Próximas integrações: leitura e ajuste por parte dos controles de pedal/pitch bend/modulação conforme tabela SysEx documentada; performance e patches de usuário; importação não destrutiva de backups; melhoria do áudio neural e Cifra Club; retomar Bip 6 somente após corrigir reinicialização.
+- O novo painel indica *dados lidos*, não conectividade física contínua. A confirmação após o envio depende de leitura de retorno. Não gravar User patches diretamente sem confirmação adicional.
