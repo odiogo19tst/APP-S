@@ -14,6 +14,13 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInference;
 
 public class MainActivity extends Activity {
  private android.widget.LinearLayout rootLayout; private CifraPanel cifraPanel; private DrumSequencer sequencer;
+ private boolean autoUserRead=false;
+ private void emitCachedUsers(){
+  String stored=getPreferences(MODE_PRIVATE).getString("xpsUserCache","");
+  if(!stored.isEmpty())try{emit("userTones",new JSONArray(stored));emit("status","Timbres USER recuperados do cache local. Não é necessário ler novamente.");}
+  catch(Exception ignored){}
+ }
+ private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
  private BackupArchive backupArchive; private String backupExportSha="";
@@ -26,8 +33,27 @@ public class MainActivity extends Activity {
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
   web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();}});
   web.addJavascriptInterface(new Bridge(),"Native");
-  xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){MainActivity.this.emit(k,d);}});
-  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();emit("status",t);emit("clear","");armed=false;emit("armed",false);}public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}});
+  xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
+  MainActivity.this.emit(k,d);
+  if("hardware".equals(k)&&autoUserRead){
+   autoUserRead=false;
+   if(hasCachedUsers())emitCachedUsers();
+   else new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
+  }
+  if("userTones".equals(k)&&d instanceof JSONArray){
+   JSONArray entries=(JSONArray)d;
+   if(entries.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",entries.toString()).apply();
+  }
+ }});
+  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
+ padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
+ emit("status",t);emit("clear","");armed=false;emit("armed",false);
+ if(t!=null&&t.startsWith("USB conectado")){
+  autoUserRead=true;emit("xpsConnection",true);
+  emitCachedUsers(); // user names are cached, not re-scanned at every opening
+  new Handler(Looper.getMainLooper()).postDelayed(()->xps.read(),250);
+ }else{autoUserRead=false;emit("xpsConnection",false);}
+}public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}});
   sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
   captureShare(getIntent());
@@ -65,7 +91,24 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void openReference(String name){runOnUiThread(()->{String url=null;if(name.equals("model"))url="https://huggingface.co/litert-community/Gemma3-1B-IT/tree/main";if(name.equals("gemmaTerms"))url="https://ai.google.dev/gemma/terms";if(name.equals("gemmaSource"))url="https://huggingface.co/72fstudio/gemma-3-270m-it";if(name.equals("effects"))url="https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf";if(name.equals("louve"))url="https://louveapp.com.br/";if(name.equals("cifra"))url="https://www.cifraclub.com.br/";if(url!=null)try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(Exception e){emit("status","Não foi possível abrir o navegador.");}});}
   @JavascriptInterface public void testModel(){ask("Responda em português: qual a diferença entre ataque e release de um pad? Use no máximo três frases.");}
 
-  @JavascriptInterface public void readUserTones(){runOnUiThread(()->xps.readUsers());}
+  @JavascriptInterface public void readUserTones(){runOnUiThread(()->{autoUserRead=false;xps.readUsers();});}
+  @JavascriptInterface public void restoreCachedTones(){runOnUiThread(()->emitCachedUsers());}
+  @JavascriptInterface public void selectTone(int msb,int lsb,int program,int part){
+   runOnUiThread(()->{
+    if(msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>=16){
+     emit("status","Dados de timbre inválidos.");return;
+    }
+    if(xps.hasPerformancePart(part)){xps.auditionTone(part,msb,lsb,program);return;}
+    // Patch mode / unverified performance: transmit a standard bank+program change
+    // to the keyboard's receiving MIDI channel. This may not switch the local panel sound.
+    int channel=0;
+    boolean ok=midi.send(0xb0+channel,0,msb);
+    if(ok)ok=midi.send(0xb0+channel,32,lsb);
+    if(ok)ok=midi.send(0xc0+channel,program-1,0); // replaced below with true 2-byte message
+    emit("status",ok?"Bank/Program enviado via canal 1. Confira o som no teclado; modo Patch pode ignorar a troca.":"Sem porta USB-MIDI de saída. Conecte o XPS-10.");
+   });
+  }
+
   @JavascriptInterface public void cancelHardware(){runOnUiThread(()->xps.cancelWrites());}
   @JavascriptInterface public void readHardware(){runOnUiThread(()->xps.read());}
   @JavascriptInterface public void editHardware(String json){if(json.length()<40000)runOnUiThread(()->xps.write(json,armed));}
