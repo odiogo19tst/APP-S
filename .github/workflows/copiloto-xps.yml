@@ -1,4 +1,4 @@
-name: Copiloto XPS - Android
+name: Grauê XPS - Copiloto Musical
 on:
   pull_request:
     paths: ['copiloto-xps/**', '.github/workflows/copiloto-xps.yml']
@@ -42,6 +42,6 @@ jobs:
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Copiloto-XPS-0.7.2-APK
+          name: Graue-XPS-0.8.0-APK
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
