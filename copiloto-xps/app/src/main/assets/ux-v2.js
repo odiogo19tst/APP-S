@@ -15,7 +15,7 @@
  '<section class="gx-panel gx-mini"><small>SEÇÃO ATUAL</small><strong id="gx-section">Em execução</strong></section>',
  '<section class="gx-panel gx-mini"><small>PRÓXIMO ACORDE</small><strong id="gx-next-chord">—</strong><span id="gx-next-line">Acompanhamento</span></section></div>',
  '<div class="gx-stage-actions"><button class="gx-start" id="gx-start">▶<span>Iniciar</span></button><button id="gx-pause">Ⅱ<span>Pausar</span></button><button id="gx-next">⏭<span>Próxima música</span></button><button class="gx-danger" id="gx-panic">⚠<span>Parar MIDI</span></button><div class="gx-transpose"><button id="gx-down" aria-label="Transpor abaixo">−</button><strong id="gx-transpose">0</strong><button id="gx-up" aria-label="Transpor acima">+</button><small>Transpor cifra</small></div><button id="gx-show-favorites">★<span>Favoritos</span></button></div>',
- '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TIMBRES FAVORITOS <button id="gx-edit-fav">Editar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div></div>',
+ '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
  '<div class="gx-panel gx-zone"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
  '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm">Habilitar envio MIDI</button><button id="gx-show-mode">Modo show ↔</button></div></div>',
  '<div class="gx-screen" data-gx-screen="repertoire"><div class="gx-rep-layout">',
@@ -235,6 +235,21 @@
   const b=document.createElement('button');b.textContent='Banco '+i;b.dataset.bank=String(i);
   b.onclick=()=>{toneBank=i;renderBanks();};$x('gx-bank-tabs').append(b);
  }
+ function renderLiveBanks(){
+  const nav=$x('gx-live-bank-tabs'),slots=$x('gx-live-bank-slots');
+  nav.replaceChildren();slots.replaceChildren();
+  for(let i=0;i<10;i++){
+   const btn=document.createElement('button');btn.textContent=String(i);
+   btn.classList.toggle('on',toneBank===i);btn.onclick=()=>{toneBank=i;renderBanks();};
+   nav.append(btn);
+   const t=toneLib()?.slot(toneBank,i);
+   const pick=document.createElement('button');pick.className='gx-live-bank-slot';
+   pick.textContent=(i+1)+'. '+(t?t.name:'—');
+   pick.disabled=!t;pick.onclick=()=>{if(t)chooseTone(t);};
+   slots.append(pick);
+  }
+  $x('gx-live-bank-name').textContent=String(toneBank);
+ }
  function renderBanks(){
   $x('gx-bank-tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.bank===toneBank));
   const grid=$x('gx-bank-slots');grid.replaceChildren();
@@ -245,6 +260,7 @@
    b.oncontextmenu=e=>{e.preventDefault();if(t&&confirm('Remover este favorito somente do banco do aplicativo?')){toneLib().putSlot(toneBank,i,null);renderBanks();}};
    grid.append(b);
   }
+  renderLiveBanks();
  }
  function openToneEditor(t){
   const part=+$x('gx-tone-part').value,p=hw['part:'+part];
@@ -430,6 +446,7 @@
   if(kind==='armed'){syncStage();return;}
   if(kind==='backups'){backupRows=Array.isArray(data)?data:[];renderBackups();}
   if(kind==='userTones'){renderToneList();renderBanks();renderFavorites();}
+  if(kind==='xpsConnection'){$x('gx-usb').textContent=data?'● XPS-10 conectado':'● USB desconectado';}
   if(kind==='answer')onToneAiAnswer(data);
   if(kind==='gemmaProgress'){
     const busy=!!data.busy,progress=Number(data.progress);
