@@ -414,3 +414,19 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 #gx-shell .gx-jarvis-memory-actions button{min-height:44px;padding:9px 12px;font-size:12px;flex:1;min-width:145px}
 #gx-shell #gx-jarvis-save{background:#078b72;border-color:#24ccb0}
 #gx-jarvis-notes-status{color:#9fcbcb;font-size:11px}
+
+
+/* Jarvis hybrid: private Worker endpoint + offline Gemma fallback. */
+.gx-online-panel{display:flex;flex-direction:column;gap:8px;border:1px solid #267a9a;background:linear-gradient(135deg,#102a41,#0a2534);padding:13px;border-radius:12px;margin:10px 0}
+.gx-online-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.gx-online-heading strong{color:#73e6f3;font-size:16px}
+.gx-online-heading small{color:#aad1da;font-size:11px}
+.gx-online-panel p{font-size:12px;color:#c0d7dd;margin:0!important;line-height:1.5}
+.gx-online-panel>label{font-size:12px;font-weight:600}
+#gx-shell .gx-online-panel select,#gx-shell .gx-online-panel input{box-sizing:border-box;width:100%;min-height:44px;background:#0a1c2c;border:1px solid #375d76;color:#eefaff;padding:10px 11px;border-radius:8px;font-size:13px}
+#gx-shell .gx-online-panel input:focus-visible,#gx-shell .gx-online-panel select:focus-visible{outline:2px solid #49d9ed}
+.gx-online-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+#gx-shell .gx-online-buttons button{flex:1;min-width:130px;min-height:44px;padding:9px 10px;font-size:12px}
+#gx-shell #gx-online-save{background:#0d8a78;border-color:#25cbb5;font-weight:700}
+.gx-online-panel>small{font-size:11px;color:#9fc6d2;line-height:1.4}
+#gx-online-feedback{min-height:15px}

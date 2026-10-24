@@ -30,15 +30,15 @@ public class MainActivity extends Activity {
  private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
- private BackupArchive backupArchive; private String backupExportSha="";
+ private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway;
 
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
-  backupArchive=new BackupArchive(this);
+  backupArchive=new BackupArchive(this);jarvisGateway=new JarvisCloudGateway(this);
   getWindow().setStatusBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
-  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));emitCachedUsers();}});
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();emitCachedUsers();}});
   web.addJavascriptInterface(new Bridge(),"Native");
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
@@ -85,6 +85,10 @@ public class MainActivity extends Activity {
  private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+(new JSONArray().put(data).toString()+"[0]")+")",null);}catch(Exception ignored){} });}
  private void captureShare(Intent intent){if(Intent.ACTION_SEND.equals(intent.getAction())&&"text/plain".equals(intent.getType())){String text=intent.getStringExtra(Intent.EXTRA_TEXT);if(text!=null)pendingShare=text.substring(0,Math.min(text.length(),200000));}}
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);captureShare(intent);if(pageReady&&!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}}
+ private void gatewayInfo(){
+  try{emit("jarvisGateway",jarvisGateway.state());}
+  catch(Exception e){emit("status","Configuração online indisponível.");}
+ }
  private void modelInfo(){
   File f=new File(getFilesDir(),"model.task");
   boolean ready=f.exists();
@@ -214,6 +218,26 @@ public class MainActivity extends Activity {
    emit("status",cleaned.isEmpty()?"Preferências locais limpas.":"Preferências do Jarvis salvas somente neste celular.");
   }
   @JavascriptInterface public void clearJarvisMemory(){saveJarvisMemory("");}
+  @JavascriptInterface public void configureJarvisOnline(String endpoint,String deviceToken,String mode,String model){
+   try{
+    if(deviceToken!=null&&(deviceToken.trim().startsWith("sk-")||deviceToken.trim().startsWith("sk_")))
+     throw new IllegalArgumentException("Não cole a chave OpenAI no celular. Insira apenas o token próprio do seu Worker.");
+    jarvisGateway.configure(endpoint,deviceToken,mode,model);
+    gatewayInfo();
+    emit("status","Configuração Jarvis salva no celular. A chave OpenAI permanece exclusivamente no servidor.");
+   }catch(Exception e){emit("status","Configuração online: "+e.getMessage());}
+  }
+  @JavascriptInterface public void getJarvisOnlineStatus(){gatewayInfo();}
+  @JavascriptInterface public void testJarvisOnline(){
+   if(!jarvisGateway.ready()){emit("answer","Configure o endereço e o token do Worker em Ajustes.");return;}
+   worker.execute(()->{
+    try{
+     JarvisCloudGateway.Answer result=jarvisGateway.request("Responda apenas: Jarvis online conectado.");
+     emit("aiSource","Online · "+result.model);
+     emit("answer",result.text);
+    }catch(Exception e){emit("answer","Teste Jarvis online falhou: "+e.getMessage());}
+   });
+  }
   @JavascriptInterface public void ask(String prompt){
    if(prompt==null||prompt.length()>JarvisMusicalProfile.MAX_REQUEST){
     emit("answer","Encurte a pergunta para até 2400 caracteres.");return;
@@ -221,14 +245,32 @@ public class MainActivity extends Activity {
    String notes=getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes","");
    final String prepared=JarvisMusicalProfile.buildPrompt(prompt,notes);
    worker.execute(()->{
+    String mode=jarvisGateway.mode();
+    if(!"offline".equals(mode)&&jarvisGateway.ready()){
+     try{
+      JarvisCloudGateway.Answer result=jarvisGateway.request(prepared);
+      emit("aiSource","Online · "+result.model);
+      emit("answer",result.text);return;
+     }catch(Exception e){
+      if("online".equals(mode)){
+       emit("answer","Jarvis online indisponível: "+e.getMessage()+". Troque para Automático ou Offline em Ajustes.");
+       return;
+      }
+      emit("status","Rede/API indisponível. Tentando Gemma local.");
+     }
+    }else if("online".equals(mode)){
+     emit("answer","Configure o endereço seguro do Worker e o token do dispositivo antes de usar Jarvis Online.");
+     return;
+    }
     try{
      if(llm==null){
       File model=new File(getFilesDir(),"model.task");
       if(!model.exists()){
-       emit("answer","A Gemma ainda não está instalada. Abra Ajustes → IA local. O guia de acordes e timbres continua funcionando sem modelo.");return;
+       emit("answer","Gemma offline ainda não instalada. Instale-a em Ajustes; o guia de cifras e favoritos continua disponível.");return;
       }
       llm=openModel(model);
      }
+     emit("aiSource","Gemma · Offline");
      emit("answer",llm.generateResponse(prepared));
     }catch(Exception e){emit("answer","A IA local não respondeu: "+e.getMessage());}
    });
