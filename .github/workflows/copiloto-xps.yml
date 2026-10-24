@@ -1,7 +1,7 @@
 name: Grauê XPS - Copiloto Musical
 on:
   pull_request:
-    paths: ['copiloto-xps/**', '.github/workflows/copiloto-xps.yml']
+    paths: ['copiloto-xps/**', 'graue-api-worker/**', '.github/workflows/copiloto-xps.yml']
   workflow_dispatch:
   push:
     branches: ['feat/copiloto-xps']
@@ -37,11 +37,11 @@ jobs:
           java -cp build/selftest br.com.doapps.grauelive.MidiStreamSelfTest
           java -cp build/selftest br.com.doapps.grauelive.XpsProtocolSelfTest
           java -cp build/selftest br.com.doapps.grauelive.ModelImportSelfTest
-      - run: node --check copiloto-xps/app/src/main/assets/ux-v2.js && node copiloto-xps/tests/music.test.js && node copiloto-xps/tests/interface.test.js && node copiloto-xps/tests/ux-v2.test.js && node copiloto-xps/tests/cifra-transpose.test.js && node copiloto-xps/tests/gemma270.test.js && node copiloto-xps/tests/one-touch-v12.test.js && node copiloto-xps/tests/silent-stage.test.js && node copiloto-xps/tests/jarvis-memory.test.js
+      - run: node --check copiloto-xps/app/src/main/assets/ux-v2.js && node copiloto-xps/tests/music.test.js && node copiloto-xps/tests/interface.test.js && node copiloto-xps/tests/ux-v2.test.js && node copiloto-xps/tests/cifra-transpose.test.js && node copiloto-xps/tests/gemma270.test.js && node copiloto-xps/tests/one-touch-v12.test.js && node copiloto-xps/tests/silent-stage.test.js && node copiloto-xps/tests/jarvis-memory.test.js && node copiloto-xps/tests/jarvis-online.test.js && node graue-api-worker/tests/api.test.mjs
       - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Graue-XPS-1.4.0-Jarvis-Memory-APK
+          name: Graue-XPS-1.5.0-Jarvis-Online-APK
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
