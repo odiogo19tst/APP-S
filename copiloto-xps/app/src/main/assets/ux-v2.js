@@ -33,7 +33,20 @@
  ].join('');
  const oldMain=document.querySelector('main');oldMain.parentNode.insertBefore(shell,oldMain);
  document.body.classList.add('gx-ready');
- const returnButton=document.createElement('button');returnButton.id='gx-return';returnButton.textContent='← Voltar ao Grauê XPS';returnButton.onclick=()=>document.body.classList.remove('gx-legacy');
+ const toast=document.createElement('div');
+ toast.id='gx-toast'; toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');
+ document.body.append(toast);
+ let toastTimer;
+ function notify(message){
+  const m=S(message).trim();if(!m||m===toast.textContent)return;
+  toast.textContent=m;toast.classList.add('gx-show');clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{toast.classList.remove('gx-show');toast.textContent='';},5200);
+ }
+ const statusNode=document.getElementById('status');
+ if(statusNode&&typeof MutationObserver!=='undefined'){
+  new MutationObserver(()=>notify(statusNode.textContent)).observe(statusNode,{childList:true,characterData:true,subtree:true});
+ }
+ const returnButton=document.createElement('button');returnButton.id='gx-return';returnButton.textContent='← Voltar ao Grauê XPS';returnButton.onclick=()=>{document.body.classList.remove('gx-legacy');sync();};
  document.body.append(returnButton);
  const screens=[...shell.querySelectorAll('[data-gx-screen]')],tabs=[...shell.querySelectorAll('[data-gx-tab]')];
  let active='stage',filter='all',section='cifra',soundSection='performance',selectedIndex=-1,partPage=0,transposeSteps=0;
@@ -58,7 +71,7 @@
  });
  $x('gx-start').onclick=()=>{if(!playing)callOld('play');switchTab('stage');sync();};
  $x('gx-pause').onclick=()=>{if(playing)callOld('play');sync();};
- $x('gx-next').onclick=()=>{const at=songs.findIndex(s=>s.title===song.title);if(songs.length>1){selectedIndex=(at+1+ songs.length)%songs.length;select(songs[selectedIndex]);transposeSteps=0;}else callOld('nextBtn');sync();};
+ $x('gx-next').onclick=()=>{const at=songs.findIndex(s=>s.title===song.title);if(songs.length>1){selectedIndex=(at+1+songs.length)%songs.length;select(songs[selectedIndex]);transposeSteps=0;sync();}else{notify('Adicione outra música ao repertório para usar Próxima música.');}};
  $x('gx-panic').onclick=()=>{if(confirm('Enviar All Notes Off e soltar sustain nos 16 canais MIDI? Isso pode interromper o som do teclado.'))callOld('livePanic');};
  $x('gx-down').onclick=()=>{callOld('down');transposeSteps--;sync();};
  $x('gx-up').onclick=()=>{callOld('up');transposeSteps++;sync();};
@@ -102,7 +115,7 @@
    let row=document.createElement('div');row.className='gx-song-row'+(song.title===s.title?' active':'');
    let pick=document.createElement('button'),star=document.createElement('button');
    pick.className='gx-song-pick';let title=document.createElement('strong');title.textContent=s.title;let sub=document.createElement('small');sub.textContent=s.category||'Sem categoria';pick.append(title,sub);
-   pick.onclick=()=>{selectedIndex=i;select(s);renderSongs();renderRepertoire();syncStage();};
+   pick.onclick=()=>{selectedIndex=i;transposeSteps=0;select(s);renderSongs();renderRepertoire();syncStage();};
    star.className='gx-song-star';star.textContent=favs.has(s.title)?'★':'☆';star.setAttribute('aria-label','Favoritar '+s.title);
    star.onclick=()=>{let set=songFavoriteSet();set.has(s.title)?set.delete(s.title):set.add(s.title);saved.songFavorites=[...set];persist();renderSongs();};
    row.append(pick,star);box.append(row);
@@ -142,10 +155,19 @@
    const out=document.createElement('strong');out.textContent=p?p[7]:'—';
    slider.oninput=()=>out.textContent=slider.value;
    slider.onchange=()=>{
-    if(!p)return;if(!$x('arm').checked){$x('status').textContent='Ative o envio MIDI antes de modificar volume.';renderMixer();return;}
-    if(!window.Native){$x('status').textContent='Conecte o XPS-10 pelo cabo USB.';return;}
-    window.Native.cc(p[0]+1,7,+slider.value);
-    $x('status').textContent='CC7 enviado à parte '+(i+1)+'; confira o teclado.';
+    if(!p)return;
+    if(!$x('arm').checked){notify('Ative o envio MIDI antes de modificar volume.');renderMixer();return;}
+    if(!hw['setup:0']||hw['setup:0'][0]!==1){notify('Leia uma Performance válida do XPS-10 antes de editar o volume.');renderMixer();return;}
+    if(!window.Native||!window.Native.editHardware){notify('Conecte o XPS-10 pelo USB e atualize a leitura.');return;}
+    const level=Number(slider.value);
+    if(!Number.isInteger(level)||level<0||level>127){renderMixer();return;}
+    // Altera nível da parte, não CC7 do canal, que poderia afetar outras partes.
+    // O motor nativo aplica validação, snapshot e desfazer.
+    try{
+      window.Native.editHardware(JSON.stringify([{section:'part',index:i,offset:7,value:level}]));
+      notify('Solicitada alteração da parte '+(i+1)+'. Confira a resposta do XPS-10.');
+    }catch(e){notify('Falha ao solicitar edição MIDI. Faça nova leitura antes de repetir.');}
+
    };
    col.append(num,name,slider,out);grid.append(col);
   }
@@ -194,9 +216,12 @@
   if(kind==='audio'||kind==='midi'||kind==='mic'||kind==='clear'){renderCoach();return;}
   if(kind==='hardware'||kind==='hardwareReset'){renderMixer();renderFavorites();syncStage();return;}
   if(kind==='armed'){syncStage();return;}
+  if(kind==='status')notify(data);
   if(kind==='webCifra'||kind==='import')sync();
  };
  const priorPersist=window.refreshLiveSongs;
  if(typeof priorPersist==='function')window.refreshLiveSongs=()=>{priorPersist();renderSongs();renderRepertoire();};
  sync();
+ // O sequenciador progride por BPM; atualizar continuamente o resumo sem redesenhar o mixer.
+ setInterval(()=>{if(active==='stage'&&document.visibilityState!=='hidden')syncStage();},300);
 })();

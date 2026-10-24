@@ -216,3 +216,8 @@ body.gx-legacy #gx-return{display:block!important;position:fixed;z-index:100;rig
  .gx-channel input[type=range]{height:130px}
 }
 @media(prefers-reduced-motion:reduce){#gx-shell *,#gx-shell *::before,#gx-shell *::after{animation:none!important;transition:none!important}}
+
+/* Mensagens de operação e erros permanecem visíveis mesmo com o núcleo legado oculto. */
+#gx-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:99999;max-width:min(94vw,650px);min-width:220px;border:1px solid #21d4bf;border-radius:13px;padding:13px 18px;color:#edffff;background:#092938;box-shadow:0 6px 28px #001018bb;font-size:14px;line-height:1.4;text-align:center;transition:opacity .15s,transform .15s}
+#gx-toast.gx-show{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){#gx-toast{transition:none}}

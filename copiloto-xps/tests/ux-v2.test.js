@@ -17,7 +17,7 @@ for(const id of referenced)assert(ids.has(id),'Referenced element not in redesig
 for(const id of ['gx-start','gx-next','gx-panic','gx-down','gx-up','gx-import-cifra','gx-save-cifra','gx-mic','gx-mixer-parts','gx-songs','gx-sound-favorites','gx-note-history']){
  assert(ids.has(id),'Missing approved UX feature: '+id);
 }
-for(const key of ['window.Native.importCifra','window.Native.cc','window.ToneLibrary','const prior=window.receive']){
+for(const key of ['window.Native.importCifra','window.Native.editHardware','window.ToneLibrary','const prior=window.receive']){
  assert(ux.includes(key),'Missing real action binding: '+key);
 }
 assert(ux.includes("if(!$x('arm').checked)"),'Mixer must not transmit when disarmed');
@@ -26,4 +26,10 @@ assert(!ux.includes('login mantido')&&!ux.includes('92%'),'No simulated session 
 assert(css.includes('@media(max-width:700px)'),'Portrait layout not adapted');
 assert(css.includes('.gx-stage-summary')&&css.includes('.gx-rep-layout')&&css.includes('.gx-sound-layout')&&css.includes('.gx-coach-layout'));
 assert(css.includes('min-height:44px'),'Buttons must remain touchable');
+
+assert.match(ux,/MutationObserver/, 'Deve exibir erros e mensagens do núcleo');
+assert.match(ux,/window.Native.editHardware/, 'Mixer deve editar a parte, não o canal compartilhado');
+assert(!ux.includes('window.Native.cc(p[0]+1,7'), 'Mixer não pode aplicar CC7 em canais possivelmente compartilhados');
+assert.match(ux,/setInterval\(\(\)=>\{if\(active==='stage'/, 'Palco deve acompanhar o BPM real');
+assert.match(ux,/window.Native.importCifra/, 'Ação Importar deve chamar o navegador existente');
 console.log('Grauê 0.9 redesign: 4 screens, real commands, safety gates and responsive CSS passed');
