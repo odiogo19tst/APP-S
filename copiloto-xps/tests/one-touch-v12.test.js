@@ -22,4 +22,11 @@ assert(midi.includes('new byte[]{(byte)(0xc0+channel-1),(byte)program}'),'Progra
 assert(xps.includes('hasPerformancePart(part)')&&xps.includes('write(edits.toString(),true)'),'Protected temporary SysEx missing');
 assert(!ui.includes("let buttons=$x('liveQuickFavorites')"),'Legacy indexed favorite execution forbidden');
 assert(css.includes('.gx-bank-tabs')&&css.includes('.gx-tone-dialog'));
+for(const id of ['gx-assist-channel','gx-assist-play','gx-assist-stop','gx-assist-chord'])assert(ui.includes('id="'+id+'"'),'Jarvis stage control missing: '+id);
+assert(ui.includes("window.Native.playAssistChord("),'Stage cannot send chord');
+assert(ui.includes('window.Native?.stopAssistChord?.()'),'Stage cannot stop chord');
+assert(activity.includes('@JavascriptInterface public void playAssistChord(String json)'),'Native chord bridge missing');
+assert(activity.includes('stopAssist()')&&activity.includes('padHandler.postDelayed'),'Note Off safety timeout missing');
+assert(activity.includes('if(!armed)')&&activity.includes('!midi.isConnected()'),'Chord must require authorization and MIDI');
+assert(activity.includes('int channel=v.optInt("channel",1)'), 'MIDI channel must be user-selectable');
 console.log('XPS-10: single-tap tone, cache, 10x10 banks, 3-second editor and safe MIDI smoke tests passed');
