@@ -37,7 +37,10 @@ public final class BackupArchive {
    if(c!=null&&c.moveToFirst()){int i=c.getColumnIndex(OpenableColumns.DISPLAY_NAME);if(i>=0)n=c.getString(i);}
   }catch(Exception ignored){}
   if(n==null||n.isBlank())n="backup.bin";
-  return n.replace('/', '_').replace('\\\\', '_').replaceAll("[\\\\p{Cntrl}]", "_").substring(0,Math.min(120,n.length()));
+  String safe=n.replace('/', '_').replace((char)92, '_');
+  StringBuilder cleaned=new StringBuilder();
+  for(char c:safe.toCharArray())cleaned.append(Character.isISOControl(c)?'_':c);
+  return cleaned.substring(0,Math.min(120,cleaned.length()));
  }
  private static String hex(byte[] data){StringBuilder sb=new StringBuilder();for(byte b:data)sb.append(String.format(java.util.Locale.ROOT,"%02x",b&255));return sb.toString();}
  public synchronized JSONArray importFiles(java.util.List<Uri> uris) throws Exception {
