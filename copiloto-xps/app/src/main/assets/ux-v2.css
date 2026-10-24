@@ -402,3 +402,15 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 .gx-silent-muted{border-color:#3a4c55!important}
 @media(max-width:700px){.gx-silent-content{grid-template-columns:minmax(0,.75fr) minmax(0,1.3fr)}.gx-silent-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-silent-content strong{font-size:15px}.gx-silent-head span{font-size:9px}}
 @media(max-width:380px){.gx-silent-actions{grid-template-columns:1fr 1fr}}
+
+
+/* Persisted Jarvis musician preferences, intentionally small and readable on phones. */
+.gx-jarvis-memory{border:1px solid #287f80;border-radius:12px;background:#122a36;padding:12px;display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.gx-jarvis-memory h3{font-size:16px;margin:0;color:#71ead4}
+.gx-jarvis-memory p{font-size:12px;line-height:1.45;margin:0!important;color:#c8d9e2}
+.gx-jarvis-memory label{font-size:12px;font-weight:700}
+#gx-shell .gx-jarvis-memory textarea{min-height:88px;max-width:100%;box-sizing:border-box;padding:10px;background:#0c1b2b;color:#f8ffff;border:1px solid #3b5b6b;border-radius:8px;font-size:13px;line-height:1.4;resize:vertical}
+.gx-jarvis-memory-actions{display:flex;gap:6px;flex-wrap:wrap}
+#gx-shell .gx-jarvis-memory-actions button{min-height:44px;padding:9px 12px;font-size:12px;flex:1;min-width:145px}
+#gx-shell #gx-jarvis-save{background:#078b72;border-color:#24ccb0}
+#gx-jarvis-notes-status{color:#9fcbcb;font-size:11px}
