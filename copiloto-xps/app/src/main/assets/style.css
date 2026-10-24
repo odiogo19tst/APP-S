@@ -11,3 +11,19 @@ button:disabled{opacity:.4;cursor:default}#partSummary{font-size:13px;color:var(
 .sequence-scroll{overflow:auto}#sequenceGrid{display:grid;grid-template-columns:90px repeat(16,34px);gap:4px;padding:8px 0}#sequenceGrid button{padding:4px;min-height:38px;border-radius:6px;font-size:11px}#sequenceGrid .beat-on{background:var(--accent);color:var(--bg)}#sequenceGrid .beat-current{outline:2px solid #ffbc57;outline-offset:-2px}#mfxParameters label{border-bottom:1px solid var(--line);padding:8px}#mfxParameters button{margin:6px}#mfxParameters select{width:100%}
 
 #status,#modelInfo,#answer{overflow-wrap:anywhere;word-break:break-word;max-width:100%}
+
+
+/* Painel de palco unificado: botões maiores, seleção de parte e timbres favoritos. */
+.xps-live-tools{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin:12px 0}
+.xps-live-tools h3{font-size:15px;margin:8px 0}
+.xps-conn{font-size:12px;color:var(--accent)}
+.xps-parts-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
+.xps-parts-grid button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:64px;padding:6px 3px;min-width:0;touch-action:manipulation}
+.xps-parts-grid button strong{font-size:19px;line-height:1.1}
+.xps-parts-grid button small{font-size:10px;letter-spacing:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.xps-parts-grid button[aria-pressed="true"]{outline:2px solid var(--accent);background:var(--accent);color:var(--bg)}
+.xps-favorites-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.xps-favorites-grid button{min-height:74px;min-width:0;text-align:left;font-size:14px;font-weight:700;touch-action:manipulation;overflow-wrap:anywhere}
+.xps-favorites-grid .muted{grid-column:1/-1}
+@media(min-width:650px){.xps-parts-grid{grid-template-columns:repeat(8,minmax(0,1fr))}.xps-favorites-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(orientation:landscape){.live-focus .xps-parts-grid button{min-height:50px}.live-focus .xps-favorites-grid button{min-height:54px}}
