@@ -58,7 +58,7 @@
  });
  $x('gx-start').onclick=()=>{if(!playing)callOld('play');switchTab('stage');sync();};
  $x('gx-pause').onclick=()=>{if(playing)callOld('play');sync();};
- $x('gx-next').onclick=()=>{callOld('nextBtn');sync();};
+ $x('gx-next').onclick=()=>{const at=songs.findIndex(s=>s.title===song.title);if(songs.length>1){selectedIndex=(at+1+ songs.length)%songs.length;select(songs[selectedIndex]);transposeSteps=0;}else callOld('nextBtn');sync();};
  $x('gx-panic').onclick=()=>{if(confirm('Enviar All Notes Off e soltar sustain nos 16 canais MIDI? Isso pode interromper o som do teclado.'))callOld('livePanic');};
  $x('gx-down').onclick=()=>{callOld('down');transposeSteps--;sync();};
  $x('gx-up').onclick=()=>{callOld('up');transposeSteps++;sync();};
@@ -190,7 +190,10 @@
   if(kind==='audio'){lastAudio=data;if(Number.isInteger(data.midi)&&data.midi>=0){const n=friendlyNote(data.midi);if(notesHistory.at(-1)!==n)notesHistory=[...notesHistory,n].slice(-9);}}
   if(kind==='midi'){lastCh=$x('chord').textContent;}
   if(kind==='clear')lastCh='—';
-  if(kind==='webCifra'||kind==='import'||kind==='hardware'||kind==='hardwareReset'||kind==='armed'||kind==='midi'||kind==='mic'||kind==='audio'||kind==='clear')sync();
+  if(kind==='audio'||kind==='midi'||kind==='mic'||kind==='clear'){renderCoach();return;}
+  if(kind==='hardware'||kind==='hardwareReset'){renderMixer();renderFavorites();syncStage();return;}
+  if(kind==='armed'){syncStage();return;}
+  if(kind==='webCifra'||kind==='import')sync();
  };
  const priorPersist=window.refreshLiveSongs;
  if(typeof priorPersist==='function')window.refreshLiveSongs=()=>{priorPersist();renderSongs();renderRepertoire();};
