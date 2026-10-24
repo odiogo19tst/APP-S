@@ -10,12 +10,14 @@ import android.widget.*;
 /** Online browser isolated from the local MIDI bridge. */
 final class CifraPanel extends LinearLayout {
  private final WebView browser;
+ private final TextView address;
+ private final Importer importer;
  interface Importer {void accept(String title,String text);}
  CifraPanel(Activity activity, Importer importer, Runnable close) {
-  super(activity);setOrientation(VERTICAL);setBackgroundColor(0xff101827);
+  super(activity);this.importer=importer;setOrientation(VERTICAL);setBackgroundColor(0xff101827);
   LinearLayout bar=new LinearLayout(activity);
   addView(bar,new LayoutParams(-1,-2));
-  TextView address=new TextView(activity);address.setTextColor(0xffffffff);address.setPadding(12,4,12,4);address.setText("Cifra Club • navegação online");
+  address=new TextView(activity);address.setTextColor(0xffffffff);address.setPadding(12,4,12,4);address.setText("Cifra Club • navegação online");
   addView(address,new LayoutParams(-1,-2));
   final android.content.SharedPreferences nav=activity.getSharedPreferences("graue-cifra-navigation",0);
   browser=new WebView(activity);addView(browser,new LayoutParams(-1,0,1));
