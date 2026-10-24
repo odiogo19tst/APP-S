@@ -58,6 +58,7 @@ public final class JarvisDirectOpenAI {
  public synchronized void clear(){
   prefs.edit().remove("sealed_key").putString("mode","offline").commit();
  }
+ public synchronized boolean selected(){return prefs.contains("mode");}
  public synchronized boolean ready(){return !prefs.getString("sealed_key","").isEmpty();}
  public synchronized String mode(){return prefs.getString("mode","offline");}
  public synchronized JSONObject state() throws Exception {
