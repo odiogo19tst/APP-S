@@ -1,0 +1,18 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../app/src/main');
+const java=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/JarvisMusicalProfile.java'),'utf8');
+const native=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/MainActivity.java'),'utf8');
+const ux=fs.readFileSync(path.join(root,'assets/ux-v2.js'),'utf8');
+const css=fs.readFileSync(path.join(root,'assets/ux-v2.css'),'utf8');
+for(const sentence of ['Jarvis Musical','Roland XPS-10','SOMENTE TEXTO NA TELA','não de reconhecimento','Não invente timbres','não execute','não recebeu notas medidas','Não invente'])assert(java.includes(sentence)||java.toLowerCase().includes(sentence.toLowerCase()),'Missing trustworthy music behaviour: '+sentence);
+for(const field of ['cleanNotes','buildPrompt','MAX_NOTES=550','MAX_REQUEST=2400'])assert(java.includes(field),'Prompt validation absent: '+field);
+for(const name of ['getJarvisMemory','saveJarvisMemory','clearJarvisMemory'])assert(native.includes('@JavascriptInterface public void '+name),'Missing editable persistent memory: '+name);
+assert(native.includes('getPreferences(MODE_PRIVATE).edit().putString("jarvisMusicalNotes"'),'Memory must stay on device');
+assert(native.includes('JarvisMusicalProfile.buildPrompt(prompt,notes)'),'Gemma must receive Jarvis persona');
+assert(native.includes('llm.generateResponse(prepared)'),'Inferences must use conditioned prompt');
+for(const id of ['gx-jarvis-memory','gx-jarvis-notes','gx-jarvis-save','gx-jarvis-clear','gx-jarvis-notes-status'])assert(ux.includes('id="'+id+'"'),'Missing memory UI control: '+id);
+assert(ux.includes('window.Native.saveJarvisMemory(')&&ux.includes('window.Native.clearJarvisMemory()'),'Memory controls not wired');
+assert(ux.includes("if(kind==='jarvisMemory')")&&ux.includes('window.Native.getJarvisMemory()'),'Memory state not restored');
+assert(css.includes('.gx-jarvis-memory')&&css.includes('#gx-jarvis-notes-status'),'Memory editor layout missing');
+assert(!java.includes('https://'),'Inference prompt must not fetch web data');
+console.log('Jarvis Musical: on-device persistent preferences, disclosure and contextual offline prompt checks passed');
