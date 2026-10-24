@@ -284,7 +284,8 @@ public class MainActivity extends Activity {
       }
      }else if("online".equals(directMode)){emit("answer","Cadastre sua chave OpenAI em Ajustes.");return;}
     }
-    String mode=jarvisGateway.mode();
+    // An explicit preference in the app always overrides a legacy server configuration.
+    String mode=directApi.selected()?"offline":jarvisGateway.mode();
     if(!"offline".equals(mode)&&jarvisGateway.ready()){
      try{
       JarvisCloudGateway.Answer result=jarvisGateway.request(prepared);
