@@ -12,6 +12,29 @@ public final class XpsController {
  public XpsController(IO io){this.io=io;}
  private List<XpsProtocol.Block> performanceBlocks(){List<XpsProtocol.Block> b=XpsProtocol.blocks();b.addAll(XpsProtocol.patches());return b;}
  public void readUsers(){if(busy){io.emit("status","Aguarde a operação atual.");return;}busy=true;io.emit("hardwareBusy",true);int token=++generation,delay=0;for(XpsProtocol.Block b:XpsProtocol.users()){for(int i=0;i<b.size;i++)state.remove(b.start+i);h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Sem porta MIDI de saída.");return;}if(b.index%32==0)io.emit("status","Consultando timbres de usuário: "+(b.index+1)+" / 256…");},delay);delay+=100;}h.postDelayed(()->{if(token!=generation)return;busy=false;io.emit("hardwareBusy",false);JSONArray tones=new JSONArray();for(XpsProtocol.Block b:XpsProtocol.users()){StringBuilder name=new StringBuilder();boolean complete=true;for(int i=0;i<12;i++){Integer c=state.get(b.start+i);if(c==null){complete=false;break;}name.append(c>=32&&c<=126?(char)(int)c:' ');}if(complete)try{JSONObject t=new JSONObject();t.put("code",String.format(java.util.Locale.ROOT,"USER%03d",b.index+1));t.put("name",name.toString().trim());t.put("category","USER");t.put("msb",87);t.put("lsb",b.index/128);t.put("program",b.index%128+1);tones.put(t);}catch(JSONException ignored){}}io.emit("userTones",tones);io.emit("status",tones.length()+" de 256 posições de usuário responderam. Posições sem resposta não foram inventadas.");},delay+1500);}
+ /** A tap is an explicit authorization to audition a tone, not a request to save in USER memory. */
+ public boolean hasPerformancePart(int part){
+  if(part<0||part>15)return false;
+  XpsProtocol.Block b=XpsProtocol.block("part",part);
+  return Integer.valueOf(1).equals(state.get(XpsProtocol.address(1,0,0,0)))
+   &&state.containsKey(b.start+4)&&state.containsKey(b.start+5)&&state.containsKey(b.start+6);
+ }
+ public void auditionTone(int part,int msb,int lsb,int program){auditionToneConfig(part,msb,lsb,program,-1);}
+ public void auditionToneConfig(int part,int msb,int lsb,int program,int volume){
+  if(part<0||part>=16||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128){
+   io.emit("status","Endereço do timbre inválido.");return;
+  }
+  if(busy){io.emit("status","Leitura do XPS-10 em andamento. Toque novamente após concluir.");return;}
+  if(!hasPerformancePart(part)){io.emit("status","Performance ainda não confirmada. Troca temporária será tentada por Program Change.");return;}
+  try{
+   JSONArray edits=new JSONArray()
+    .put(new JSONObject().put("section","part").put("index",part).put("offset",4).put("value",msb))
+    .put(new JSONObject().put("section","part").put("index",part).put("offset",5).put("value",lsb))
+    .put(new JSONObject().put("section","part").put("index",part).put("offset",6).put("value",program-1));
+   if(volume>=0&&volume<=127)edits.put(new JSONObject().put("section","part").put("index",part).put("offset",7).put("value",volume));
+   write(edits.toString(),true); // single explicit tap; guarded snapshot+readback, never WRITE to user memory
+  }catch(JSONException e){io.emit("status","Não foi possível selecionar o timbre: "+e.getMessage());}
+ }
  public void reset(){generation++;state.clear();undo.clear();expected.clear();busy=false;io.emit("hardwareReset",true);}
  public void accept(byte[] packet){XpsProtocol.Data d=XpsProtocol.decode(packet);if(d==null)return;for(int i=0;i<d.values.length;i++){int address=d.start+i;for(XpsProtocol.Block b:readable)if(address>=b.start&&address<b.start+b.size){state.put(address,d.values[i]);break;}}}
  private JSONObject snapshot(){JSONObject result=new JSONObject();try{for(XpsProtocol.Block b:performanceBlocks()){JSONArray values=new JSONArray();boolean complete=true;for(int i=0;i<b.size;i++){Integer v=state.get(b.start+i);if(v==null){complete=false;break;}values.put(v);}if(complete)result.put(b.section+":"+b.index,values);}result.put("readAt",System.currentTimeMillis());}catch(JSONException ignored){}return result;}

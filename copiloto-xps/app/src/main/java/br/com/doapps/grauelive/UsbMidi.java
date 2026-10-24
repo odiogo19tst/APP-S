@@ -23,6 +23,12 @@ public final class UsbMidi implements AutoCloseable {
   listener.status("USB conectado • notas ativas");
  },handler);}
  public boolean send(byte[] bytes){if(sendPort==null)return false;try{sendPort.send(bytes,0,bytes.length);return true;}catch(IOException e){return false;}}
+ public boolean isConnected(){return sendPort!=null&&port!=null;}
+ public boolean sendProgram(int channel,int program){
+  if(sendPort==null||channel<1||channel>16||program<0||program>127)return false;
+  try{sendPort.send(new byte[]{(byte)(0xc0+channel-1),(byte)program},0,2);return true;}
+  catch(IOException e){return false;}
+ }
  public boolean send(int status,int a,int b){if(sendPort==null)return false;try{sendPort.send(new byte[]{(byte)status,(byte)a,(byte)b},0,3);return true;}catch(IOException e){return false;}}
  public void disconnect(){generation++;if(sendPort!=null)try{sendPort.close();}catch(IOException ignored){}sendPort=null;if(port!=null)try{port.close();}catch(IOException ignored){}if(device!=null)try{device.close();}catch(IOException ignored){}port=null;device=null;parser.reset();sysex.reset();}
  public void close(){disconnect();if(manager!=null)manager.unregisterDeviceCallback(callback);}

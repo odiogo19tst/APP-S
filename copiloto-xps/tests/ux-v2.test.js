@@ -38,5 +38,5 @@ for(const name of ['backups','stage','repertoire','sound','coach','settings'])as
 for(const id of ['gx-backup-import','gx-backup-refresh','gx-backup-export-index','gx-backup-merge','gx-backup-list','gx-user-patches'])assert(ux.includes('id="'+id+'"'),'Controle não criado: '+id);
 assert(ux.includes('window.Native.importXpsBackups'),'Importar backup deve acionar o Android');
 assert(ux.includes('window.Native.exportXpsBackup'),'Exportar backup deve preservar arquivo');
-assert(ux.includes('window.Native.readUserTones'),'Leitura de timbres USER não conectada');
+assert(ux.includes('window.Native?.readUserTones?.()')&&ux.includes('window.Native.restoreCachedTones()'),'USER precisa de cache e leitura manual quando necessário');
 assert(ux.includes('gx-backup-merge')&&ux.includes('disabled'),'Mesclagem proprietária não deve estar habilitada sem validação');

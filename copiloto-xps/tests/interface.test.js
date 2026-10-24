@@ -33,7 +33,7 @@ els.toneResults.children[0].children[0].onclick();els.applyTone.onclick();let ed
 els.toneResults.children[0].children[1].onclick();assert(calls.filter(c=>c[0]==='save').at(-1)[1].toneFavorites.length===1);
 ctx.window.receive('userTones',[{code:'USER001',name:'Meu Pad Igreja',category:'USER',msb:87,lsb:0,program:1}]);els.toneSearch.value='';els.toneSearch.oninput();assert.equal(els.toneResults.children.length,1);assert.match(els.toneResults.children[0].children[0].textContent,/Meu Pad/);
 els.toneResults.children[0].children[0].onclick();els.applyTone.onclick();edit=calls.filter(c=>c[0]==='edit').at(-1)[1];assert.equal(edit[1].value,0);assert.equal(edit[2].value,0);
-ctx.window.receive('hardwareReset',true);assert.equal(els.applyTone.disabled,true);assert.equal(els.toneResults.children.length,0);
+ctx.window.receive('hardwareReset',true);assert.equal(els.applyTone.disabled,true);assert.equal(els.toneResults.children.length,1); // USER remains in cache after disconnect.
 assert.equal(ctx.window.XPS_TONES.length,1564);assert.equal(new Set(ctx.window.XPS_TONES.map(t=>t.code)).size,1564);
 assert.equal(ctx.window.XPS_TONES.find(t=>t.code==='Dr020').name,'GM2 STANDARD');
 console.log('Hardware UI: read gating, patch-only write, favorites, user patches and disconnect reset passed');
