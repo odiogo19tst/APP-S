@@ -15,6 +15,13 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInference;
 public class MainActivity extends Activity {
  private android.widget.LinearLayout rootLayout; private CifraPanel cifraPanel; private DrumSequencer sequencer;
  private boolean autoUserRead=false;
+ private final java.util.Map<Integer,Integer> assistNotes=new java.util.HashMap<>();
+ private int assistSerial=0;
+ private void stopAssist(){
+  for(Integer key:assistNotes.keySet())if(midi!=null)midi.send(0x80+(key/128),key%128,0);
+  assistNotes.clear();assistSerial++;
+ }
+
  private void emitCachedUsers(){
   String stored=getPreferences(MODE_PRIVATE).getString("xpsUserCache","");
   if(!stored.isEmpty())try{emit("userTones",new JSONArray(stored));emit("status","Timbres USER recuperados do cache local. Não é necessário ler novamente.");}
@@ -46,7 +53,7 @@ public class MainActivity extends Activity {
   }
  }});
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
- padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
+ stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
  emit("status",t);emit("clear","");armed=false;emit("armed",false);
  if(t!=null&&t.startsWith("USB conectado")){
   autoUserRead=!hasCachedUsers();emit("xpsConnection",true);
@@ -89,7 +96,7 @@ public class MainActivity extends Activity {
   }catch(Exception ignored){}
  }
  private LlmInference openModel(File f){return LlmInference.createFromOptions(MainActivity.this,LlmInference.LlmInferenceOptions.builder().setModelPath(f.getAbsolutePath()).setMaxTokens(1024).build());}
- private void stopPadNotes(){for(int key:padTokens.keySet())midi.send(0x80+(key/128),key%128,0);padTokens.clear();}
+ private void stopPadNotes(){stopAssist();for(int key:padTokens.keySet())midi.send(0x80+(key/128),key%128,0);padTokens.clear();}
  public class Bridge {
   @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Ative envio MIDI antes de iniciar a batida.");return;}try{sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void stopSequence(){runOnUiThread(()->{sequencer.stop();stopPadNotes();});}
@@ -97,6 +104,32 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void importCifra(){runOnUiThread(()->{if(cifraPanel==null){showCifra();emit("status","Abra uma música no Cifra Club e toque Importar novamente.");}else cifraPanel.importCurrent();});}
   @JavascriptInterface public void showMode(boolean on){runOnUiThread(()->setRequestedOrientation(on?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR));}
   @JavascriptInterface public void panic(){runOnUiThread(()->{sequencer.stop();stopPadNotes();for(int c=0;c<16;c++){midi.send(0xB0+c,64,0);midi.send(0xB0+c,123,0);}emit("status","Sustain e notas MIDI liberados em todos os canais.");});}
+  /** One explicitly requested chord, bounded duration, user-selected MIDI channel. Never automatic. */
+  @JavascriptInterface public void playAssistChord(String json){
+   if(json==null||json.length()>200)return;
+   runOnUiThread(()->{
+    if(!armed){emit("status","Ative o envio MIDI para tocar o acorde de apoio.");return;}
+    if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado via USB-MIDI.");return;}
+    try{
+     JSONObject v=new JSONObject(json);
+     int channel=v.optInt("channel",1),velocity=v.optInt("velocity",65),duration=v.optInt("duration",900);
+     JSONArray notes=v.getJSONArray("notes");
+     if(channel<1||channel>16||velocity<1||velocity>100||duration<150||duration>3000||notes.length()<1||notes.length()>5)
+       throw new Exception("Limites MIDI excedidos");
+     for(int i=0;i<notes.length();i++)if(notes.getInt(i)<36||notes.getInt(i)>96)throw new Exception("Nota fora da faixa segura");
+     stopAssist();
+     int token=++assistSerial;
+     for(int i=0;i<notes.length();i++){
+      int note=notes.getInt(i),key=(channel-1)*128+note;
+      if(midi.send(0x90+channel-1,note,velocity))assistNotes.put(key,token);
+     }
+     if(assistNotes.isEmpty()){emit("status","Não foi possível transmitir o acorde MIDI.");return;}
+     padHandler.postDelayed(()->{if(token==assistSerial)stopAssist();},duration);
+     emit("status","Acorde MIDI enviado à parte/canal "+channel+" por até "+duration+" ms. Confira o som no teclado.");
+    }catch(Exception e){stopAssist();emit("status","Acorde não enviado: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void stopAssistChord(){runOnUiThread(()->stopAssist());}
   @JavascriptInterface public void padHit(int channel,int note,int velocity){runOnUiThread(()->{if(!armed){emit("status","Ative envio MIDI para tocar os pads.");return;}if(channel<1||channel>16||note<0||note>127||velocity<1||velocity>127)return;int key=(channel-1)*128+note,token=++padSerial;if(!midi.send(0x90+channel-1,note,velocity)){sequencer.stop();emit("status","Sem saída MIDI conectada.");return;}padTokens.put(key,token);padHandler.postDelayed(()->{if(Integer.valueOf(token).equals(padTokens.get(key))){midi.send(0x80+channel-1,note,0);padTokens.remove(key);}},120);});}
   @JavascriptInterface public void stopPads(){runOnUiThread(()->stopPadNotes());}
 
