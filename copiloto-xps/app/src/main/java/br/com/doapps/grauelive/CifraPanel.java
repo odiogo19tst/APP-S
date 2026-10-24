@@ -33,7 +33,12 @@ final class CifraPanel extends LinearLayout {
   button(bar,"↻",()->browser.reload());
   button(bar,"Início",()->browser.loadUrl("https://www.cifraclub.com.br/"));
   button(bar,"Externo",()->{String u=browser.getUrl();if(u!=null&&"https".equalsIgnoreCase(Uri.parse(u).getScheme()))try{activity.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(u)));}catch(Exception ignored){address.setText("Nenhum navegador disponível.");}});
-  button(bar,"Importar",()->{
+  button(bar,"Importar",this::importCurrent);
+  button(bar,"Fechar",close);
+  String last=nav.getString("last_url","https://www.cifraclub.com.br/");Uri target=Uri.parse(last);String host=target.getHost();boolean trusted="https".equalsIgnoreCase(target.getScheme())&&host!=null&&(host.equals("cifraclub.com.br")||host.endsWith(".cifraclub.com.br"));
+  browser.loadUrl(trusted?last:"https://www.cifraclub.com.br/");
+ }
+ void importCurrent(){
    Uri uri=Uri.parse(browser.getUrl()==null?"":browser.getUrl());String host=uri.getHost();if(host==null||!(host.equals("cifraclub.com.br")||host.endsWith(".cifraclub.com.br"))){address.setText("Abra a cifra no Cifra Club antes de importar.");return;}
    // Busca somente o conteúdo da cifra aberta pelo usuário. O novo layout do Cifra Club pode não usar <pre>.
    // Não acessa cookies, credenciais nem páginas fora do domínio permitido.
@@ -60,11 +65,7 @@ final class CifraPanel extends LinearLayout {
      })()
    """;
    browser.evaluateJavascript(script,result->{try{String json=(String)new org.json.JSONTokener(result).nextValue();org.json.JSONObject d=new org.json.JSONObject(json);String text=d.getString("text");if(text.trim().isEmpty()){address.setText("Não encontrei a cifra neste layout. Use Compartilhar/Importar texto.");return;}importer.accept(d.getString("title"),text);address.setText("Cifra enviada ao Grauê. Revise o tom e os acordes.");}catch(Exception e){address.setText("Importação indisponível nesta página. Use Compartilhar texto.");}});
-  });
-  button(bar,"Fechar",close);
-  String last=nav.getString("last_url","https://www.cifraclub.com.br/");Uri target=Uri.parse(last);String host=target.getHost();boolean trusted="https".equalsIgnoreCase(target.getScheme())&&host!=null&&(host.equals("cifraclub.com.br")||host.endsWith(".cifraclub.com.br"));
-  browser.loadUrl(trusted?last:"https://www.cifraclub.com.br/");
- }
+  }
  private void button(LinearLayout bar,String title,Runnable action){Button b=new Button(getContext());b.setText(title);b.setTextSize(11);b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(4,0,4,0);b.setOnClickListener(v->action.run());bar.addView(b,new LayoutParams(0,-2,1));}
  void pause(){browser.onPause();CookieManager.getInstance().flush();}
  void resume(){browser.onResume();}
