@@ -26,4 +26,10 @@ assert(!ux.includes('login mantido')&&!ux.includes('92%'),'No simulated session 
 assert(css.includes('@media(max-width:700px)'),'Portrait layout not adapted');
 assert(css.includes('.gx-stage-summary')&&css.includes('.gx-rep-layout')&&css.includes('.gx-sound-layout')&&css.includes('.gx-coach-layout'));
 assert(css.includes('min-height:44px'),'Buttons must remain touchable');
+
+assert.match(ux,/MutationObserver/, 'Deve exibir erros e mensagens do núcleo');
+assert.match(ux,/window.Native.editHardware/, 'Mixer deve editar a parte, não o canal compartilhado');
+assert(!ux.includes('window.Native.cc(p[0]+1,7'), 'Mixer não pode aplicar CC7 em canais possivelmente compartilhados');
+assert.match(ux,/setInterval\(\(\)=>\{if\(active==='stage'/, 'Palco deve acompanhar o BPM real');
+assert.match(ux,/window.Native.importCifra/, 'Ação Importar deve chamar o navegador existente');
 console.log('Grauê 0.9 redesign: 4 screens, real commands, safety gates and responsive CSS passed');
