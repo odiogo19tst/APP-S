@@ -7,7 +7,7 @@
  const shell=document.createElement('div');shell.id='gx-shell';
  shell.innerHTML=[
  '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não lido</small></span><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
- '<nav class="gx-nav" aria-label="Áreas do aplicativo"><button data-gx-tab="stage" class="on">Palco</button><button data-gx-tab="repertoire">Repertório</button><button data-gx-tab="sound">Sons</button><button data-gx-tab="coach">Copiloto</button><button data-gx-tab="settings">Ajustes</button></nav>',
+ '<nav class="gx-nav" aria-label="Áreas do aplicativo"><button data-gx-tab="stage" class="on">Palco</button><button data-gx-tab="repertoire">Repertório</button><button data-gx-tab="sound">Sons</button><button data-gx-tab="coach">Copiloto</button><button data-gx-tab="backups">Backups</button><button data-gx-tab="settings">Ajustes</button></nav>',
  '<div class="gx-screen on" data-gx-screen="stage">',
  '<div class="gx-stage-summary"><section class="gx-current gx-panel"><small>● TOCANDO AGORA</small><strong id="gx-song-name">Selecione uma música</strong><span id="gx-song-cat">Seu repertório</span><div class="gx-progress"><i id="gx-progress-bar"></i></div></section>',
  '<section class="gx-panel gx-mini"><small>TOM</small><strong id="gx-key">—</strong><span id="gx-scale">Referência</span></section>',
@@ -29,7 +29,8 @@
  '<div class="gx-screen" data-gx-screen="coach"><div class="gx-coach-layout"><div class="gx-panel gx-listening"><h3>Escuta e análise</h3><button id="gx-mic" class="gx-mic-circle" aria-label="Iniciar ou parar escuta">♩</button><strong id="gx-mic-label">Escuta parada</strong><span id="gx-mic-sub">Toque para iniciar o microfone</span><div class="gx-wave" id="gx-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>',
  '<div class="gx-panel gx-analysis"><h3>Resultado da análise</h3><div class="gx-analysis-grid"><div class="gx-reading"><small>NOTA DETECTADA</small><strong id="gx-heard-note">—</strong><span>Voz / instrumento dominante</span></div><div class="gx-reading"><small>TOM SUGERIDO</small><strong id="gx-heard-key">—</strong><span id="gx-heard-mode">Aguardando áudio</span></div><div class="gx-reading"><small>MODO</small><select id="gx-mode"><option value="0">Maior</option><option value="1">Menor</option></select><span>Referência da música</span></div><div class="gx-reading"><small>ACORDE MIDI</small><strong id="gx-heard-chord">—</strong><span>Teclas pressionadas</span></div><div class="gx-reading"><small>ÍNDICE DE CONFIANÇA</small><strong id="gx-heard-confidence">—</strong><span>Heurístico, não probabilidade</span></div><div class="gx-reading"><small>GRAU ATUAL</small><strong id="gx-heard-degree">—</strong><span>Baseado no tom de referência</span></div></div><div class="gx-section-label">HISTÓRICO DE NOTAS</div><div id="gx-note-history" class="gx-history">Aguardando notas reais…</div></div>',
  '<aside class="gx-panel gx-coach-tips"><h3>✦ Dicas do Copiloto</h3><p id="gx-tip-text">Inicie a escuta para analisar a voz. Conecte o XPS-10 para ler os acordes tocados por MIDI.</p><button id="gx-ai-settings">Configurar IA local</button><button id="gx-ai-ask">Abrir assistente</button><label>Sensibilidade / áudio <input id="gx-sense" type="range" min="1" max="10" value="5" disabled title="Calibração de sensibilidade ainda não disponível"></label></aside></div></div>',
- '<div class="gx-screen" data-gx-screen="settings"><div class="gx-panel gx-settings"><h2>Ajustes e ferramentas</h2><p>As configurações avançadas, importação de modelos de IA, controles de efeitos e ferramentas do XPS-10 continuam disponíveis.</p><button id="gx-legacy-settings">Abrir ajustes completos</button><button id="gx-legacy-editor">Abrir editor avançado</button><button id="gx-legacy-repertoire">Editar repertório e importar arquivos</button><button id="gx-legacy-ai">Configurar modelo de IA</button><p>O modo Bip 6 permanece desativado enquanto houver reinicializações no relógio.</p></div></div>'
+ '<div class="gx-screen" data-gx-screen="backups"><div class="gx-backups gx-panel"><div class="gx-section-label">BACKUPS DO ROLAND XPS-10 <small>Biblioteca de cópias originais</small></div><p class="gx-backup-intro">Importe os arquivos do pendrive. O Grauê guarda cópias locais, verifica duplicados e permite exportar o mesmo conteúdo. Nenhum arquivo é restaurado no XPS-10.</p><div class="gx-backup-actions"><button id="gx-backup-import" class="gx-start">↥ Importar backups</button><button id="gx-backup-refresh">↻ Atualizar biblioteca</button><button id="gx-backup-export-index">↓ Exportar catálogo JSON</button><button id="gx-backup-merge" disabled title="Mesclagem requer validação do formato de backups Roland">Mesclar timbres — indisponível</button></div><div id="gx-backup-list" class="gx-backup-list" aria-live="polite"><p class="gx-empty">Carregando cópias disponíveis…</p></div><p class="gx-backup-warning">Atenção: restaurar no teclado pode substituir os dados atuais. A mesclagem de backups ainda não é compatível nem validada; não altere arquivos proprietários manualmente.</p></div></div>',
+ '<div class="gx-screen" data-gx-screen="settings"><div class="gx-panel gx-settings"><h2>Ajustes e integrações</h2><div class="gx-settings-grid"><button id="gx-connect-settings">♬ Conexão USB-MIDI<br><small>Selecionar dispositivo</small></button><button id="gx-read-settings">▤ Ler XPS-10<br><small>Carregar Performance atual</small></button><button id="gx-legacy-editor">⚙ Editor avançado<br><small>Efeitos, splits e 16 partes</small></button><button id="gx-legacy-repertoire">▥ Repertório e arquivos<br><small>Importar e exportar setlists</small></button><button id="gx-legacy-ai">✧ Modelo de IA local<br><small>Selecionar e testar modelo</small></button><button id="gx-legacy-settings">☷ Ajustes completos<br><small>Configurações do dispositivo</small></button><button id="gx-backups-settings">▦ Biblioteca de backups<br><small>Importação segura do pendrive</small></button><button id="gx-cifra-settings">♫ Cifra Club<br><small>Abrir sessão no navegador</small></button></div><p>O Bip 6 permanece desativado enquanto houver reinicializações no relógio. A análise de voz acompanhada por instrumentos ainda é experimental.</p></div></div>'
  ].join('');
  const oldMain=document.querySelector('main');oldMain.parentNode.insertBefore(shell,oldMain);
  document.body.classList.add('gx-ready');
@@ -51,8 +52,9 @@
  const screens=[...shell.querySelectorAll('[data-gx-screen]')],tabs=[...shell.querySelectorAll('[data-gx-tab]')];
  let active='stage',filter='all',section='cifra',soundSection='performance',selectedIndex=-1,partPage=0,transposeSteps=0;
  let lastAudio=null,hw={},connected=false,recording=false,notesHistory=[],keyName='—',lastCh='—';
+ let backupRows=[],backupSelection=new Set();
  const friendlyNote=midi=>Number.isInteger(midi)&&midi>=0&&midi<=127?M.names[midi%12]+String(Math.floor(midi/12)-1):'—';
- const switchTab=name=>{active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();};
+ const switchTab=name=>{active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();if(name==='backups'&&window.Native?.listBackups)window.Native.listBackups();};
  tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');
  const openLegacy=tab=>{document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
@@ -95,6 +97,12 @@
  $x('gx-device-connect').onclick=connect;
  $x('gx-mic').onclick=()=>callOld('mic');
  $x('gx-mode').onchange=()=>{let x=$x('mode');x.value=$x('gx-mode').value;if(x.onchange)x.onchange();sync();};
+ $x('gx-backup-import').onclick=()=>{if(window.Native?.importXpsBackups)window.Native.importXpsBackups();else notify('Importação de backup só está disponível no APK Android.');};
+ $x('gx-backup-refresh').onclick=()=>{if(window.Native?.listBackups)window.Native.listBackups();};
+ $x('gx-backup-export-index').onclick=()=>{if(window.Native?.exportFile)window.Native.exportFile(JSON.stringify({app:'Graue XPS',kind:'catalog-only',note:'Os arquivos BIN devem ser exportados individualmente.',backups:backupRows},null,2));};
+ $x('gx-connect-settings').onclick=connect;$x('gx-read-settings').onclick=read;
+ $x('gx-backups-settings').onclick=()=>switchTab('backups');
+ $x('gx-cifra-settings').onclick=openCifra;
  $x('gx-ai-settings').onclick=()=>openLegacy('settings');$x('gx-ai-ask').onclick=()=>openLegacy('coach');
  for(const [id,tab] of [['gx-legacy-settings','settings'],['gx-legacy-editor','sound'],['gx-legacy-repertoire','songs'],['gx-legacy-ai','settings']])$x(id).onclick=()=>openLegacy(tab);
  function showSoundPanel(){
@@ -143,6 +151,31 @@
     b.append(name,code);b.onclick=()=>{let buttons=$x('liveQuickFavorites')?.querySelectorAll('button')||[];if(buttons[i])buttons[i].click();else $x('status').textContent='Leia o teclado e ative MIDI para trocar o timbre.';sync();};stage.append(b);
     const entry=document.createElement('button');entry.className='gx-fav-entry';entry.textContent=t.name+' · '+t.code;entry.onclick=()=>b.click();side.append(entry);
    });
+ }
+ function renderBackups(){
+  const box=$x('gx-backup-list');box.replaceChildren();
+  if(!backupRows.length){let p=document.createElement('p');p.className='gx-empty';p.textContent='Nenhum backup salvo. Use Importar backups para escolher arquivos do pendrive.';box.append(p);return;}
+  backupRows.forEach((data,i)=>{
+   const row=document.createElement('div');row.className='gx-backup-row';
+   const mark=document.createElement('input');mark.type='checkbox';mark.checked=backupSelection.has(data.sha256);
+   mark.setAttribute('aria-label','Selecionar backup '+data.name);
+   mark.onchange=()=>{mark.checked?backupSelection.add(data.sha256):backupSelection.delete(data.sha256);updateBackupComparison();};
+   const info=document.createElement('div');info.className='gx-backup-name';
+   const title=document.createElement('strong');title.textContent=data.name||'Backup sem nome';
+   const details=document.createElement('small');details.textContent=(Math.round((data.bytes||0)/1024))+' KB · SHA-256: '+String(data.sha256||'').slice(0,14)+'… · arquivo original protegido';
+   info.append(title,details);
+   const btn=document.createElement('button');btn.textContent='Exportar';
+   btn.onclick=()=>{if(window.Native?.exportXpsBackup)window.Native.exportXpsBackup(data.sha256);};
+   const remove=document.createElement('button');remove.className='gx-danger-inline';remove.textContent='Excluir cópia';
+   remove.onclick=()=>{if(confirm('Excluir apenas esta cópia do Grauê? O arquivo original do pendrive e o teclado não serão alterados.'))window.Native?.deleteXpsBackup?.(data.sha256);};
+   row.append(mark,info,btn,remove);box.append(row);
+  });
+  const comparison=document.createElement('p');comparison.className='gx-backup-compare';comparison.id='gx-backup-comparison';box.append(comparison);updateBackupComparison();
+ }
+ function updateBackupComparison(){
+  const el=$x('gx-backup-comparison');if(!el)return;
+  const selected=backupRows.filter(r=>backupSelection.has(r.sha256));
+  el.textContent=selected.length===0?'Marque arquivos para comparar tamanho e assinatura.':selected.length===1?'1 backup selecionado — selecione mais um para comparar.':selected.length+' backups distintos selecionados. Assinaturas SHA-256 diferentes; timbres internos ainda não foram interpretados. A mesclagem não está habilitada.';
  }
  function renderMixer(){
   $x('gx-parts-page1').classList.toggle('on',partPage===0);$x('gx-parts-page2').classList.toggle('on',partPage===1);
@@ -216,12 +249,14 @@
   if(kind==='audio'||kind==='midi'||kind==='mic'||kind==='clear'){renderCoach();return;}
   if(kind==='hardware'||kind==='hardwareReset'){renderMixer();renderFavorites();syncStage();return;}
   if(kind==='armed'){syncStage();return;}
+  if(kind==='backups'){backupRows=Array.isArray(data)?data:[];renderBackups();}
   if(kind==='status')notify(data);
   if(kind==='webCifra'||kind==='import')sync();
  };
  const priorPersist=window.refreshLiveSongs;
  if(typeof priorPersist==='function')window.refreshLiveSongs=()=>{priorPersist();renderSongs();renderRepertoire();};
  sync();
+ if(window.Native?.listBackups)window.Native.listBackups();
  // O sequenciador progride por BPM; atualizar continuamente o resumo sem redesenhar o mixer.
  setInterval(()=>{if(active==='stage'&&document.visibilityState!=='hidden')syncStage();},300);
 })();
