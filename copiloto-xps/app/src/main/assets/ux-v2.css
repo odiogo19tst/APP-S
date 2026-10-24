@@ -323,3 +323,46 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 #gx-shell #gx-gemma-send{min-height:44px;background:#096a77;border-color:#1596a1;font-weight:700}
 #gx-gemma-answer{color:#dce8f0;font-size:12px;line-height:1.55;white-space:pre-wrap;max-height:210px;overflow-y:auto}
 @media(max-width:700px){.gx-gemma-heading{flex-direction:column;align-items:flex-start}.gx-gemma-controls button{flex:1}}
+
+/* XPS-10 1.2: editor de timbres em um toque, bancos 0–9 e palco compacto. */
+#gx-shell [hidden]{display:none!important}
+.gx-one-touch{display:flex;flex-direction:column;gap:8px}
+.gx-tone-heading,.gx-tone-toolbar,.gx-live-banks-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gx-tone-heading strong{color:#71e7d5;font-size:14px}
+.gx-tone-heading label{font-size:12px;display:flex;align-items:center;gap:8px}
+#gx-shell .gx-tone-heading select{min-width:55px;min-height:42px;padding:6px 10px;font-size:13px;background:#122738;color:#e8fffb}
+.gx-tone-categories{display:flex;gap:5px;overflow-x:auto;padding:3px 0 6px;scrollbar-width:thin;overscroll-behavior-x:contain}
+#gx-shell .gx-tone-categories button{flex:0 0 auto;min-height:44px;min-width:90px;border:1px solid #345466;padding:9px;font-size:12px;white-space:nowrap}
+#gx-shell .gx-tone-categories button.on,#gx-shell .gx-bank-tabs button.on,#gx-shell .gx-live-bank-tabs button.on{background:#17a889;color:#08242c;font-weight:700;border-color:#55e7c7}
+#gx-shell .gx-tone-toolbar input{flex:1;min-width:130px;min-height:44px;color:#f0f8ff;padding:8px 12px;background:#0c1e2e;border:1px solid #345061;border-radius:8px}
+#gx-shell .gx-tone-toolbar button{min-height:44px;padding:8px 10px}
+.gx-tone-count,.gx-tone-tip{color:#96b6c4;font-size:11px}
+.gx-tone-list{max-height:min(40vh,390px);overflow-y:auto;display:grid;gap:4px;scrollbar-width:thin}
+.gx-tone-line{display:grid;grid-template-columns:minmax(0,1fr) 44px 55px;gap:5px;align-items:stretch}
+#gx-shell .gx-tone-line button{min-height:48px;padding:7px 9px;margin:0;text-align:left;font-size:12px;overflow-wrap:anywhere}
+#gx-shell .gx-tone-line .gx-tone-pick{background:#0e3142;border-color:#2d5b65;color:#edfaf9}
+#gx-shell .gx-tone-line .gx-tone-pick:active{background:#00695f}
+#gx-shell .gx-tone-line button:not(.gx-tone-pick){text-align:center;font-size:12px}
+.gx-tone-banks{border-top:1px solid #285061;margin-top:6px;padding-top:8px}
+.gx-bank-tabs,.gx-live-bank-tabs{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;margin:5px 0}
+#gx-shell .gx-bank-tabs button,#gx-shell .gx-live-bank-tabs button{min-height:40px;padding:6px 1px;font-size:11px;border:1px solid #31556b}
+.gx-bank-slots,.gx-live-bank-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+#gx-shell .gx-bank-slots button,#gx-shell .gx-live-bank-slots button{min-height:48px;padding:6px 5px;font-size:11px;text-align:center;overflow-wrap:anywhere}
+.gx-live-banks-heading{font-size:12px;color:#9ac4cb;margin:10px 0 2px}
+#gx-shell .gx-live-bank-slots button:disabled{opacity:.4}
+.gx-tone-dialog{box-sizing:border-box;width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 35px);overflow-y:auto;border:1px solid #1bcfb3;border-radius:14px;padding:15px;background:#0c202e;color:#edfdfa;box-shadow:0 16px 55px #0009}
+.gx-tone-dialog::backdrop{background:#000b}
+.gx-tone-dialog-header{display:flex;justify-content:space-between;align-items:center;gap:9px}
+.gx-tone-dialog strong{font-size:17px}
+.gx-tone-dialog label{display:flex;flex-direction:column;gap:6px;font-size:12px;margin:12px 0}
+.gx-tone-dialog input[type=range]{width:100%;accent-color:#31d7b8}
+.gx-tone-dialog textarea{width:100%;box-sizing:border-box;min-height:80px;resize:vertical;padding:10px;background:#142a38;color:#f1fff9;border:1px solid #335568;border-radius:8px}
+.gx-tone-dialog button{min-height:44px;border:1px solid #2f5866;border-radius:8px;background:#183a47;color:#fff;padding:9px 13px}
+.gx-tone-dialog button:disabled{opacity:.4}
+.gx-variant-tabs,.gx-edit-actions{display:flex;flex-wrap:wrap;gap:6px}
+.gx-variant-tabs button{flex:1;min-width:95px}
+.gx-variant-tabs button.on{background:#078b79;border-color:#19cab2}
+.gx-edit-actions .gx-start{background:#099768}
+#gx-edit-confirm{background:#153849;border:1px solid #32baa7;padding:10px;margin:9px 0;border-radius:8px}
+.gx-tone-dialog small{font-size:11px;color:#a7c5c8}
+@media(max-width:700px){.gx-tone-line{grid-template-columns:minmax(0,1fr) 43px 56px}.gx-tone-list{max-height:38vh}.gx-bank-slots,.gx-live-bank-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-bank-tabs,.gx-live-bank-tabs{grid-template-columns:repeat(5,minmax(0,1fr))}.gx-tone-dialog{padding:11px}.gx-tone-dialog .gx-edit-actions button{flex:1}}
