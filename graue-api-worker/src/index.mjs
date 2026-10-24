@@ -37,7 +37,7 @@ export default {
   let payload;
   try{payload=JSON.parse(raw)}catch{return reply(400,{error:'JSON inválido.'});}
   const prompt=payload?.prompt,model=payload?.model||'gpt-6-luna';
-  if(typeof prompt!=='string'||prompt.trim().length===0||prompt.length>3300||!allowedModels.has(model))return reply(400,{error:'Pergunta ou modelo inválido.'});
+  if(typeof prompt!=='string'||prompt.trim().length===0||prompt.length>4500||!allowedModels.has(model))return reply(400,{error:'Pergunta ou modelo inválido.'});
   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),25000);
   let upstream;
   try{
