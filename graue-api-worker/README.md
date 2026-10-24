@@ -4,13 +4,15 @@ Este serviço opcional permite usar modelos online no Grauê XPS, sem inserir um
 
 ## Configuração privada (Cloudflare Workers)
 
-1. Tenha uma conta Cloudflare e instale/utilize o Wrangler na pasta `graue-api-worker`.
-2. Configure os **Secrets**, sem colocar seus valores no GitHub:
+1. Abra **https://dash.cloudflare.com/** → **Workers & Pages** → **Create application** → **GitHub**. Autorize somente o repositório `odiogo19tst/APP-S`, selecione a branch `feat/copiloto-xps`, diretório raiz **`graue-api-worker`** e nome **`graue-jarvis-api`**. Faça o primeiro deploy (ainda sem chave).
+   Alternativa no Codespaces: `cd graue-api-worker && npx wrangler login && npx wrangler deploy`.
+   Depois do primeiro deploy, o endpoint `/health` deve dizer `ready:false` até você adicionar os segredos.
+2. No Worker criado, abra **Settings → Variables and Secrets → Add** e selecione o tipo **Secret**. Configure-os sem colocar valores no GitHub:
    - `OPENAI_API_KEY`: sua chave da OpenAI Platform.
    - `GRAUE_DEVICE_TOKEN`: uma senha aleatória e **diferente** da chave OpenAI, com pelo menos 20 caracteres (recomenda-se 32+).
-3. No terminal do Cloudflare, ou na pasta Worker depois do primeiro deploy:
+3. Alternativa via terminal, depois do primeiro deploy:
    `npx wrangler secret put OPENAI_API_KEY` e `npx wrangler secret put GRAUE_DEVICE_TOKEN`.
-4. Faça deploy com `npx wrangler deploy`. O endereço será parecido com `https://graue-jarvis-api.<seu-subdominio>.workers.dev`.
+4. Se usou GitHub, o Worker pode implantar automaticamente. Depois de salvar os Secrets, publique a versão se o painel solicitar; caso use terminal, rode `npx wrangler deploy`. O endereço será parecido com `https://graue-jarvis-api.<seu-subdominio>.workers.dev`.
 5. Abra o Grauê XPS → Ajustes → Jarvis Online. Configure o endereço da implantação, **não o domínio da OpenAI**, e informe somente o `GRAUE_DEVICE_TOKEN` criado no Worker. Selecione Luna ou Sol. Nunca digite a chave OpenAI no aplicativo.
 6. Mantenha o modo **Automático** para usar Gemma local quando estiver sem internet ou ocorrer erro de rede.
 
