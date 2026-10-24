@@ -301,3 +301,25 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
  .gx-backup-row{flex-wrap:wrap}
  .gx-backup-name{min-width:calc(100% - 50px)}
 }
+
+
+/* On-device Gemma 3 270M — licensing, download and offline copiloto. */
+.gx-gemma-panel{border:1px solid #1c8f8a;border-radius:12px;background:linear-gradient(135deg,#102b35,#10202d);padding:14px;margin:12px 0;display:flex;flex-direction:column;gap:9px}
+.gx-gemma-panel p{font-size:12px;line-height:1.5;margin:0!important;color:#c1d5db}
+.gx-gemma-heading{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.gx-gemma-heading strong{color:#58eccf;font-size:17px}
+#gx-gemma-status{font-size:12px;color:#a6e6db}
+.gx-gemma-panel .gx-gemma-source{font-size:11px;color:#adbbcc}
+.gx-gemma-links,.gx-gemma-controls{display:flex;flex-wrap:wrap;gap:8px}
+#gx-shell .gx-gemma-links button,#gx-shell .gx-gemma-controls button{padding:10px 13px;min-height:44px;font-size:12px}
+#gx-shell .gx-gemma-controls #gx-gemma-install{background:#078d72;border-color:#29e8b7;font-weight:700}
+.gx-gemma-license{display:flex;align-items:flex-start;gap:8px;line-height:1.5;font-size:13px;padding:8px;background:#142c3c;border-radius:8px}
+.gx-gemma-license input[type=checkbox]{width:19px;height:19px;flex-shrink:0;margin:1px 0 0;accent-color:#32dfba}
+#gx-gemma-progress{width:100%;height:12px;accent-color:#30d9bb}
+#gx-gemma-info{font-size:12px;color:#e7f8f6;line-height:1.5;overflow-wrap:anywhere}
+#gx-shell .gx-gemma-chat{display:flex;flex-direction:column;gap:8px;border:1px solid #2f6574;border-radius:10px;padding:10px;background:#0e2937}
+.gx-gemma-chat label{font-size:13px;font-weight:700;color:#65f2d1}
+#gx-shell #gx-gemma-question{min-height:70px;resize:vertical;font:inherit;font-size:13px;color:#f3faff;background:#0d1e2b}
+#gx-shell #gx-gemma-send{min-height:44px;background:#096a77;border-color:#1596a1;font-weight:700}
+#gx-gemma-answer{color:#dce8f0;font-size:12px;line-height:1.55;white-space:pre-wrap;max-height:210px;overflow-y:auto}
+@media(max-width:700px){.gx-gemma-heading{flex-direction:column;align-items:flex-start}.gx-gemma-controls button{flex:1}}
