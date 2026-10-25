@@ -40,7 +40,7 @@ setInterval(()=>{let now=performance.now(),dt=(now-last)/1000;last=now;if(!playi
 function normalize(s){if(!s||typeof s.title!=='string'||!Array.isArray(s.chords)||!s.chords.length||s.chords.length>2000||!s.chords.every(x=>typeof x==='string'&&M.parse(x)))throw Error('Música inválida. Use acordes como C, Am, Fmaj7, G7 ou C/E.');return {category:String(s.category||'Sem categoria').trim().slice(0,60)||'Sem categoria',title:s.title.slice(0,150),chords:s.chords,beats:clamp(s.beats,1,16,4),bpm:clamp(s.bpm,30,240,72),root:Math.round(clamp(s.root,0,11,0)),minor:!!s.minor,text:String(s.text||'').slice(0,100000),
  riffs:String(s.riffs||'').slice(0,30000),scoreNotes:String(s.scoreNotes||'').slice(0,10000),
  sections:Array.isArray(s.sections)?s.sections.filter(x=>typeof x==='string').slice(0,100):[],
- sourceUrl:typeof s.sourceUrl==='string'&&/^https:\/\/(?:[\\w-]+\\.)*cifraclub\\.com\\.br\//i.test(s.sourceUrl)?s.sourceUrl.slice(0,500):'',
+ sourceUrl:typeof s.sourceUrl==='string'&&/^https:\/\/(?:[\w-]+\.)*cifraclub\.com\.br\//i.test(s.sourceUrl)?s.sourceUrl.slice(0,500):'',
  youtubeUrl:
  typeof s.youtubeUrl==='string'&&/^https:\/\/(?:www\.|m\.)?youtube\.com\/watch\?|^https:\/\/youtu\.be\//i.test(s.youtubeUrl)?s.youtubeUrl.slice(0,260):''};}
 function select(s){song=normalize(s);pause();idx=0;elapsed=0;root=song.root;minor=song.minor;$('key').value=root;$('mode').value=minor?1:0;$('tempo').value=song.bpm;$('songCategory').value=song.category;$('title').value=song.title;$('changes').value=song.chords.join(' ');$('beats').value=song.beats;$('text').value=song.text;updateSong();renderNotes();status('Música carregada: '+song.title);}
