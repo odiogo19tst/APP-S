@@ -1,14 +1,39 @@
+/* Shared text / Cifra Club score parser.
+ * Preserves section labels, lyrics, line spacing and chords for presentation.
+ * Only valid chords feed the MIDI progression.
+ */
 (function(g){
-function parseText(text,parseChord){
- const trimmed=text.trim();if(/^https?:\/\/\S+$/.test(trimmed))throw Error('Recebi apenas um link. Compartilhe ou cole o texto da cifra.');
- if(trimmed.length>200000)throw Error('Texto maior que 200 mil caracteres.');
- let chords=[...text.matchAll(/\[([^\]]+)\]/g)].map(m=>m[1].trim()),title=(text.match(/\{(?:title|t):\s*([^}]+)\}/i)||[])[1]||'Música importada';
- let content=text.replace(/\{[^}]*\}/g,'').replace(/\[[^\]]*\]/g,'');
- if(!chords.length){let lyrics=[];for(let line of text.split(/\r?\n/)){let tokens=line.trim().split(/\s+/).filter(t=>t&&!/^[|:]+$/.test(t));if(tokens.length&&tokens.every(t=>parseChord(t))){chords.push(...tokens);}else lyrics.push(line);}content=lyrics.join('\n');}
- if(!chords.length)throw Error('Não identifiquei acordes. Use ChordPro [C] ou linhas como C Am F G.');
- let invalid=chords.find(c=>!parseChord(c));if(invalid)throw Error('Acorde ainda não suportado: '+invalid+'. Revise antes de importar.');
- let key=text.match(/\{key:\s*([^}]+)\}/i),k=key?parseChord(key[1].trim()):null;
- return {title,chords,beats:4,bpm:72,root:k?k.root:0,minor:k?k.q.startsWith('m')&&!k.q.startsWith('maj'):false,text:content};
-}
-g.parseSharedCifra=parseText;if(typeof module!=='undefined')module.exports=parseText;
+ 'use strict';
+ function parseText(input,parseChord){
+  const text=String(input||'').replace(/\r\n?/g,'\n').replace(/\u00a0/g,' ');
+  const trimmed=text.trim();
+  if(/^https?:\/\/\S+$/.test(trimmed))throw Error('Recebi apenas um link. Abra a cifra no navegador integrado para importá-la automaticamente.');
+  if(trimmed.length>200000)throw Error('Cifra maior que 200 mil caracteres.');
+  const metadata={title:(text.match(/\{(?:title|t):\s*([^}]+)\}/i)||[])[1]||'Música importada',
+   key:(text.match(/\{(?:key|tom):\s*([^}]+)\}/i)||[])[1]||''};
+  const cleaned=text.replace(/\{(?:title|t|key|tom):\s*[^}]+\}\n?/gi,'').trim();
+  const chords=[];
+  function normalizeToken(t){return t.trim().replace(/^[|:()]+|[|:()]+$/g,'');}
+  // Preserve reading order: intro chord rows must precede later inline [Am] tokens.
+  for(const raw of cleaned.split('\n')){
+   if(!raw.trim())continue;
+   // [Refrão] is a section heading, not an invalid chord.
+   if(/^[ \t]*\[[^\]]+\][ \t]*$/.test(raw)&&!parseChord(raw.trim().slice(1,-1)))continue;
+   for(const hit of raw.matchAll(/\[([^\]\n]+)\]/g)){
+    const ch=hit[1].trim();if(parseChord(ch))chords.push(ch);
+   }
+   let tokens=raw.trim().split(/\s+/).map(normalizeToken).filter(Boolean);
+   if(!tokens.length||tokens.length>90)continue;
+   const valid=tokens.filter(t=>parseChord(t));
+   if(valid.length===tokens.length&&(tokens.length>=2||/[|:]/.test(raw)||/^\s{2,}/.test(raw))){
+    chords.push(...valid);
+   }
+  }
+  if(!chords.length)throw Error('Acordes não identificados nesta versão. Confira o formato da cifra.');
+  const key=parseChord(metadata.key)||parseChord(chords[0]);
+  return {title:metadata.title,chords:chords.slice(0,2000),beats:4,bpm:72,
+   root:key?key.root:0,minor:key?key.q.startsWith('m')&&!key.q.startsWith('maj'):false,text:cleaned};
+ }
+ g.parseSharedCifra=parseText;
+ if(typeof module!=='undefined')module.exports=parseText;
 })(typeof window==='undefined'?globalThis:window);

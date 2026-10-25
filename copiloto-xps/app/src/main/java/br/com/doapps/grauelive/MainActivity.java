@@ -114,8 +114,25 @@ public class MainActivity extends Activity {
   },2000);
   else if(list.length>1)emit("status","Mais de um dispositivo USB-MIDI detectado. Selecione o XPS-10 em Conectar USB.");
  }
- private void layoutPanels(){boolean wide=getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;rootLayout.setOrientation(wide?android.widget.LinearLayout.HORIZONTAL:android.widget.LinearLayout.VERTICAL);web.setLayoutParams(new android.widget.LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,1));if(cifraPanel!=null)cifraPanel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,wide?1.15f:1));}
- private void showCifra(){if(cifraPanel==null){cifraPanel=new CifraPanel(this,(title,text)->{try{JSONObject data=new JSONObject();data.put("title",title);data.put("text",text);emit("webCifra",data);}catch(JSONException ignored){}},()->{rootLayout.removeView(cifraPanel);cifraPanel.destroy();cifraPanel=null;layoutPanels();});rootLayout.addView(cifraPanel);}layoutPanels();}
+ private void layoutPanels(){
+  boolean wide=getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+  boolean browserVisible=cifraPanel!=null&&cifraPanel.getVisibility()==android.view.View.VISIBLE;
+  rootLayout.setOrientation(browserVisible&&wide?android.widget.LinearLayout.HORIZONTAL:android.widget.LinearLayout.VERTICAL);
+  web.setLayoutParams(new android.widget.LinearLayout.LayoutParams(browserVisible&&wide?0:-1,browserVisible&&wide?-1:0,1));
+  if(cifraPanel!=null)cifraPanel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(browserVisible&&wide?0:-1,browserVisible&&wide?-1:0,browserVisible?(wide?1.15f:1):0));
+ }
+ private void showCifra(){
+  if(cifraPanel==null){
+   cifraPanel=new CifraPanel(this,data->{
+    emit("webCifra",data);
+    // Keep the user's page alive and cookies intact, but return immediately to the score in Grauê.
+    if(cifraPanel!=null){cifraPanel.setVisibility(android.view.View.GONE);layoutPanels();}
+   },()->{rootLayout.removeView(cifraPanel);cifraPanel.destroy();cifraPanel=null;layoutPanels();});
+   rootLayout.addView(cifraPanel);
+  }
+  cifraPanel.setVisibility(android.view.View.VISIBLE);
+  layoutPanels();
+ }
  @Override public void onConfigurationChanged(android.content.res.Configuration config){super.onConfigurationChanged(config);layoutPanels();web.invalidate();}
  @Override protected void onResume(){super.onResume();if(cifraPanel!=null)cifraPanel.resume();}
  private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+(new JSONArray().put(data).toString()+"[0]")+")",null);}catch(Exception ignored){} });}

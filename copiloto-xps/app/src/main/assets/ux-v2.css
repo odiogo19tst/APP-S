@@ -723,3 +723,21 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-pad-import-zip{border:1px solid #477889!important;min-height:45px}
 .gx-pad-library-actions{gap:7px!important}
 @media(max-width:700px){#gx-pad-export-drive{flex-basis:100%;width:100%}}
+
+
+/* Grauê: score-only Cifra Club reader. Native browser is hidden after importing. */
+#gx-shell .gx-rep-tabs{scrollbar-width:thin}
+#gx-shell .gx-cifra-shift{display:grid;grid-template-columns:minmax(40px,1fr) .7fr minmax(40px,1fr);align-items:center;gap:5px;font-size:12px;text-align:center;color:#516a79}
+#gx-shell .gx-cifra-shift button{min-height:44px;font-size:20px;font-weight:700;padding:4px 10px}
+#gx-shell .gx-scroll-controls{display:flex;flex-direction:column;gap:7px;border:1px solid #deebf2;border-radius:8px;padding:8px}
+#gx-shell .gx-scroll-controls button{min-height:44px;padding:8px 10px}
+#gx-shell .gx-scroll-controls label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#445e72}
+#gx-shell #gx-scroll-speed{accent-color:#0b91ba;min-height:24px;width:100%}
+#gx-shell .gx-cifra-text{white-space:pre;overflow-x:auto;overflow-y:auto;overflow-wrap:normal;max-height:min(68dvh,770px);line-height:1.55;tab-size:4;font-size:clamp(12px,1.5vw,17px);padding-bottom:30vh;margin:0;color:#142938}
+#gx-shell .gx-paper-copy{min-width:0;overflow:hidden}
+#gx-shell .gx-paper-main{min-width:0}
+@media(max-width:700px) {
+ #gx-shell .gx-cifra-text{max-height:58dvh;font-size:13px}
+ #gx-shell .gx-paper-actions{border-left:0;border-top:1px solid #d9e5f0}
+ #gx-shell .gx-cifra-shift button,#gx-shell .gx-scroll-controls button{min-height:46px}
+}
