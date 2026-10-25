@@ -197,7 +197,7 @@ public class MainActivity extends Activity {
     }catch(Exception e){emit("status","Não foi possível abrir o link de música: "+e.getMessage());}
    });
   }
-  @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Ative envio MIDI antes de iniciar a batida.");return;}try{sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI antes de iniciar a batida.");return;}try{sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void stopSequence(){runOnUiThread(()->{sequencer.stop();stopPadNotes();});}
   @JavascriptInterface public void openCifra(){runOnUiThread(()->showCifra());}
   @JavascriptInterface public void importCifra(){runOnUiThread(()->{if(cifraPanel==null){showCifra();emit("status","Abra uma música no Cifra Club e toque Importar novamente.");}else cifraPanel.importCurrent();});}
@@ -207,7 +207,7 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void playAssistChord(String json){
    if(json==null||json.length()>200)return;
    runOnUiThread(()->{
-    if(!armed){emit("status","Ative o envio MIDI para tocar o acorde de apoio.");return;}
+    if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para tocar o acorde de apoio.");return;}
     if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado via USB-MIDI.");return;}
     try{
      JSONObject v=new JSONObject(json);
@@ -229,7 +229,7 @@ public class MainActivity extends Activity {
    });
   }
   @JavascriptInterface public void stopAssistChord(){runOnUiThread(()->stopAssist());}
-  @JavascriptInterface public void padHit(int channel,int note,int velocity){runOnUiThread(()->{if(!armed){emit("status","Ative envio MIDI para tocar os pads.");return;}if(channel<1||channel>16||note<0||note>127||velocity<1||velocity>127)return;int key=(channel-1)*128+note,token=++padSerial;if(!midi.send(0x90+channel-1,note,velocity)){sequencer.stop();emit("status","Sem saída MIDI conectada.");return;}padTokens.put(key,token);padHandler.postDelayed(()->{if(Integer.valueOf(token).equals(padTokens.get(key))){midi.send(0x80+channel-1,note,0);padTokens.remove(key);}},120);});}
+  @JavascriptInterface public void padHit(int channel,int note,int velocity){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para tocar os pads.");return;}if(channel<1||channel>16||note<0||note>127||velocity<1||velocity>127)return;int key=(channel-1)*128+note,token=++padSerial;if(!midi.send(0x90+channel-1,note,velocity)){sequencer.stop();emit("status","Sem saída MIDI conectada.");return;}padTokens.put(key,token);padHandler.postDelayed(()->{if(Integer.valueOf(token).equals(padTokens.get(key))){midi.send(0x80+channel-1,note,0);padTokens.remove(key);}},120);});}
   @JavascriptInterface public void stopPads(){runOnUiThread(()->stopPadNotes());}
   @JavascriptInterface public void getPadSampleLibrary(){
    try{emit("padSampleState",padSamples.state());}
@@ -346,7 +346,7 @@ public class MainActivity extends Activity {
       if(sent){
         try{emit("performanceSelected",new JSONObject().put("index",number).put("user",user));}catch(Exception ignored){}
         emit("status","Performance "+(user?"USER ":"Preset ")+number+" solicitada no canal MIDI 1.");
-        new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi.isConnected())xps.read();},650);
+        new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi.isConnected())xps.readWhenIdle(45);},650);
       }else emit("status","Não foi possível transmitir a seleção de Performance ao XPS-10.");
     });
   }
@@ -376,7 +376,7 @@ public class MainActivity extends Activity {
   // Compatibility: connection is the only switch; no separate MIDI activation.
   armed=midi!=null&&midi.isConnected();emit("armed",armed);
  });}
-  @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Ative o envio MIDI antes de aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
+  @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
   @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
   @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
   @JavascriptInterface public void listBackups(){worker.execute(()->{try{emit("backups",backupArchive.list());}catch(Exception e){emit("status","Biblioteca: "+e.getMessage());}});}

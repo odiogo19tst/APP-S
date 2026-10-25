@@ -741,3 +741,16 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
  #gx-shell .gx-paper-actions{border-left:0;border-top:1px solid #d9e5f0}
  #gx-shell .gx-cifra-shift button,#gx-shell .gx-scroll-controls button{min-height:46px}
 }
+
+
+/* Performance selector v1.7: 128 user/16 presets, observe-before-edit. */
+#gx-shell .gx-perf-slot{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;min-width:0;min-height:70px;line-height:1.2}
+#gx-shell .gx-perf-slot strong{font-size:12px;color:#ebfff9;white-space:nowrap}
+#gx-shell .gx-perf-slot small{font-size:10px;min-width:0;max-width:100%;color:#a8c6d3;line-height:1.25;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#gx-shell #gx-perf-mode{min-height:44px;border:1px solid #32beab;background:#096d60;color:#fff;font-weight:700;padding:9px 11px;border-radius:9px}
+#gx-shell #gx-perf-mode[hidden]{display:none!important}
+.gx-perf-import-actions{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid #31556a;padding-top:9px}
+#gx-shell .gx-perf-import-actions button{min-height:44px;font-size:11px;padding:8px 12px;background:#103c49;border:1px solid #377c7c;border-radius:9px}
+.gx-perf-import-actions small{font-size:10px;color:#a2bfcb;flex:1;min-width:170px}
+#gx-performance-hint{display:block;font-size:11px;line-height:1.4;color:#8ddacb;margin-top:8px}
+@media(max-width:700px){.gx-perf-grid{grid-template-columns:repeat(3,minmax(0,1fr))}#gx-shell .gx-perf-slot{min-height:72px}}

@@ -11,14 +11,15 @@ class Element {
 }
 const els={},html=fs.readFileSync(__dirname+'/../app/src/main/assets/index.html','utf8');for(const m of html.matchAll(/id="([^"]+)"/g))els[m[1]]=new Element();
 const calls=[],document={getElementById:id=>els[id],createElement:()=>new Element(),createTextNode:text=>({text}),body:new Element(),querySelectorAll:s=>s==='.key'?els.piano.children:[]};
-const native={load:()=>'{"songs":[],"scenes":[]}',save:s=>calls.push(['save',JSON.parse(s)]),editHardware:s=>calls.push(['edit',JSON.parse(s)]),readUserTones:()=>calls.push(['readUserTones']),cc:(...a)=>calls.push(['cc',...a])};
+const native={load:()=>'{"songs":[],"scenes":[]}',save:s=>calls.push(['save',JSON.parse(s)]),editHardware:s=>calls.push(['edit',JSON.parse(s)]),readUserTones:()=>calls.push(['readUserTones']),cc:(...a)=>calls.push(['cc',...a]),selectTone:(...a)=>calls.push(['selectTone',...a])};
 const ctx={parseSharedCifra:require('../app/src/main/assets/import-text.js'),document,window:{Native:native},Music:require('../app/src/main/assets/music.js'),performance:{now:()=>1000},devicePixelRatio:1,getComputedStyle:()=>({getPropertyValue:()=>''}),setInterval(){},console};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/app.js','utf8'),ctx);
 const event=a=>ctx.window.receive('midi',a);
 event([144,60,90]);event([144,64,80]);event([144,67,85]);assert.equal(els.chord.textContent,'C');assert.match(els.feedback.textContent,/pertencem/);
 event([176,64,127]);event([128,60,0]);assert.equal(els.chord.textContent,'C');event([176,64,0]);assert.equal(els.chord.textContent,'E · G');ctx.window.receive('clear','');assert.equal(els.chord.textContent,'—');
 ctx.window.receive('import',JSON.stringify({songs:[{title:'Teste',chords:['D','Bm','G','A'],root:2,bpm:90,beats:4}]}));assert.equal(els.songList.children.length,1);els.songList.children[0].children[0].onclick();assert.equal(els.current.textContent,'D');els.up.onclick();assert.equal(els.current.textContent,'Eb');
-els.arm.checked=false;els.apply.onclick();assert.equal(calls.filter(c=>c[0]==='cc').length,0);els.arm.checked=true;els.channel.value='2';els.apply.onclick();assert.equal(calls.filter(c=>c[0]==='cc').length,9);assert(calls.filter(c=>c[0]==='cc').every(c=>c[1]===2));
+els.arm.checked=false;els.apply.onclick();assert.equal(calls.filter(c=>c[0]==='cc').length,9); // USB owns MIDI authorization, not an extra checkbox
+ els.arm.checked=true;els.channel.value='2';els.apply.onclick();assert.equal(calls.filter(c=>c[0]==='cc').length,18);assert(calls.filter(c=>c[0]==='cc').slice(-9).every(c=>c[1]===2));
 ctx.window.receive('import','{title: ChordPro}\n[C]Linha [Am]outra');assert.equal(els.songList.children.length,2); // Braced metadata is ChordPro, not JSON.
 console.log('Interface: MIDI, sustain, chord comparison, repertoire, transpose and CC passed');
 
@@ -52,8 +53,10 @@ assert.equal(els.liveConnection.textContent,'Aguardando leitura MIDI');
 const quick=els.liveQuickFavorites;
 assert(quick.children.length>=1);
 const qCount=calls.filter(c=>c[0]==='edit').length;
+const toneCount=calls.filter(c=>c[0]==='selectTone').length;
 if(quick.children[0].onclick)quick.children[0].onclick();
-assert.equal(calls.filter(c=>c[0]==='edit').length,qCount); // Sem leitura, não transmite.
+assert.equal(calls.filter(c=>c[0]==='edit').length,qCount);
+assert.equal(calls.filter(c=>c[0]==='selectTone').length,toneCount+1); // Tap requests a direct Bank/Program Change; Android verifies USB.
 
 native.padHit=(...a)=>calls.push(['pad',...a]);native.stopPads=()=>calls.push(['stopPads']);
 assert.equal(els.toneFamilies.children.length,9);
@@ -67,7 +70,7 @@ part[0]=9;ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zo
 els.liveDrums.onclick();assert.equal(els.toneDrawer.open,true);assert.equal(els.drumChannel.value,'10');
 assert(els.liveToneList.children.length>0);assert(els.liveToneList.children.every(b=>b.textContent.startsWith('Dr')));
 els.liveToneList.children[0].onclick();els.liveApplyTone.onclick();assert.equal(els.toneDrawer.open,false);
-edit=calls.filter(c=>c[0]==='edit').at(-1)[1];assert.equal(JSON.stringify(edit.map(x=>x.offset)),'[4,5,6]');
+assert.equal(calls.at(-1)[0],'selectTone');assert.equal(calls.at(-1).length,5);
 els.liveVolume.value='85';els.liveApplyVolume.onclick();assert.deepEqual(calls.at(-1),['cc',10,7,85]);
 els.songCategory.value='Adoração';els.saveSong.onclick();els.songFilter.value='Adoração';els.songFilter.onchange();assert.equal(els.songList.children.length,1);
 assert(calls.filter(c=>c[0]==='save').at(-1)[1].songs.some(s=>s.category==='Adoração'));
@@ -93,9 +96,11 @@ assert.equal(els.livePart.value,'1');
 assert.equal(calls.filter(c=>c[0]==='edit').length,countBeforeSelect);
 els.livePartsGrid.children[0].onclick();
 assert.equal(els.livePart.value,'0');
-els.arm.checked=true; // Apenas simula autorização; envio real não ocorre nos testes.
+els.arm.checked=false; // Simulates stale UI switch, which must not block MIDI on connected Android.
+const beforeTone=calls.filter(c=>c[0]==='selectTone').length;
 if(els.liveQuickFavorites.children[0].onclick)els.liveQuickFavorites.children[0].onclick();
-assert.equal(calls.filter(c=>c[0]==='edit').length,countBeforeSelect+1);
+assert.equal(calls.filter(c=>c[0]==='edit').length,countBeforeSelect);
+assert.equal(calls.filter(c=>c[0]==='selectTone').length,beforeTone+1);
 console.log('Grauê XPS: 16 partes, leitura, favoritos e segurança de envio passaram');
 
 for(const file of ['mfx-params.js','advanced.js','sequencer.js'])vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/'+file,'utf8'),ctx);
