@@ -19,7 +19,8 @@
 '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
  '<div class="gx-panel gx-assist"><div class="gx-section-label">✦ JARVIS MUSICAL · ACORDE DE APOIO <small>Som gerado pelo XPS-10 por MIDI</small></div><div class="gx-assist-controls"><div><strong id="gx-assist-chord">—</strong><small>acorde atual da música</small></div><label>Canal<select id="gx-assist-channel"></select></label><button id="gx-assist-play">▶ Tocar acorde</button><button id="gx-assist-stop">■ Parar</button></div><small>Um toque envia o acorde por 900 ms, somente com MIDI ativado. Escolha um canal de recepção que não interfira nas notas que você está tocando. Nunca toca sem seu comando.</small></div>',
  '<div class="gx-panel gx-zone"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
- '<div class="gx-stage-footer"><span id="gx-midi-ready" class="gx-midi-ready">● Conecte o USB: MIDI e leitura iniciam juntos</span><button id="gx-show-mode">Modo show ↔</button></div></div>',
+ '<div class="gx-stage-footer"><button id="gx-open-sample-pads">▦ Drum Pads / Biblioteca</button><span id="gx-midi-ready" class="gx-midi-ready">● Conecte o USB: MIDI e leitura iniciam juntos</span><button id="gx-show-mode">Modo show ↔</button></div></div>',
+ '<dialog id="gx-sample-dialog" class="gx-sample-dialog"><header><strong>▦ Drum Pads · Biblioteca</strong><button id="gx-close-sample-pads">Fechar ✕</button></header><p>Escolha entre os kits do XPS-10 via MIDI ou samples próprios reproduzidos pelo celular. O USB-MIDI não envia áudio ao Roland.</p><label>Biblioteca / banco<select id="gx-pad-bank"><option value="midi">Bateria MIDI · XPS-10</option><option value="drums">Drum Kit 1 · meus samples</option><option value="efx">EFX 1 · meus samples</option><option value="worship-drums">Worship Drums · meus samples</option><option value="worship-efx">Worship EFX · meus samples</option></select></label><label id="gx-pad-channel-label">Canal MIDI<select id="gx-pad-channel"></select></label><div id="gx-sample-grid" class="gx-sample-grid"></div><small id="gx-sample-help" role="status" aria-live="polite">Use Importar para escolher os sons. Kits locais começam vazios; nenhuma biblioteca comercial foi incorporada.</small><button id="gx-sample-stop">Soltar notas MIDI</button></dialog>',
  '<div class="gx-screen" data-gx-screen="repertoire"><div class="gx-rep-layout">',
  '<aside class="gx-panel gx-rep-library"><div class="gx-section-label">▏ Meu Repertório</div><input id="gx-search" placeholder="Buscar música, artista ou tom…" aria-label="Buscar repertório"><div class="gx-filters"><button class="on" data-gx-filter="all">Todas</button><button data-gx-filter="favorites">Favoritas</button><button data-gx-filter="setlist">Setlist</button><button data-gx-filter="recent">Recentes</button><button id="gx-add-song">+</button></div><div id="gx-songs" class="gx-song-list"></div></aside>',
  '<section class="gx-rep-view"><div class="gx-rep-tabs"><button class="on" data-gx-rep="cifra">Cifra integrada</button><button data-gx-rep="letter">Letra</button><button data-gx-rep="notes">Anotações</button><button data-gx-rep="setlist">Setlist</button></div>',
@@ -299,6 +300,51 @@
  ];
  let toneCategory='',toneBank=0,toneOnlyFavs=false,toneEditing=null,toneVariant='original',lastSelectedTone=null;
  let toneVariants={},toneAiPending=false,longPressTimer=null;
+
+ let sampleMap={};
+ const padBank=$x('gx-pad-bank'),sampleDlg=$x('gx-sample-dialog');
+ const padNames=['Bumbo','Caixa','Chimbal fechado','Chimbal aberto','Tom grave','Tom agudo','Crash','Ride'];
+ const padMidiNotes=[36,38,42,46,45,50,49,51];
+ for(let n=1;n<=16;n++){const option=document.createElement('option');option.value=String(n);option.textContent='Canal '+n;$x('gx-pad-channel').append(option);}
+ $x('gx-pad-channel').value='10';
+ padBank.value=saved.padKit||'midi';
+ const openSamples=()=>{renderSamplePads();if(!sampleDlg.open)sampleDlg.showModal();};
+ window.GrauePadLibrary={open:openSamples};
+ $x('gx-open-sample-pads').onclick=openSamples;
+ $x('gx-close-sample-pads').onclick=()=>sampleDlg.close();
+ $x('gx-sample-stop').onclick=()=>window.Native?.stopPads?.();
+ padBank.onchange=()=>{
+  saved.padKit=padBank.value;persist();
+  if(window.Native?.getPadLibrary)window.Native.getPadLibrary();
+  renderSamplePads();
+ };
+ function renderSamplePads(){
+  const bank=padBank.value,local=bank!=='midi',grid=$x('gx-sample-grid');
+  grid.replaceChildren();$x('gx-pad-channel-label').hidden=local;
+  $x('gx-sample-help').textContent=local?'Samples deste banco tocam pela saída de áudio do celular. Importe um WAV, MP3 ou OGG em cada pad; nenhum kit comercial vem pré-carregado.':'Este modo envia notas ao XPS-10 no canal escolhido. O timbre final depende do kit de bateria selecionado no Roland.';
+  for(let n=0;n<8;n++){
+   const value=sampleMap[bank+'-'+n],cell=document.createElement('div');cell.className='gx-sample-cell';
+   const hit=document.createElement('button');hit.className='gx-sample-hit';
+   hit.textContent=padNames[n]+(local?(value?' · '+value.name:' · Vazio'):' · MIDI '+padMidiNotes[n]);
+   hit.disabled=local&&!value;
+   hit.onpointerdown=e=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    e.preventDefault();
+    if(local)window.Native?.playSamplePad?.(bank,n);
+    else window.Native?.padHit?.(+$x('gx-pad-channel').value,padMidiNotes[n],96);
+   };
+   cell.append(hit);
+   if(local){
+    const importer=document.createElement('button');importer.className='gx-sample-import';
+    importer.textContent=value?'Substituir áudio':'Importar áudio';
+    importer.onclick=()=>{if(window.Native?.importSamplePad)window.Native.importSamplePad(bank,n);else notify('A importação precisa do APK Android.');};
+    cell.append(importer);
+   }
+   grid.append(cell);
+  }
+ }
+ renderSamplePads();
+ if(window.Native?.getPadLibrary)window.Native.getPadLibrary();
  const toneLib=()=>window.ToneLibrary;
  for(let i=0;i<16;i++){let op=document.createElement('option');op.value=String(i);op.textContent=String(i+1);$x('gx-tone-part').append(op);}
  $x('gx-tone-part').value=String(saved.lastTonePart||0);
@@ -631,6 +677,7 @@
   if(kind==='hardware'||kind==='hardwareReset'){renderMixer();renderFavorites();syncStage();return;}
   if(kind==='armed'){syncStage();return;}
   if(kind==='backups'){backupRows=Array.isArray(data)?data:[];renderBackups();}
+  if(kind==='padLibrary'){sampleMap=data||{};renderSamplePads();}
   if(kind==='userTones'){renderToneList();renderBanks();renderFavorites();}
   if(kind==='status'&&/Sem resposta SysEx/.test(String(data||''))){
     $x('gx-device-state').textContent='● USB-MIDI presente · XPS-10 sem resposta SysEx';
