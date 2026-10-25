@@ -2,15 +2,22 @@
 /* Grauê DrumStudio: MIDI notes sound on the XPS-10, never on Spotify or its 6 hardware audio pads. */
 (()=>{
  const el=id=>document.getElementById(id);
- const drumNotes=[['Bumbo',36],['Caixa',38],['Hi-Hat',42],['Hi-Hat aberto',46],['Tom grave',45],['Tom agudo',50],['Crash',49],['Ride',51]];
+ const defaultNotes=[['Bumbo',36],['Caixa',38],['Hi-Hat',42],['Hi-Hat aberto',46],['Tom grave',45],['Tom agudo',50],['Crash',49],['Ride',51]];
+ const fxNotes=[['Impacto',36],['Caixa FX',40],['Hi-Hat FX',42],['Cymbal',49],['Splash',55],['Ride Bell',53],['Agogô',67],['FX final',81]];
+ const worshipDrums=[['Kick',36],['Snare',38],['Hat fechado',42],['Hat aberto',46],['Tom 1',48],['Tom 2',50],['Crash',49],['Ride',51]];
+ const worshipFx=[['Impacto',36],['Sub Drop',38],['Riser',42],['Sweep',46],['Crash',49],['Atmosfera',50],['Voz',55],['Outro',57]];
+ let drumNotes=defaultNotes.map(x=>x.slice());
  const blank=()=>Array.from({length:8},()=>Array(16).fill(0));
  const settings=saved.drumStudio&&typeof saved.drumStudio==='object'?saved.drumStudio:{};
  let grid=Array.isArray(settings.grid)&&settings.grid.length===8&&settings.grid.every(r=>Array.isArray(r)&&r.length===16)?settings.grid.map(row=>row.map(v=>v?80:0)):blank();
  let drumChannel=Number.isInteger(settings.drumChannel)&&settings.drumChannel>=1&&settings.drumChannel<=16?settings.drumChannel:10;
  let droneChannel=Number.isInteger(settings.droneChannel)&&settings.droneChannel>=1&&settings.droneChannel<=16?settings.droneChannel:3;
  let bpm=Number.isInteger(settings.bpm)&&settings.bpm>=40&&settings.bpm<=180?settings.bpm:72;
+ let selectedLibrary=Number.isInteger(settings.selectedLibrary)&&settings.selectedLibrary>=0&&settings.selectedLibrary<=3?settings.selectedLibrary:0;
+ let kitCode=typeof settings.kitCode==='string'?settings.kitCode:'Dr001';
+ let sampleInfo=[];
  let droneOn=false;
- const save=()=>{saved.drumStudio={grid,drumChannel,droneChannel,bpm};persist();};
+ const save=()=>{saved.drumStudio={grid,drumChannel,droneChannel,bpm,selectedLibrary,kitCode};persist();};
  const native=(name,...args)=>{if(!window.Native?.[name]){el('gx-beats-status').textContent='Função MIDI disponível somente no APK Android atualizado.';return false;}window.Native[name](...args);return true;};
  const channels=()=>{
   for(const target of [el('gx-drums-channel'),el('gx-drone-channel')]){
@@ -22,14 +29,83 @@
  el('gx-drums-channel').onchange=()=>{drumChannel=+el('gx-drums-channel').value;native('stopSequence');save();};
  el('gx-drone-channel').onchange=()=>{native('stopDronePad');droneOn=false;droneChannel=+el('gx-drone-channel').value;save();};
  el('gx-beats-bpm').onchange=()=>{bpm=Math.min(180,Math.max(40,Number(el('gx-beats-bpm').value)||72));el('gx-beats-bpm').value=String(bpm);save();};
- for(const [label,note] of drumNotes){
-  const btn=document.createElement('button');btn.className='gx-drum-key';btn.type='button';
-  const n=document.createElement('strong');n.textContent=label;
-  const caption=document.createElement('small');caption.textContent='MIDI '+note;
-  btn.append(n,caption);
-  btn.onclick=()=>native('padHit',drumChannel,note,Number(el('gx-drums-velocity').value));
-  el('gx-drums-pads').append(btn);
+ const rolandKits=(window.XPS_TONES||[]).filter(t=>t.category==='DRM'&&/^Dr\\d{3}$/.test(t.code)&&t.msb>=0&&t.lsb>=0&&t.program>=1);
+ const rolandSelect=el('gx-roland-kit');
+ for(const kit of rolandKits){
+  const option=document.createElement('option');option.value=kit.code;
+  option.textContent=kit.code+' · '+kit.name;rolandSelect.append(option);
  }
+ const libraryMeta=[
+  {name:'Drum Kit 1',info:'Kit interno do Roland XPS-10. 8 notas MIDI mapeadas para bateria.',defaultKit:'Dr001'},
+  {name:'EFX 1',info:'Kit de efeitos GM2 do Roland (SFX). Os sons dependem do mapa de notas do kit.',defaultKit:'Dr028'},
+  {name:'Worship Drums',info:'Biblioteca de bateria com 8 samples importados do seu celular. Sem arquivos, os pads ficam silenciosos.'},
+  {name:'Worship EFX',info:'Biblioteca independente de 8 efeitos de áudio para louvor: importe seus próprios samples.'}
+ ];
+ const sampleBank=()=>selectedLibrary;
+ const isAudio=()=>selectedLibrary>=2;
+ const labelsFor=()=>selectedLibrary===1?fxNotes:selectedLibrary===2?worshipDrums:selectedLibrary===3?worshipFx:defaultNotes;
+ function renderPads(){
+  drumNotes=labelsFor().map(row=>row.slice());
+  const pads=el('gx-drums-pads');pads.replaceChildren();
+  drumNotes.forEach(([label,note],index)=>{
+   const btn=document.createElement('button');btn.className='gx-drum-key';btn.type='button';
+   const heading=document.createElement('strong');heading.textContent=label;
+   const detail=document.createElement('small');
+   const file=sampleInfo.find(x=>x.index===index&&x.bank===sampleBank());
+   detail.textContent=isAudio()?(file?.exists?(file.ready?'Áudio pronto':'Carregando áudio…'):'Sem sample'):'Nota MIDI '+note;
+   btn.append(heading,detail);
+   btn.onclick=()=>{if(isAudio())native('playDrumSample',sampleBank(),index);
+    else native('padHit',drumChannel,note,Number(el('gx-drums-velocity').value));};
+   pads.append(btn);
+  });
+ }
+ function renderAudioSlots(){
+  const host=el('gx-drum-sample-slots');host.replaceChildren();
+  if(!isAudio())return;
+  for(let i=0;i<8;i++){
+   const entry=sampleInfo.find(x=>x.index===i&&x.bank===sampleBank());
+   const row=document.createElement('div');row.className='gx-sample-slot';
+   const label=document.createElement('div');label.className='gx-sample-name';
+   const title=document.createElement('strong');title.textContent=(i+1)+'. '+labelsFor()[i][0];
+   const detail=document.createElement('small');detail.textContent=entry?.exists?(entry.name+(entry.ready?' · pronto':' · carregando')):'Nenhum arquivo importado';
+   const choose=document.createElement('button');choose.textContent=entry?.exists?'Trocar áudio':'Importar áudio';
+   choose.onclick=()=>native('importDrumSample',sampleBank(),i);
+   label.append(title,detail);row.append(label,choose);host.append(row);
+  }
+ }
+ function showLibrary(){
+  const data=libraryMeta[selectedLibrary];
+  el('gx-drum-source-label').textContent=data.name;
+  el('gx-drum-source-info').textContent=data.info;
+  el('gx-drum-audio-bank').hidden=!isAudio();
+  el('gx-roland-kits').hidden=isAudio();
+  el('gx-drums-apply-reverb').disabled=isAudio();
+  el('gx-beats-start').disabled=isAudio();
+  el('gx-drum-sample-info').textContent=isAudio()?'O som sai pela saída do celular. Ligue-o à mesa para ouvir junto do XPS-10.':'';
+  document.querySelectorAll('[data-drum-library]').forEach(b=>b.classList.toggle('on',+b.dataset.drumLibrary===selectedLibrary));
+  if(!isAudio()){
+   if(!rolandKits.some(k=>k.code===kitCode))kitCode=data.defaultKit;
+   rolandSelect.value=kitCode;
+  }else native('listDrumSamples',sampleBank());
+  renderPads();renderSteps();renderAudioSlots();save();
+ }
+ function applyRolandKit(){
+  if(isAudio())return;
+  const tone=rolandKits.find(x=>x.code===rolandSelect.value);
+  if(!tone){el('gx-drum-source-info').textContent='Kit desconhecido. Use um dos presets oficiais listados.';return;}
+  kitCode=tone.code;save();
+  const status='Enviando '+tone.name+' para canal MIDI '+drumChannel+'… Não altera a memória USER.';
+  el('gx-drum-source-info').textContent=status;
+  native('selectDrumKit',tone.msb,tone.lsb,tone.program,drumChannel);
+ }
+ document.querySelectorAll('[data-drum-library]').forEach(b=>b.onclick=()=>{
+  selectedLibrary=+b.dataset.drumLibrary;
+  if(selectedLibrary<2)kitCode=libraryMeta[selectedLibrary].defaultKit;
+  native('stopSequence');showLibrary();
+ });
+ rolandSelect.onchange=()=>{kitCode=rolandSelect.value;save();};
+ el('gx-roland-kit-send').onclick=applyRolandKit;
+
  el('gx-drums-velocity').oninput=()=>el('gx-drums-velocity-out').textContent=el('gx-drums-velocity').value;
  el('gx-drums-reverb').oninput=()=>el('gx-drums-reverb-out').textContent=el('gx-drums-reverb').value;
  el('gx-drums-apply-reverb').onclick=()=>native('cc',drumChannel,91,+el('gx-drums-reverb').value);
@@ -55,6 +131,7 @@
   el(id).onclick=()=>{native('stopSequence');const p=beats[key]();grid=p.grid;bpm=p.bpm;el('gx-beats-bpm').value=String(bpm);save();renderSteps();el('gx-beats-status').textContent='Preset '+key+' pronto. Toque Iniciar loop para enviar ao teclado.';};
  }
  el('gx-beats-start').onclick=()=>{
+  if(isAudio()){el('gx-beats-status').textContent='Loop de 16 passos usa MIDI do XPS-10. Selecione Drum Kit 1 ou EFX 1.';return;}
   const b=+el('gx-beats-bpm').value;
   if(!Number.isInteger(b)||b<40||b>180){el('gx-beats-status').textContent='Escolha BPM entre 40 e 180.';return;}
   bpm=b;save();
@@ -109,8 +186,10 @@
   if(oldReceive)oldReceive(type,payload);
   if(type==='droneStatus'){droneOn=!!payload;el('gx-drone-status').textContent=droneOn?'● Pad contínuo ativo — toque Parar Pad':'Pad parado';el('gx-drone-start').classList.toggle('on',droneOn);}
   if(type==='xpsConnection')el('gx-drums-device-state').textContent=payload?'● USB-MIDI conectado · partes requerem timbres configurados':'● USB-MIDI desconectado';
+  if(type==='drumSamples'&&Array.isArray(payload)){sampleInfo=payload;renderPads();renderAudioSlots();}
+  if(type==='drumKitCommand'){el('gx-drum-source-info').textContent=payload?.sent?'Comando MIDI enviado (não confirma mudança no Roland). Teste tocando um pad.':'Falha ao enviar o kit. Confira USB-MIDI e canal.';}
   if(type==='sequenceStep'&&payload<0)el('gx-beats-status').textContent='Loop parado.';
   if(type==='xpsConnection'&&!payload){droneOn=false;el('gx-drone-status').textContent='USB desconectado — notas liberadas.';}
  };
- renderSteps();
+ showLibrary();
 })();
