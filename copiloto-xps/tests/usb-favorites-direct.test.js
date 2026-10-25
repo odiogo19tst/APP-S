@@ -33,6 +33,7 @@ assert(!ui.includes('id="gx-arm"'),'No extra Enable MIDI button on stage');
 assert(!ui.includes("callOld('liveArm')"),'No staged enabling via legacy UI');
 assert(ui.includes('id="gx-midi-ready"')&&ui.includes('MIDI liberado automaticamente'),'Stage should show actual auto-enable');
 assert(css.includes('#liveArm')&&css.includes('label:has(#arm)'),'Hide redundant legacy MIDI switches');
+assert(native.includes('((JSONObject)d).length()>1'),'Skip 256 USER requests after zero SysEx responses');
 assert(usb.includes('private boolean opening=false'),'USB needs in-flight connection guard');
 assert(usb.includes('if(opening&&openingDeviceId==info.getId())return;'),'Do not attempt same USB connection twice');
 assert(usb.includes('if(!isConnected()&&!opening&&devices().length==1)connect(info);'),'Auto discovery must honor existing connection attempt');
