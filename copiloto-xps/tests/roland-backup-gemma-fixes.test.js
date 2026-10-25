@@ -14,7 +14,7 @@ assert(ux.includes('id="gx-bank-import-status"')&&ux.includes('gx-local-banks'),
 assert(ux.includes("s=s.title")===false,'Do not fake a favorited Roland patch');
 assert(ux.includes("const hasRealSong=songs.some"),'Default demonstration chords cannot appear as live song');
 assert(ux.includes('Nenhuma música selecionada')&&ux.includes('Aguardando cifra'),'Stage must not show fake progression');
-assert(model.includes("boolean zip=(header[0]=='P'&&header[1]=='K')"),'ZIP must be optional for genuine LiteRT task');
+assert(model.includes("boolean isZip=(header[0]=='P'&&header[1]=='K')"),'ZIP must be optional for genuine LiteRT task');
 assert(model.includes('validator.validate(candidate)'),'Native runtime, not file extension, must validate');
 assert(!gemma.includes('ModelImport.checkBundle(downloading)'),'Verified Q8 task must not be rejected as non-ZIP');
 assert(gemma.includes('SHA256')&&gemma.includes('validator.validate(downloading)'),'Downloaded Gemma must be verified and loaded before promotion');
