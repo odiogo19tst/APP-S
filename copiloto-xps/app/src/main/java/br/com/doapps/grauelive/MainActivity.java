@@ -83,11 +83,11 @@ public class MainActivity extends Activity {
   new Handler(Looper.getMainLooper()).postDelayed(()->autoConnectUsb(),1100);
  }
  private void autoConnectUsb(){
-  if(midi==null||midi.isConnected())return;
+  if(midi==null||midi.isConnected()||midi.isConnecting())return;
   MidiDeviceInfo[] list=midi.devices();
   if(list.length==1)midi.connect(list[0]);
   else if(list.length==0)new Handler(Looper.getMainLooper()).postDelayed(()->{
-   if(midi!=null&&!midi.isConnected()){MidiDeviceInfo[] retry=midi.devices();if(retry.length==1)midi.connect(retry[0]);}
+   if(midi!=null&&!midi.isConnected()&&!midi.isConnecting()){MidiDeviceInfo[] retry=midi.devices();if(retry.length==1)midi.connect(retry[0]);}
   },2000);
   else if(list.length>1)emit("status","Mais de um dispositivo USB-MIDI detectado. Selecione o XPS-10 em Conectar USB.");
  }
