@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const dir=path.resolve(__dirname,'../app/src/main/assets');
+const ux=fs.readFileSync(path.join(dir,'ux-v2.js'),'utf8');
+const app=fs.readFileSync(path.join(dir,'app.js'),'utf8');
+const css=fs.readFileSync(path.join(dir,'ux-v2.css'),'utf8');
+for(const id of ['gx-physical-upper','gx-physical-lower','gx-upper-value','gx-lower-value','gx-physical-status','gx-played-chord','gx-played-verdict','gx-score-next'])assert(ux.includes('id="'+id+'"'),'Missing real-state control '+id);
+assert(ux.includes('reflectPhysicalFader(ch,cc,value)'),'CC7 MIDI reception should update the correct physical layer');
+assert(ux.includes('fallback:0')&&ux.includes('fallback:1'),'UPPER/1 and LOWER/2 require separate default channels');
+assert(ux.includes("hw['part:'+c.part]"),'Actual Performance part MIDI channels take precedence');
+assert(ux.includes("if(cc!==7"),'Never treat other CC as part volume');
+assert(ux.includes("if(!slider.disabled&&window.Native?.cc)"),'Physical mirror cannot send without real MIDI reception');
+assert(ux.includes('renderPlayedChord()'),'Real MIDI notes must be compared to the score');
+assert(ux.includes('M.tones(expected)')&&ux.includes('M.chord(actual)'),'Comparison must use actual played notes');
+assert(ux.includes("callOld('nextBtn')"),'Exercise requires manual next chord');
+assert(app.includes('if(!/^Exercício'),'Demo exercise must not advance merely because time passed');
+assert(css.includes('.gx-played-feedback')&&css.includes('.gx-faders-physical'),'New readout layout missing');
+console.log('Roland physical sliders and live played-note-vs-score checks passed');
