@@ -463,3 +463,10 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 
 /* Even in the legacy editor, the global USB entry point is the only connector. */
 body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {display:none!important}
+
+
+/* Conectou o cabo: entrada/saída MIDI liberadas sem botão de habilitação. */
+.gx-midi-ready{display:inline-flex;align-items:center;min-height:44px;padding:6px 12px;border:1px solid #315a58;border-radius:9px;background:#102c31;color:#9bd6c8;font-size:12px}
+body.gx-ready #liveArm,body.gx-ready label:has(#arm){display:none!important}
+#gx-shell .gx-stage-footer{align-items:center}
+@media(max-width:700px){.gx-midi-ready{font-size:11px;flex:1;min-width:180px}}
