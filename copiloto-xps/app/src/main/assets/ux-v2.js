@@ -19,7 +19,7 @@
 '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
  '<div class="gx-panel gx-assist"><div class="gx-section-label">✦ JARVIS MUSICAL · ACORDE DE APOIO <small>Som gerado pelo XPS-10 por MIDI</small></div><div class="gx-assist-controls"><div><strong id="gx-assist-chord">—</strong><small>acorde atual da música</small></div><label>Canal<select id="gx-assist-channel"></select></label><button id="gx-assist-play">▶ Tocar acorde</button><button id="gx-assist-stop">■ Parar</button></div><small>Um toque envia o acorde por 900 ms, somente com MIDI ativado. Escolha um canal de recepção que não interfira nas notas que você está tocando. Nunca toca sem seu comando.</small></div>',
  '<div class="gx-panel gx-zone"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
- '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm">Habilitar envio MIDI</button><button id="gx-show-mode">Modo show ↔</button></div></div>',
+ '<div class="gx-stage-footer"><span id="gx-midi-ready" class="gx-midi-ready">● Conecte o USB: MIDI e leitura iniciam juntos</span><button id="gx-show-mode">Modo show ↔</button></div></div>',
  '<div class="gx-screen" data-gx-screen="repertoire"><div class="gx-rep-layout">',
  '<aside class="gx-panel gx-rep-library"><div class="gx-section-label">▏ Meu Repertório</div><input id="gx-search" placeholder="Buscar música, artista ou tom…" aria-label="Buscar repertório"><div class="gx-filters"><button class="on" data-gx-filter="all">Todas</button><button data-gx-filter="favorites">Favoritas</button><button data-gx-filter="setlist">Setlist</button><button data-gx-filter="recent">Recentes</button><button id="gx-add-song">+</button></div><div id="gx-songs" class="gx-song-list"></div></aside>',
  '<section class="gx-rep-view"><div class="gx-rep-tabs"><button class="on" data-gx-rep="cifra">Cifra integrada</button><button data-gx-rep="letter">Letra</button><button data-gx-rep="notes">Anotações</button><button data-gx-rep="setlist">Setlist</button></div>',
@@ -111,7 +111,6 @@
  tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');
  const openLegacy=tab=>{document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
- const arm=()=>callOld('liveArm');
  const connect=()=>callOld('connect');
  $x('gx-unified-usb').onclick=()=>{if(!usbConnected)connect();else notify('USB-MIDI já conectado. A leitura é automática; a ausência de SysEx pode indicar modo MIDI ou Device ID diferente.');};
  const openCifra=()=>{switchTab('repertoire');callOld('liveCifra');};
@@ -144,7 +143,7 @@
  $x('gx-assist-stop').onclick=()=>window.Native?.stopAssistChord?.();
 
  $x('gx-edit-fav').onclick=()=>{switchTab('sound');soundSection='favorites';showSoundPanel();};
- $x('gx-connect').onclick=connect;$x('gx-read').onclick=read;$x('gx-arm').onclick=arm;$x('gx-show-mode').onclick=()=>callOld('liveFocus');
+ $x('gx-show-mode').onclick=()=>callOld('liveFocus');
  $x('gx-search').oninput=renderSongs;
  shell.querySelectorAll('[data-gx-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.gxFilter;shell.querySelectorAll('[data-gx-filter]').forEach(x=>x.classList.toggle('on',x===b));renderSongs();});
  $x('gx-add-song').onclick=()=>openLegacy('songs');
@@ -533,7 +532,7 @@
   $x('gx-assist-chord').textContent=song.chords?.[idx]||'—';
   renderSilentAdvisor();
   $x('gx-transpose').textContent=(transposeSteps>0?'+':'')+transposeSteps;
-  $x('gx-arm').textContent=$x('arm')?.checked?'Desabilitar envio MIDI':'Habilitar envio MIDI';
+  $x('gx-midi-ready').textContent=usbConnected?'● MIDI liberado automaticamente · pronto para usar':'● Conecte o USB: MIDI e leitura iniciam juntos';
  }
  function renderCoach(){
   $x('gx-mic-label').textContent=recording?'Escuta ativa':'Escuta parada';
@@ -573,7 +572,8 @@
    $x('gx-unified-usb').textContent=usbConnected?'USB conectado':'Conectar USB';
    $x('gx-unified-usb').classList.toggle('connected',usbConnected);
    $x('gx-usb').textContent=usbConnected?'● MIDI conectado':'● USB desconectado';
-   $x('gx-device-state').textContent=usbConnected?'● MIDI conectado · aguardando resposta SysEx':'● USB desconectado';
+   $x('gx-device-state').textContent=usbConnected?'● USB e MIDI habilitados · resposta SysEx pendente':'● USB desconectado';
+   $x('gx-midi-ready').textContent=usbConnected?'● MIDI liberado automaticamente · pronto para usar':'● Conecte o USB: MIDI e leitura iniciam juntos';
   }
   if(kind==='answer'){
     if(silentPending){
