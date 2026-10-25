@@ -19,7 +19,7 @@ assert(sample.includes('try{player.release();}catch(Exception ignored){}'),'Fail
 assert(sample.includes('recentStreams.clear()')&&sample.includes('longStreams.clear()'),'Pad Stop must free retained players');
 assert(activity.includes('rootLayout.setBackgroundColor(android.graphics.Color.rgb(7,17,28))'),'System bar inset may show white-on-white icons');
 assert(app.includes('xpsToneCache:saved.xpsToneCache||[]'),'User tone cache persistence regressed');
-assert(tones.includes('conservado o último cache válido'),'Failed Roland SysEx must not destroy existing USER tones');
+assert(tones.includes('último cache preservado')&&tones.includes('cache=normalizedUsers([...cache,...incoming])'),'Failed Roland SysEx must not destroy existing USER tones');
 assert(ui.includes('gx-unified-usb')&&ui.includes('gx-direct-key'),'One USB control and post-install OpenAI key must remain');
 assert(activity.includes('xps.initialSync()'),'USB initial read must remain automatic');
 console.log('PASS: Grauê 1.17.1 smoke — 1564 tones, 8 banks, sound resource limits, saved USER, USB and Android bars');

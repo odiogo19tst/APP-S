@@ -12,7 +12,7 @@ assert.equal(new Set(factory.map(t=>t.code)).size,factory.length,'Códigos dupli
 for(const tone of factory)for(const k of ['msb','lsb','program'])assert(Number.isInteger(tone[k]),'MIDI inválido em '+tone.code);
 assert(app.includes('xpsToneCache:saved.xpsToneCache||[]'),'Cache USER deve sobreviver a salvar repertório');
 assert(tones.includes('saved.xpsToneCache=cache;persist()'),'Dados recebidos devem ser persistidos');
-assert(tones.includes('conservado o último cache válido'),'Timeout não pode apagar sons USER anteriores');
+assert(tones.includes('último cache preservado')&&tones.includes('cache=normalizedUsers([...cache,...incoming])'),'Timeout não pode apagar sons USER anteriores');
 assert(ui.includes('gx-unified-usb')&&activity.includes('xps.initialSync()'),'Conexão única e leitura automática');
 assert(xps.includes('hasValidSysex()')&&xps.includes('favoritesVerified'),'Não confundir USB com confirmação Roland Favorites');
 assert(drums.includes('Drum Kit 1 · Grauê original')&&drums.includes('Worship EFX · Grauê original'),'Kits próprios devem estar identificados');
