@@ -17,7 +17,7 @@ function render(){let q=f('liveSearch').value.toLowerCase(),family=f('liveFamily
 function open(drums){part();prepared=null;f('livePrepared').textContent='Escolha um timbre.';f('liveTarget').textContent='Destino: parte '+(+f('livePart').value+1);if(drums){let p=hw['part:'+f('livePart').value];if(p)f('drumChannel').value=String(p[0]+1);f('liveFamily').value='Dr';f('liveSearch').value='';f('liveFavorites').checked=false;}render();f('toneDrawer').showModal();}
 f('liveTones').onclick=()=>open(false);f('liveDrums').onclick=()=>open(true);f('closeDrawer').onclick=()=>f('toneDrawer').close();
 for(let id of ['liveFamily','liveFavorites'])f(id).onchange=render;f('liveSearch').oninput=render;
-f('liveApplyTone').onclick=()=>{if(!prepared)return;part();lib.choose(prepared);f('applyTone').onclick();f('toneDrawer').close();};
+f('liveApplyTone').onclick=()=>{if(!prepared)return;const selectedPart=part();native('selectTone',prepared.msb,prepared.lsb,prepared.program,selectedPart);f('toneDrawer').close();};
 const defaults=[['Bumbo',36],['Caixa',38],['Chimbal fechado',42],['Chimbal aberto',46],['Tom grave',45],['Tom agudo',50],['Prato crash',49],['Prato ride',51]];
 let notes=Array.isArray(saved.padNotes)&&saved.padNotes.length===8?saved.padNotes:defaults.map(p=>p[1]);notes=notes.map((n,i)=>Number.isInteger(n)&&n>=0&&n<=127?n:defaults[i][1]);
 defaults.forEach(([label],i)=>{let b=document.createElement('button');b.textContent=label;b.onpointerdown=e=>{e.preventDefault();native('padHit',+f('drumChannel').value,notes[i],+f('drumVelocity').value);};f('drumPads').append(b);let l=document.createElement('label');l.textContent=label+' • nota MIDI';let input=document.createElement('input');input.type='number';input.min=0;input.max=127;input.value=notes[i];input.onchange=()=>{let n=+input.value;if(!Number.isInteger(n)||n<0||n>127){input.value=notes[i];return;}notes[i]=n;saved.padNotes=notes;persist();};l.append(input);f('padNotes').append(l);});
@@ -46,11 +46,8 @@ function refreshPerformanceQuick(){
   const b=document.createElement('button');b.textContent='★ '+t.name;
   b.onclick=()=>{
    const i=+f('livePart').value;
-   if(!f('arm').checked){f('status').textContent='Ative o envio MIDI antes de trocar timbres.';return;}
-   if(!hw['setup:0']||!hw['part:'+i]){f('status').textContent='Leia o XPS-10 antes de trocar timbres.';return;}
-   if(hw['setup:0'][0]!==1){f('status').textContent='Modo Performance ainda não confirmado.';return;}
-   f('hardwarePart').value=String(i);f('hardwarePart').onchange();lib.choose(t);
-   f('applyTone').onclick();
+   if(!window.Native?.selectTone){f('status').textContent='Conecte o XPS-10 via USB-MIDI.';return;}
+   window.Native.selectTone(t.msb,t.lsb,t.program,i);
    f('status').textContent='Timbre solicitado: '+t.name+'. Aguarde confirmação pela leitura MIDI.';
   };
   box.append(b);
