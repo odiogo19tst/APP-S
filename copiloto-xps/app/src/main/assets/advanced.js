@@ -1,7 +1,7 @@
 (()=>{
 const f=id=>document.getElementById(id);let hw={},busy=false;
 const invoke=(name,...a)=>window.Native?window.Native[name](...a):f('status').textContent='Requer APK conectado ao teclado.';
-function send(items){if(busy)return f('status').textContent='Aguarde a operação atual.';if(!f('arm').checked)return f('status').textContent='Ative envio MIDI.';invoke('editHardware',JSON.stringify(items));}
+function send(items){if(busy)return f('status').textContent='Aguarde a operação atual.';invoke('editHardware',JSON.stringify(items));}
 const edit=(section,index,offset,value)=>({section,index,offset,value});
 function field(id,label,value,min,max){let l=document.createElement('label');l.textContent=label;let n=document.createElement('input');n.id=id;n.type='number';n.min=min;n.max=max;n.value=value;l.append(n);return l;}
 function number(id,min,max){let value=Number(f(id).value);if(f(id).value===''||!Number.isInteger(value)||value<min||value>max)throw Error('Valor inválido: '+id);return value;}
