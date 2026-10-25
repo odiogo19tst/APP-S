@@ -9,7 +9,7 @@ const java=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/MainActi
 assert(ui.includes('data-gx-tab="drums"')&&ui.includes('data-gx-screen="drums"'),'DrumPads tab must exist');
 assert(html.includes('src="drumpads.js"'),'DrumStudio code must load after interface');
 for(const id of ['gx-drums-pads','gx-drums-channel','gx-drums-reverb','gx-drone-channel','gx-drone-start','gx-drone-stop','gx-beats-grid','gx-beats-start','gx-beats-stop','gx-drums-panic','gx-yt-link','gx-yt-chords','gx-yt-save'])assert(ui.includes('id="'+id+'"')||drum.includes('id="'+id+'"'),'Missing control: '+id);
-assert(drum.includes("native('padHit'")&&drum.includes('drumChannel,notes:drumNotes'),'Drum notes must be sent over MIDI');
+assert(drum.includes("native('padHit'")&&drum.includes("const payload={grid,notes:drumNotes.map(x=>x[1]),bpm,channel:drumChannel}"),'Drum notes must be sent over MIDI');
 assert(drum.includes("native('startSequence'")&&drum.includes("native('stopSequence'"),'Loop control must use MIDI sequencer');
 assert(drum.includes("native('startDrone'")&&drum.includes("native('stopDronePad'"),'Continuous pad must have explicit Stop');
 assert(drum.includes("droneChannel===drumChannel"),'Prevent identical drum and pad MIDI channels');
