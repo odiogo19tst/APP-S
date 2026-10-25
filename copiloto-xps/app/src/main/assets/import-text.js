@@ -7,7 +7,7 @@
  function parseText(input,parseChord){
   const text=String(input||'').replace(/\r\n?/g,'\n').replace(/\u00a0/g,' ');
   const trimmed=text.trim();
-  if(/^https?:\/\/\S+$/.test(trimmed))throw Error('Abra a cifra no navegador integrado. Um link sozinho não contém a música.');
+  if(/^https?:\/\/\S+$/.test(trimmed))throw Error('Recebi apenas um link. Abra a cifra no navegador integrado para importá-la automaticamente.');
   if(trimmed.length>200000)throw Error('Cifra maior que 200 mil caracteres.');
   const metadata={title:(text.match(/\{(?:title|t):\s*([^}]+)\}/i)||[])[1]||'Música importada',
    key:(text.match(/\{(?:key|tom):\s*([^}]+)\}/i)||[])[1]||''};
