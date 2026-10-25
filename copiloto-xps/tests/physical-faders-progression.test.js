@@ -12,6 +12,6 @@ assert(ux.includes("if(!slider.disabled&&window.Native?.cc)"),'Physical mirror c
 assert(ux.includes('renderPlayedChord()'),'Real MIDI notes must be compared to the score');
 assert(ux.includes('M.tones(expected)')&&ux.includes('M.chord(actual)'),'Comparison must use actual played notes');
 assert(ux.includes("callOld('nextBtn')"),'Exercise requires manual next chord');
-assert(app.includes('if(!/^Exercício'),'Demo exercise must not advance merely because time passed');
+assert(app.includes("if(!song.title.startsWith('Exercício'))"),'Demo exercise must not advance merely because time passed');
 assert(css.includes('.gx-played-feedback')&&css.includes('.gx-faders-physical'),'New readout layout missing');
 console.log('Roland physical sliders and live played-note-vs-score checks passed');
