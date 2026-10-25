@@ -1,0 +1,28 @@
+/* Audit of actual Grauê 1.14+ baseline; does not claim physical XPS validation. */
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const root=path.resolve(__dirname,'../app/src/main');
+const js=n=>fs.readFileSync(path.join(root,'assets',n),'utf8');
+const j=n=>fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive',n),'utf8');
+const app=js('app.js'),tones=js('tones.js'),ui=js('ux-v2.js'),drums=js('drumpads.js');
+const xps=j('XpsController.java'),activity=j('MainActivity.java'),samples=j('PadSampleEngine.java');
+const context={window:{}};vm.runInNewContext(js('tones-data.js'),context,{timeout:1500});
+const factory=context.window.XPS_TONES;
+assert(Array.isArray(factory)&&factory.length===1564,'Catálogo offline deve conter 1564 timbres publicados');
+assert.equal(new Set(factory.map(t=>t.code)).size,factory.length,'Códigos duplicados');
+for(const tone of factory)for(const k of ['msb','lsb','program'])assert(Number.isInteger(tone[k]),'MIDI inválido em '+tone.code);
+assert(app.includes('xpsToneCache:saved.xpsToneCache||[]'),'Cache USER deve sobreviver a salvar repertório');
+assert(tones.includes('saved.xpsToneCache=cache;persist()'),'Dados recebidos devem ser persistidos');
+assert(tones.includes('último cache preservado')&&tones.includes('cache=normalizedUsers([...cache,...incoming])'),'Timeout não pode apagar sons USER anteriores');
+assert(ui.includes('gx-unified-usb')&&activity.includes('xps.initialSync()'),'Conexão única e leitura automática');
+assert(xps.includes('hasValidSysex()')&&xps.includes('favoritesVerified'),'Não confundir USB com confirmação Roland Favorites');
+assert(drums.includes('Drum Kit 1 · Grauê original')&&drums.includes('Worship EFX · Grauê original'),'Kits próprios devem estar identificados');
+assert(drums.includes('Celular · Samples de áudio')&&drums.includes('Roland XPS-10 · MIDI'),'Fontes de áudio separadas');
+for(const api of ['playPadSample','importPadSample','importPadZip','importPadKit','selectDrumKit'])assert(activity.includes('public void '+api),'Bridge nativa indisponível: '+api);
+assert(samples.includes('new SoundPool.Builder()')&&samples.includes('new MediaPlayer()'),'Samples Android reais, sem simular áudio MIDI');
+assert(samples.includes('createWave('),'Biblioteca original precisa gerar sons próprios');
+assert(samples.includes('12L*1024*1024'),'Importação individual deve ter limite');
+assert(samples.includes('maxTotal=70*1024*1024'),'Proteção contra ZIP descontrolado');
+assert(activity.includes('PadSampleEngine(this)')&&activity.includes('padSamples.release()'),'Áudio deve ser inicializado e liberado');
+assert(ui.includes('gx-drums-pads'),'Área de apresentação de pads deve existir');
+assert(app.includes('drumStudio:saved.drumStudio||null'),'Biblioteca escolhida deve ser persistida');
+console.log('Auditoria v1.15: 1564 tons, cache USER, leitura MIDI, samples originais, ZIP limits e bindings Android PASSOU');

@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'../app/src/main');
+const ui=fs.readFileSync(path.join(root,'assets/ux-v2.js'),'utf8');
+const model=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/ModelImport.java'),'utf8');
+const gemma=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/Gemma270Installer.java'),'utf8');
+const api=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/JarvisDirectOpenAI.java'),'utf8');
+assert(model.includes("boolean isZip=(header[0]=='P'&&header[1]=='K')"),'LiteRT .task must not be presumed ZIP');
+assert(model.includes('validator.validate(candidate)'),'The model must load in neural runtime before replacing previous file');
+assert(!gemma.includes('ModelImport.checkBundle(downloading)'),'Gemma must not be rejected by ZIP-only heuristics');
+assert(gemma.includes('SHA256')&&gemma.includes('validator.validate(downloading)'),'Downloaded Gemma integrity and runtime check missing');
+assert(api.includes('insufficient_quota')&&api.includes('429'),'API 429 must distinguish quota from rate limit');
+assert(ui.includes('const hasRealSong=songs.some'),'An example progression must not masquerade as live worship repertoire');
+assert(ui.includes('Nenhuma música selecionada')&&ui.includes('Aguardando cifra'),'Stage must present true missing-song state');
+assert(ui.includes('gx-roland-favorites')&&ui.includes('rolandFavoriteEntriesDecoded:0'),'Keep physical Roland favorite import distinct from local bank');
+console.log('Grauê 1.10: Gemma LiteRT, quota, real song state, Roland physical favorites safeguards passed');

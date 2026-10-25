@@ -1,0 +1,52 @@
+name: Grauê XPS - Copiloto Musical
+on:
+  pull_request:
+    paths: ['copiloto-xps/**', 'graue-api-worker/**', '.github/workflows/copiloto-xps.yml']
+  workflow_dispatch:
+  push:
+    branches: ['feat/copiloto-xps']
+    paths: ['copiloto-xps/**', '.github/workflows/copiloto-xps.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Testar música e MIDI
+        working-directory: copiloto-xps
+        run: |
+          mkdir -p build/selftest
+          SRC=app/src/main/java/br/com/doapps/grauelive
+          javac -d build/selftest "$SRC/PitchDetector.java" "$SRC/ChromaAnalyzer.java" "$SRC/MusicBrain.java" "$SRC/GrauePacket.java" "$SRC/MidiStream.java" "$SRC/XpsProtocol.java" "$SRC/MfxParameters.java" "$SRC/ModelImport.java" "$SRC/RolandAudioPadExporter.java" app/src/test/java/br/com/doapps/grauelive/*.java
+          java -cp build/selftest br.com.doapps.grauelive.AudioLogicSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.Harmony04SelfTest
+          java -cp build/selftest br.com.doapps.grauelive.MidiStreamSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.XpsProtocolSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.ModelImportSelfTest
+          java -cp build/selftest br.com.doapps.grauelive.RolandAudioPadExporterSelfTest
+      - run: for f in copiloto-xps/app/src/main/assets/*.js; do node --check "$f" || exit 1; done && node copiloto-xps/tests/music.test.js && node copiloto-xps/tests/interface.test.js && node copiloto-xps/tests/ux-v2.test.js && node copiloto-xps/tests/cifra-transpose.test.js && node copiloto-xps/tests/cifra-extractor.test.js && node copiloto-xps/tests/gemma270.test.js && node copiloto-xps/tests/one-touch-v12.test.js && node copiloto-xps/tests/silent-stage.test.js && node copiloto-xps/tests/jarvis-memory.test.js && node copiloto-xps/tests/jarvis-online.test.js && node copiloto-xps/tests/usb-favorites-direct.test.js && node copiloto-xps/tests/live-midi-v17.test.js && node --check copiloto-xps/app/src/main/assets/drumpads.js && node copiloto-xps/tests/drumpads-v18.test.js && node copiloto-xps/tests/drumpads-routing-v17.test.js && node copiloto-xps/tests/final-audio-audit-v1171.test.js && node copiloto-xps/tests/drum-libraries-complete-v111.test.js && node copiloto-xps/tests/drum-library-v111.test.js && node copiloto-xps/tests/drum-zip-import-v112.test.js && node copiloto-xps/tests/drumpads-google-drive-v118.test.js && node copiloto-xps/tests/roland-favorites-recovery.test.js && node copiloto-xps/tests/roland-source-v113.test.js && node copiloto-xps/tests/performance-layout-v114.test.js && node copiloto-xps/tests/performance-flow-v120.test.js && node copiloto-xps/tests/audit-current.test.js && node copiloto-xps/tests/physical-faders-progression.test.js && node copiloto-xps/tests/gemma-stage-quota-v110.test.js && node copiloto-xps/tests/midi-port-refresh-v121.test.js && node copiloto-xps/tests/favorites-touch-cache-v122.test.js && node copiloto-xps/tests/session-resume-v123.test.js && node copiloto-xps/tests/score-scroll-v124.test.js && node copiloto-xps/tests/roland-pad-export-v125.test.js && node graue-api-worker/tests/api.test.mjs
+      - name: Incluir bibliotecas de bateria CC0 (24 samples WAV reais)
+        run: node copiloto-xps/scripts/install-free-drums.mjs
+      - name: Verificar bibliotecas e licença
+        run: node copiloto-xps/tests/cc0-drums.test.mjs
+      - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
+        working-directory: copiloto-xps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Graue-XPS-v1.25-Roland-Pad-Export-APK
+          path: copiloto-xps/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
