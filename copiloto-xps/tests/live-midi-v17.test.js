@@ -20,7 +20,7 @@ assert(ui.includes("if((status&240)===176"),'Incoming CC physical fader render m
 assert(ui.includes("slider.id='gx-part-slider-'+i"),'Mixer faders need stable IDs');
 assert(ui.includes('id="gx-performance-banks"'),'USER/PRESET performance selector missing');
 assert(ui.includes('id="gx-perf-grid"'),'Bank performance buttons missing');
-assert(ui.includes('window.Native.selectPerformance(n,userPerformances)'),'Performance select not wired');
+assert(!ui.includes('window.Native.selectPerformance(n,userPerformances)'),'Do not expose unverified 144 stored Performances as ready-to-select');
 assert(app.includes('performanceNames:saved.performanceNames||{}'),'Learned performance names must persist');
 assert(css.includes('#gx-shell #gx-arm')&&css.includes('body.gx-ready #arm'),'Legacy MIDI toggle must be hidden');
 assert(css.includes('.gx-perf-grid'),'Compact performance grid CSS missing');
