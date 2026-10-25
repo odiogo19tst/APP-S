@@ -577,3 +577,15 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-yt-message{font-size:11px;color:#8edbcc;display:block;margin-top:8px}
 @media(max-width:790px){.gx-drums-columns{grid-template-columns:1fr}.gx-youtube-fields{grid-template-columns:1fr 1fr}.gx-youtube-fields label:first-child{grid-column:1/-1}.gx-drums-pads{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:480px){.gx-drums-settings{grid-template-columns:1fr 1fr}.gx-drums-settings label:nth-child(3){grid-column:1/-1}.gx-drums-pads{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-youtube-fields{grid-template-columns:1fr}.gx-youtube-fields label:first-child{grid-column:auto}.gx-drums-heading h2{font-size:17px}.gx-beats-toolbar{gap:5px}}
+
+
+/* 1.7 — Roland onboard FAVORITE map is not the phone's local banks. */
+.gx-roland-favorites{border:1px solid #258b83;border-radius:10px;background:#0d2b37;padding:12px;margin:8px 0 10px;display:flex;flex-direction:column;gap:8px}
+.gx-roland-favorites .gx-section-label{color:#88f1dc}
+.gx-roland-favorites strong{font-size:14px;color:#f1faf9}
+.gx-roland-favorites p{margin:0!important;font-size:12px;line-height:1.5;color:#b7d1d9}
+.gx-roland-favorites>small{font-size:11px;line-height:1.45;color:#a9bcc6}
+.gx-roland-actions{display:flex;flex-wrap:wrap;gap:6px}
+#gx-shell .gx-roland-actions button{flex:1;min-height:44px;min-width:145px;padding:9px 12px;font-size:12px}
+#gx-shell #gx-roland-backup-import{background:#128e78;border-color:#30d7b5}
+@media(max-width:700px){.gx-roland-favorites{padding:10px}.gx-roland-actions{flex-direction:column}}
