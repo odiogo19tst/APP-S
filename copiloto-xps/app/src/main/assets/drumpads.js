@@ -187,6 +187,7 @@
   if(type==='droneStatus'){droneOn=!!payload;el('gx-drone-status').textContent=droneOn?'● Pad contínuo ativo — toque Parar Pad':'Pad parado';el('gx-drone-start').classList.toggle('on',droneOn);}
   if(type==='xpsConnection')el('gx-drums-device-state').textContent=payload?'● USB-MIDI conectado · partes requerem timbres configurados':'● USB-MIDI desconectado';
   if(type==='drumSamples'&&Array.isArray(payload)){sampleInfo=payload;renderPads();renderAudioSlots();}
+  if(type==='drumSampleLoaded'&&isAudio())native('listDrumSamples',sampleBank());
   if(type==='drumKitCommand'){el('gx-drum-source-info').textContent=payload?.sent?'Comando MIDI enviado (não confirma mudança no Roland). Teste tocando um pad.':'Falha ao enviar o kit. Confira USB-MIDI e canal.';}
   if(type==='sequenceStep'&&payload<0)el('gx-beats-status').textContent='Loop parado.';
   if(type==='xpsConnection'&&!payload){droneOn=false;el('gx-drone-status').textContent='USB desconectado — notas liberadas.';}
