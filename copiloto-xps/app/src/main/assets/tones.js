@@ -3,7 +3,10 @@ const f=id=>document.getElementById(id),factory=window.XPS_TONES||[];let catalog
 const families={Pf:'Piano / E.Piano',Ky:'Órgão / Teclas',St:'Cordas / Guitarra',Bs:'Metais / Baixo',Sy:'Synth / Pad',Wr:'World',Dr:'Bateria / FX',Sp:'Sample',USER:'Usuário'};let family='';
 const groups={KEY:'Teclas',BEL:'Sinos',MLT:'Mallets',ACD:'Acordeão',HRM:'Gaita',ORC:'Orquestra',HIT:'Hits',AGT:'Violão',EGT:'Guitarra',DGT:'Guitarra distorcida',BRS:'Metais',SBR:'Metais synth',SAX:'Sax',FLT:'Flauta',WND:'Sopros',BS:'Baixo',SBS:'Baixo synth',HLD:'Hard lead',SLD:'Soft lead',TEK:'Techno',PLS:'Pulsante',FX:'Efeitos',VOX:'Vozes',BPD:'Pad brilhante',ETH:'Étnicos',PLK:'Dedilhados',FRT:'Instrumentos de cordas',PRC:'Percussão',SFX:'Efeitos sonoros',BTS:'Batidas',CMB:'Combinações',PNO:'Piano',EP:'Piano elétrico',ORG:'Órgão',SPD:'Pad',STR:'Cordas',SYN:'Sintetizador',USER:'Usuário do teclado',DRM:'Bateria'};
 let favorites=new Set(Array.isArray(saved.toneFavorites)?saved.toneFavorites:[]),onlyFavorites=false;
- let cache=Array.isArray(saved.xpsToneCache)?saved.xpsToneCache.filter(x=>x&&x.code&&Number.isInteger(x.msb)&&Number.isInteger(x.lsb)):[];if(cache.length)catalog=[...factory,...cache];
+ // Keep USER tones already read when a later SysEx scan times out or returns only partial results.
+ const validUser=t=>t&&/^USER[0-9]{3}$/.test(t.code)&&Number.isInteger(t.msb)&&t.msb>=0&&t.msb<=127&&Number.isInteger(t.lsb)&&t.lsb>=0&&t.lsb<=127&&Number.isInteger(t.program)&&t.program>=1&&t.program<=128;
+ const normalizedUsers=items=>[...new Map((Array.isArray(items)?items:[]).filter(validUser).map(t=>[t.code,t])).values()];
+ let cache=normalizedUsers(saved.xpsToneCache);if(cache.length)catalog=[...factory,...cache];
  const banks=()=>saved.favoriteBanks&&typeof saved.favoriteBanks==='object'?saved.favoriteBanks:(saved.favoriteBanks={});
  const slot=(bank,index)=>banks()[String(bank)+'-'+String(index)]||null;
  const putSlot=(bank,index,t)=>{
@@ -25,5 +28,14 @@ function render(){let q=norm(f('toneSearch').value),category=f('toneCategory').v
 f('toneSearch').oninput=render;f('toneCategory').onchange=render;f('favoriteTones').onclick=()=>{onlyFavorites=!onlyFavorites;f('favoriteTones').textContent=onlyFavorites?'Mostrar todos':'★ Favoritos';render();};
 function currentName(){let t=catalog.find(t=>t.msb===+f('patchMsb').value&&t.lsb===+f('patchLsb').value&&t.program===+f('patchProgram').value);f('selectedTone').textContent=t?'Última leitura: '+label(t):'Timbre personalizado ou sem leitura.';}
 f('readUserTones').onclick=()=>{if(window.Native)window.Native.readUserTones();};f('cancelHardware').onclick=()=>{if(window.Native)window.Native.cancelHardware();};
-let prev=window.receive;window.receive=(k,d)=>{prev(k,d);if(k==='userTones'){if(Array.isArray(d)){if(d.length){cache=d.filter(t=>t&&/^USER[0-9]{3}$/.test(t.code)&&Number.isInteger(t.msb)&&Number.isInteger(t.lsb)&&Number.isInteger(t.program));saved.xpsToneCache=cache;persist();catalog=[...factory,...cache];f('toneCategory').value='USER';f('userToneStatus').textContent=cache.length+' USER guardados no celular (cache atualizado).';}else f('userToneStatus').textContent='Leitura USER sem resposta: conservado o último cache válido.';render();}}if(k==='hardwareReset'){f('userToneStatus').textContent='USB desconectado. Timbres USER permanecem no cache; reconecte para tocar.';render();}if(k==='hardware'||k==='hardwareReset')currentName();};let change=f('hardwarePart').onchange;f('hardwarePart').onchange=()=>{change();currentName();};render();
+let prev=window.receive;window.receive=(k,d)=>{prev(k,d);if(k==='userTones'){if(Array.isArray(d)){
+ const incoming=normalizedUsers(d);
+ if(incoming.length){
+  // A partial scan must not erase positions saved during a previous valid scan.
+  cache=normalizedUsers([...cache,...incoming]);saved.xpsToneCache=cache;persist();catalog=[...factory,...cache];
+  f('toneCategory').value='USER';
+  f('userToneStatus').textContent=incoming.length+' USER confirmados nesta leitura; '+cache.length+' mantidos no celular (inclui cache anterior).';
+ }else f('userToneStatus').textContent='Leitura USER sem dados válidos: último cache preservado.';
+ render();
+}}if(k==='hardwareReset'){f('userToneStatus').textContent='USB desconectado. Timbres USER permanecem no cache; reconecte para tocar.';render();}if(k==='hardware'||k==='hardwareReset')currentName();};let change=f('hardwarePart').onchange;f('hardwarePart').onchange=()=>{change();currentName();};render();
 })();

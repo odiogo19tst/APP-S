@@ -432,8 +432,8 @@
   ['Bs','Metais / Baixo'],['Sy','Synth / Pad'],['Wr','World / Outros'],
   ['Dr','Bateria / FX'],['USER','USER']
  ];
- let toneCategory='',toneBank=0,toneOnlyFavs=false,toneEditing=null,toneVariant='original',lastSelectedTone=null;
- let toneVariants={},toneAiPending=false,longPressTimer=null;
+ let toneCategory='',toneBank=Number.isInteger(saved.lastToneBank)&&saved.lastToneBank>=0&&saved.lastToneBank<=9?saved.lastToneBank:0,toneOnlyFavs=false,toneEditing=null,toneVariant='original',lastSelectedTone=null;
+ let toneVariants={},toneAiPending=false;
  const toneLib=()=>window.ToneLibrary;
  for(let i=0;i<16;i++){let op=document.createElement('option');op.value=String(i);op.textContent=String(i+1);$x('gx-tone-part').append(op);}
  $x('gx-tone-part').value=String(saved.lastTonePart||0);
@@ -445,16 +445,20 @@
   notify('Timbre solicitado: '+t.name+'. Confira a resposta e toque no teclado.');
  }
  function bindToneTouch(button,t){
-  let opened=false;
+  let timer=null,suppressClick=false;
+  const cancel=()=>{if(timer!==null){clearTimeout(timer);timer=null;}};
   button.addEventListener('pointerdown',e=>{
-   if(e.button!==0)return;
-   opened=false;
-   clearTimeout(longPressTimer);
-   longPressTimer=setTimeout(()=>{opened=true;openToneEditor(t);},3000);
+   if(e.button!==0||button.disabled)return;
+   cancel();suppressClick=false;
+   timer=setTimeout(()=>{timer=null;suppressClick=true;openToneEditor(t);},3000);
   });
-  for(let evt of ['pointerup','pointerleave','pointercancel'])button.addEventListener(evt,()=>clearTimeout(longPressTimer));
-  button.addEventListener('contextmenu',e=>{e.preventDefault();opened=true;clearTimeout(longPressTimer);openToneEditor(t);});
-  button.onclick=()=>{if(opened){opened=false;return;}chooseTone(t);};
+  for(const evt of ['pointerup','pointerleave','pointercancel'])button.addEventListener(evt,cancel);
+  button.addEventListener('contextmenu',e=>{
+   e.preventDefault();
+   // Android may emit contextmenu before three seconds; do not interpret that as an edit.
+   if(e.pointerType==='mouse'&&e.button===2){cancel();suppressClick=true;openToneEditor(t);}
+  });
+  button.onclick=()=>{if(suppressClick){suppressClick=false;return;}chooseTone(t);};
  }
  function renderToneList(){
   const grid=$x('gx-tone-list');if(!grid)return;
@@ -488,19 +492,19 @@
  $x('gx-tone-favorites').onclick=()=>{toneOnlyFavs=!toneOnlyFavs;soundSection=toneOnlyFavs?'favorites':'tones';$x('gx-tone-favorites').classList.toggle('on',toneOnlyFavs);shell.querySelectorAll('[data-gx-sound]').forEach(x=>x.classList.toggle('on',x.dataset.gxSound===soundSection));renderToneList();};
  for(let i=0;i<10;i++){
   const b=document.createElement('button');b.textContent='Banco '+i;b.dataset.bank=String(i);
-  b.onclick=()=>{toneBank=i;renderBanks();};$x('gx-bank-tabs').append(b);
+  b.onclick=()=>{toneBank=i;saved.lastToneBank=i;persist();renderBanks();};$x('gx-bank-tabs').append(b);
  }
  function renderLiveBanks(){
   const nav=$x('gx-live-bank-tabs'),slots=$x('gx-live-bank-slots');
   nav.replaceChildren();slots.replaceChildren();
   for(let i=0;i<10;i++){
    const btn=document.createElement('button');btn.textContent=String(i);
-   btn.classList.toggle('on',toneBank===i);btn.onclick=()=>{toneBank=i;renderBanks();};
+   btn.classList.toggle('on',toneBank===i);btn.onclick=()=>{toneBank=i;saved.lastToneBank=i;persist();renderBanks();};
    nav.append(btn);
    const t=toneLib()?.slot(toneBank,i);
    const pick=document.createElement('button');pick.className='gx-live-bank-slot';
-   pick.textContent=(i+1)+'. '+(t?t.name:'—');
-   pick.disabled=!t;pick.onclick=()=>{if(t)chooseTone(t);};
+   pick.textContent=i+'. '+(t?t.name:'—');
+   pick.disabled=!t;if(t)bindToneTouch(pick,t);
    slots.append(pick);
   }
   $x('gx-live-bank-name').textContent=String(toneBank);
@@ -510,10 +514,32 @@
   const grid=$x('gx-bank-slots');grid.replaceChildren();
   for(let i=0;i<10;i++){
    const t=toneLib()?.slot(toneBank,i);
+   const row=document.createElement('div');row.className='gx-bank-slot-row';
    const b=document.createElement('button');b.className='gx-bank-slot';b.textContent=i+' · '+(t?t.name:'Não cadastrado');
-   b.onclick=()=>{if(t)chooseTone(t);else if(lastSelectedTone){toneLib().putSlot(toneBank,i,lastSelectedTone);notify('Timbre adicionado ao banco '+toneBank+', posição '+i);renderBanks();}else notify('Selecione primeiro um timbre na lista para preencher este espaço.');};
-   b.oncontextmenu=e=>{e.preventDefault();if(t&&confirm('Remover este favorito somente do banco do aplicativo?')){toneLib().putSlot(toneBank,i,null);renderBanks();}};
-   grid.append(b);
+   if(t){
+    bindToneTouch(b,t);
+    const replace=document.createElement('button');replace.className='gx-bank-action';replace.textContent='Substituir';
+    replace.setAttribute('aria-label','Substituir favorito '+i+' do banco '+toneBank);
+    replace.onclick=()=>{
+     if(!lastSelectedTone)return notify('Escolha primeiro o novo timbre na lista de Sons.');
+     if(confirm('Substituir posição '+i+' do banco '+toneBank+' pelo timbre '+lastSelectedTone.name+'?')){
+      toneLib().putSlot(toneBank,i,lastSelectedTone);renderBanks();
+     }
+    };
+    const remove=document.createElement('button');remove.className='gx-bank-action gx-bank-action-danger';remove.textContent='Remover';
+    remove.setAttribute('aria-label','Remover favorito '+i+' do banco '+toneBank);
+    remove.onclick=()=>{if(confirm('Remover a posição '+i+' somente dos favoritos do Grauê?')){
+     toneLib().putSlot(toneBank,i,null);renderBanks();
+    }};
+    row.append(b,replace,remove);
+   }else{
+    b.onclick=()=>{
+     if(lastSelectedTone){toneLib().putSlot(toneBank,i,lastSelectedTone);notify('Timbre adicionado ao banco '+toneBank+', posição '+i);renderBanks();}
+     else notify('Selecione primeiro um timbre na lista para preencher este espaço.');
+    };
+    row.append(b);
+   }
+   grid.append(row);
   }
   renderLiveBanks();
  }
@@ -602,7 +628,7 @@
     const b=document.createElement('button');b.className='gx-fav-tile gx-fav-'+i%8;
     const name=document.createElement('strong');name.textContent=t.name;const code=document.createElement('small');code.textContent=t.code;
     b.append(name,code);bindToneTouch(b,t);stage.append(b);
-    const entry=document.createElement('button');entry.className='gx-fav-entry';entry.textContent=t.name+' · '+t.code;entry.onclick=()=>b.click();side.append(entry);
+    const entry=document.createElement('button');entry.className='gx-fav-entry';entry.textContent=t.name+' · '+t.code;bindToneTouch(entry,t);side.append(entry);
    });
  }
  function renderBackups(){
