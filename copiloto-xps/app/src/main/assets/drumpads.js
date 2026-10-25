@@ -10,8 +10,8 @@
  let droneChannel=Number.isInteger(settings.droneChannel)&&settings.droneChannel>=1&&settings.droneChannel<=16?settings.droneChannel:3;
  let bpm=Number.isInteger(settings.bpm)&&settings.bpm>=40&&settings.bpm<=180?settings.bpm:72;
  let droneOn=false;
- let audioMode=settings.audioMode==='samples'?'samples':'midi';
- let sampleBank=Number.isInteger(settings.sampleBank)&&settings.sampleBank>=0&&settings.sampleBank<5?settings.sampleBank:0;
+ let audioMode=settings.audioMode==='midi'?'midi':'samples';
+ let sampleBank=Number.isInteger(settings.sampleBank)&&settings.sampleBank>=0&&settings.sampleBank<8?settings.sampleBank:5;
  let selectedPad=0,padLibrary=null;
  const xpsDrumKits=(window.XPS_TONES||[]).filter(t=>/^Dr0(0[1-9]|1[0-9]|2[0-8])$/.test(t.code)&&t.category==='DRM');
  let selectedRoland=typeof settings.rolandKit==='string'?settings.rolandKit:'Dr001';
@@ -29,10 +29,10 @@
  setup.innerHTML='<div class="gx-section-label">BIBLIOTECA DE DRUM PADS <small>Escolha onde o som será produzido</small></div>'+
  '<div class="gx-pad-library-source"><label>Fonte do som<select id="gx-pad-source"><option value="midi">Roland XPS-10 · MIDI</option><option value="samples">Celular · Samples de áudio</option></select></label>'+
  '<label id="gx-pad-roland-wrapper">Kit interno do XPS-10<select id="gx-pad-roland-kit"></select></label>'+
- '<label id="gx-pad-local-wrapper">Biblioteca de áudio<select id="gx-pad-local-kit"><option value="0">Drum Kit 1 · Grauê original</option><option value="1">EFX 1 · Grauê original</option><option value="2">Worship Drums · Grauê original</option><option value="3">Worship EFX · Grauê original</option><option value="4">Meus Samples · para importar</option></select></label></div>'+
+ '<label id="gx-pad-local-wrapper">Biblioteca de áudio<select id="gx-pad-local-kit"><option value="0">Drum Kit 1 · Grauê original</option><option value="1">EFX 1 · Grauê original</option><option value="2">Worship Drums · Grauê original</option><option value="3">Worship EFX · Grauê original</option><option value="4">Meus Samples · importar do celular / Drive</option><option value="5">Worship Groove · Vintage CC0</option><option value="6">Pop Groove · Bounce CC0</option><option value="7">Modern Hits · Trap CC0</option></select></label></div>'+
  '<div class="gx-pad-library-actions"><button id="gx-pad-use-roland">Usar este kit no Roland</button><label id="gx-pad-import-label">Pad para importar<select id="gx-pad-import-slot"></select></label><button id="gx-pad-import">Importar neste pad</button><button id="gx-pad-import-all">Escolher até 8 áudios</button><button id="gx-pad-import-zip">Importar pacote ZIP</button><button id="gx-pad-stop-audio">Parar áudio do celular</button></div>'+
- '<small id="gx-pad-library-status" role="status" aria-live="polite">Os kits do Roland vêm da lista oficial, mas dependem de uma parte Rhythm habilitada. Os bancos Grauê geram sons originais no próprio celular.</small>'+
- '<small class="gx-pad-library-help">Os nomes Drum Kit / Worship são categorias do Grauê, não as amostras proprietárias do aplicativo da imagem. A saída USB do Roland transporta MIDI, não áudio. Para usar samples do celular na igreja, conecte a saída de áudio do telefone à mesa de som.</small>';
+ '<small id="gx-pad-library-status" role="status" aria-live="polite">Os kits do Roland vêm da lista oficial, mas dependem de uma parte Rhythm habilitada. Novos kits 5–7 incluem samples CC0 reais, independentes do Roland, prontos offline. Você também pode escolher sons do Google Drive pelo seletor de arquivos Android.</small>'+
+ '<small class="gx-pad-library-help">As bibliotecas CC0 vêm do projeto livre Boochi44/free-drum-samples (WAV reais). Não são sons proprietários do app mostrado nas imagens nem samples oficiais do Roland. A saída USB do Roland transporta MIDI, não áudio. Para usar samples do celular na igreja, conecte a saída de áudio do telefone à mesa de som.</small>';
  const drumSection=el('gx-drums-pads').closest('.gx-drums-kit');
  if(drumSection)drumSection.insertBefore(setup,drumSection.querySelector('.gx-drums-settings'));
  const kits=el('gx-pad-roland-kit');
@@ -55,9 +55,9 @@
    b.querySelector('small').textContent=sample?(info?.source==='importado'?'Áudio importado':info?.available?'Áudio original Grauê':'Importe um sample'):'MIDI '+drumNotes[i][1];
    b.classList.toggle('gx-drum-empty',sample&&info&&!info.available);
   });
-  el('gx-pad-library-status').textContent=sample?'Som sai no CELULAR. Banco: '+el('gx-pad-local-kit').selectedOptions[0]?.textContent+'. Toque nos pads para ouvir. Importe áudios soltos ou um ZIP de até 8 sons diretamente pelo celular.':'Som sai no XPS-10 por USB-MIDI. Selecione um kit para o canal '+drumChannel+' e confirme a parte Rhythm.';
+  el('gx-pad-library-status').textContent=sample?'Som no CELULAR: '+el('gx-pad-local-kit').selectedOptions[0]?.textContent+'. Os bancos CC0 não precisam de USB nem internet. Meus Samples aceita WAV/MP3/OGG e ZIP com até 8 sons, inclusive pelo seletor do Google Drive.':'Som no XPS-10 por MIDI. Confirme a parte Rhythm no teclado.';
   el('gx-beats-start').disabled=sample;
-  el('gx-beats-status').textContent=sample?'O sequenciador atual é MIDI; selecione Roland para disparar loops. Os pads de samples funcionam individualmente.':'Looper MIDI pronto. A saída de som depende do kit configurado no Roland.';
+  el('gx-beats-status').textContent=sample?'Pads CC0 prontos no celular. O loop de 16 passos ainda usa MIDI; os samples podem ser disparados individualmente.':'Looper MIDI pronto. A saída de som depende do kit configurado no Roland.';
  }
  el('gx-pad-source').onchange=()=>{native('stopSequence');native('stopPadSamples');audioMode=el('gx-pad-source').value;save();renderAudioSource();};
  el('gx-pad-local-kit').onchange=()=>{sampleBank=+el('gx-pad-local-kit').value;save();renderAudioSource();};
