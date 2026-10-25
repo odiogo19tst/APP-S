@@ -18,8 +18,8 @@ public final class ModelImport {
   String begin=new String(header,0,Math.max(0,size),java.nio.charset.StandardCharsets.US_ASCII).trim().toLowerCase(java.util.Locale.ROOT);
   if(begin.startsWith("<!doctype")||begin.startsWith("<html")||begin.startsWith("{")||begin.startsWith("access denied"))
    throw new IOException("O download não é um modelo. Verifique o link e baixe o .task original.");
-  boolean zip=(header[0]=='P'&&header[1]=='K');
-  if(!zip){
+  boolean isZip=(header[0]=='P'&&header[1]=='K');
+  if(!isZip){
    if(file.length()<4096)throw new IOException("Pacote .task pequeno ou incompleto.");
    return; // the neural runtime validates the non-ZIP bundle before installation
   }
