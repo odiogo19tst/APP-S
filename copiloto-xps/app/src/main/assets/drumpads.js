@@ -10,7 +10,13 @@
  let droneChannel=Number.isInteger(settings.droneChannel)&&settings.droneChannel>=1&&settings.droneChannel<=16?settings.droneChannel:3;
  let bpm=Number.isInteger(settings.bpm)&&settings.bpm>=40&&settings.bpm<=180?settings.bpm:72;
  let droneOn=false;
- const save=()=>{saved.drumStudio={grid,drumChannel,droneChannel,bpm};persist();};
+ let audioMode=settings.audioMode==='samples'?'samples':'midi';
+ let sampleBank=Number.isInteger(settings.sampleBank)&&settings.sampleBank>=0&&settings.sampleBank<5?settings.sampleBank:0;
+ let selectedPad=0,padLibrary=null;
+ const xpsDrumKits=(window.XPS_TONES||[]).filter(t=>/^Dr0(0[1-9]|1[0-9]|2[0-8])$/.test(t.code)&&t.category==='DRM');
+ let selectedRoland=typeof settings.rolandKit==='string'?settings.rolandKit:'Dr001';
+
+ const save=()=>{saved.drumStudio={grid,drumChannel,droneChannel,bpm,audioMode,sampleBank,rolandKit:selectedRoland};persist();};
  const native=(name,...args)=>{if(!window.Native?.[name]){el('gx-beats-status').textContent='Função MIDI disponível somente no APK Android atualizado.';return false;}window.Native[name](...args);return true;};
  const channels=()=>{
   for(const target of [el('gx-drums-channel'),el('gx-drone-channel')]){
@@ -19,7 +25,56 @@
   el('gx-drums-channel').value=String(drumChannel);el('gx-drone-channel').value=String(droneChannel);el('gx-beats-bpm').value=String(bpm);
  };
  channels();
- el('gx-drums-channel').onchange=()=>{drumChannel=+el('gx-drums-channel').value;native('stopSequence');save();};
+ const setup=document.createElement('div');setup.className='gx-drum-library';
+ setup.innerHTML='<div class="gx-section-label">BIBLIOTECA DE DRUM PADS <small>Escolha onde o som será produzido</small></div>'+
+ '<div class="gx-pad-library-source"><label>Fonte do som<select id="gx-pad-source"><option value="midi">Roland XPS-10 · MIDI</option><option value="samples">Celular · Samples de áudio</option></select></label>'+
+ '<label id="gx-pad-roland-wrapper">Kit interno do XPS-10<select id="gx-pad-roland-kit"></select></label>'+
+ '<label id="gx-pad-local-wrapper">Biblioteca de áudio<select id="gx-pad-local-kit"><option value="0">Drum Kit 1 · Grauê original</option><option value="1">EFX 1 · Grauê original</option><option value="2">Worship Drums · Grauê original</option><option value="3">Worship EFX · Grauê original</option><option value="4">Meus Samples · para importar</option></select></label></div>'+
+ '<div class="gx-pad-library-actions"><button id="gx-pad-use-roland">Usar este kit no Roland</button><label id="gx-pad-import-label">Pad para importar<select id="gx-pad-import-slot"></select></label><button id="gx-pad-import">Importar WAV / MP3 / OGG</button><button id="gx-pad-stop-audio">Parar áudio do celular</button></div>'+
+ '<small id="gx-pad-library-status" role="status" aria-live="polite">Os kits do Roland vêm da lista oficial, mas dependem de uma parte Rhythm habilitada. Os bancos Grauê geram sons originais no próprio celular.</small>'+
+ '<small class="gx-pad-library-help">Os nomes Drum Kit / Worship são categorias do Grauê, não as amostras proprietárias do aplicativo da imagem. A saída USB do Roland transporta MIDI, não áudio. Para usar samples do celular na igreja, conecte a saída de áudio do telefone à mesa de som.</small>';
+ const drumSection=el('gx-drums-pads').closest('.gx-drums-kit');
+ if(drumSection)drumSection.insertBefore(setup,drumSection.querySelector('.gx-drums-settings'));
+ const kits=el('gx-pad-roland-kit');
+ xpsDrumKits.forEach(t=>{const o=document.createElement('option');o.value=t.code;o.textContent=t.code+' · '+t.name;kits.append(o);});
+ kits.value=xpsDrumKits.some(t=>t.code===selectedRoland)?selectedRoland:'Dr001';
+ const slotPicker=el('gx-pad-import-slot');
+ for(let i=0;i<8;i++){const o=document.createElement('option');o.value=String(i);o.textContent=String(i+1)+' · '+drumNotes[i][0];slotPicker.append(o);}
+ el('gx-pad-source').value=audioMode;
+ el('gx-pad-local-kit').value=String(sampleBank);
+ function renderAudioSource(){
+  const sample=audioMode==='samples';
+  el('gx-pad-local-wrapper').hidden=!sample;el('gx-pad-import').hidden=!sample;
+  el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;
+  el('gx-pad-roland-wrapper').hidden=sample;el('gx-pad-use-roland').hidden=sample;
+  const names=padLibrary?.banks?.[sampleBank]?.pads||[];
+  const buttons=el('gx-drums-pads').querySelectorAll('button');
+  buttons.forEach((b,i)=>{
+   const info=names[i],label=sample?(info?.label||drumNotes[i][0]):drumNotes[i][0];
+   b.querySelector('strong').textContent=label;
+   b.querySelector('small').textContent=sample?(info?.source==='importado'?'Áudio importado':info?.available?'Áudio original Grauê':'Importe um sample'):'MIDI '+drumNotes[i][1];
+   b.classList.toggle('gx-drum-empty',sample&&info&&!info.available);
+  });
+  el('gx-pad-library-status').textContent=sample?'Som sai no CELULAR. Banco: '+el('gx-pad-local-kit').selectedOptions[0]?.textContent+'. Toque nos pads para ouvir ou importe seus samples.':'Som sai no XPS-10 por USB-MIDI. Selecione um kit para o canal '+drumChannel+' e confirme a parte Rhythm.';
+  el('gx-beats-start').disabled=sample;
+  el('gx-beats-status').textContent=sample?'O sequenciador atual é MIDI; selecione Roland para disparar loops. Os pads de samples funcionam individualmente.':'Looper MIDI pronto. A saída de som depende do kit configurado no Roland.';
+ }
+ el('gx-pad-source').onchange=()=>{native('stopSequence');native('stopPadSamples');audioMode=el('gx-pad-source').value;save();renderAudioSource();};
+ el('gx-pad-local-kit').onchange=()=>{sampleBank=+el('gx-pad-local-kit').value;save();renderAudioSource();};
+ kits.onchange=()=>{selectedRoland=kits.value;save();};
+ el('gx-pad-use-roland').onclick=()=>{
+  const tone=xpsDrumKits.find(t=>t.code===kits.value);
+  if(!tone){el('gx-pad-library-status').textContent='Kit Roland não encontrado no catálogo.';return;}
+  selectedRoland=tone.code;save();
+  const ok=native('selectDrumKit',drumChannel,tone.msb,tone.lsb,tone.program);
+  if(ok)el('gx-pad-library-status').textContent='Solicitado: '+tone.name+' · canal '+drumChannel+'. Confirme que o XPS recebe Program Change como parte de bateria.';
+ };
+ el('gx-pad-import').onclick=()=>{selectedPad=+slotPicker.value;native('importPadSample',sampleBank,selectedPad);};
+ el('gx-pad-stop-audio').onclick=()=>native('stopPadSamples');
+ renderAudioSource();
+ native('getPadSampleLibrary');
+
+ el('gx-drums-channel').onchange=()=>{drumChannel=+el('gx-drums-channel').value;native('stopSequence');save();renderAudioSource();};
  el('gx-drone-channel').onchange=()=>{native('stopDronePad');droneOn=false;droneChannel=+el('gx-drone-channel').value;save();};
  el('gx-beats-bpm').onchange=()=>{bpm=Math.min(180,Math.max(40,Number(el('gx-beats-bpm').value)||72));el('gx-beats-bpm').value=String(bpm);save();};
  for(const [label,note] of drumNotes){
@@ -27,7 +82,11 @@
   const n=document.createElement('strong');n.textContent=label;
   const caption=document.createElement('small');caption.textContent='MIDI '+note;
   btn.append(n,caption);
-  btn.onclick=()=>native('padHit',drumChannel,note,Number(el('gx-drums-velocity').value));
+  btn.onclick=()=>{
+   const velocity=Number(el('gx-drums-velocity').value);
+   if(audioMode==='samples')native('playPadSample',sampleBank,drumNotes.findIndex(x=>x[1]===note),velocity);
+   else native('padHit',drumChannel,note,velocity);
+  };
   el('gx-drums-pads').append(btn);
  }
  el('gx-drums-velocity').oninput=()=>el('gx-drums-velocity-out').textContent=el('gx-drums-velocity').value;
@@ -55,6 +114,7 @@
   el(id).onclick=()=>{native('stopSequence');const p=beats[key]();grid=p.grid;bpm=p.bpm;el('gx-beats-bpm').value=String(bpm);save();renderSteps();el('gx-beats-status').textContent='Preset '+key+' pronto. Toque Iniciar loop para enviar ao teclado.';};
  }
  el('gx-beats-start').onclick=()=>{
+  if(audioMode==='samples'){el('gx-beats-status').textContent='Looper de 16 passos usa MIDI. Troque a fonte para Roland XPS-10.';return;}
   const b=+el('gx-beats-bpm').value;
   if(!Number.isInteger(b)||b<40||b>180){el('gx-beats-status').textContent='Escolha BPM entre 40 e 180.';return;}
   bpm=b;save();
@@ -107,6 +167,14 @@
  const oldReceive=window.receive;
  window.receive=(type,payload)=>{
   if(oldReceive)oldReceive(type,payload);
+  if(type==='padSampleState'){
+   padLibrary=payload&&Array.isArray(payload.banks)?payload:null;
+   renderAudioSource();
+  }
+  if(type==='drumKitSent'){
+   const choice=xpsDrumKits.find(x=>x.msb===payload?.msb&&x.lsb===payload?.lsb&&x.program===payload?.program);
+   el('gx-pad-library-status').textContent='Comando MIDI enviado: '+(choice?.name||'kit')+'. Som não confirmado por SysEx; teste tocando um pad.';
+  }
   if(type==='droneStatus'){droneOn=!!payload;el('gx-drone-status').textContent=droneOn?'● Pad contínuo ativo — toque Parar Pad':'Pad parado';el('gx-drone-start').classList.toggle('on',droneOn);}
   if(type==='xpsConnection')el('gx-drums-device-state').textContent=payload?'● USB-MIDI conectado · partes requerem timbres configurados':'● USB-MIDI desconectado';
   if(type==='sequenceStep'&&payload<0)el('gx-beats-status').textContent='Loop parado.';
