@@ -393,14 +393,16 @@
    $x('gx-cifra-title').textContent=song.title||'Escolha uma música';
    $x('gx-cifra-meta').textContent=(song.category||'Repertório local')+(song.sourceUrl?' · Cifra Club: página importada':'');
    $x('gx-cifra-key').textContent='Tom de referência: '+M.names[root]+(minor?' menor':' maior');
-   const content=$x('gx-cifra-content');content.replaceChildren();
+   const content=$x('gx-cifra-content');
+   const retainedScroll=content.querySelector('pre')?.scrollTop||0;
+   content.replaceChildren();
    if(section==='setlist'){content.textContent='Escolha músicas pela lista à esquerda. A ordem da apresentação pode ser preparada no editor completo.';return;}
    let txt=S(song.text).trim();
    if(section==='notes')txt=S(song.scoreNotes).trim()||'Nenhuma observação técnica identificada nesta cifra.';
    if(section==='riffs')txt=S(song.riffs).trim()||'Nenhum riff ou tablatura identificado nesta cifra.';
    if(section==='letter'&&txt)txt=window.GraueCifraView?.lyricsOnly?GraueCifraView.lyricsOnly(txt,M.parse):txt;
    if(!txt)txt='Abra uma música no Cifra Club e toque Trazer cifra. O Grauê identifica o conteúdo sem selecionar o texto.';
-   const previous=content.querySelector('pre'),progress=previous?.scrollTop||0;
+   const progress=retainedScroll;
    const p=document.createElement('pre');p.className='gx-cifra-text';p.textContent=txt;content.append(p);
    if(progress&&section==='cifra')p.scrollTop=progress;
  }
