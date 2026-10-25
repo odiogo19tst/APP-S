@@ -30,7 +30,7 @@
  '<div class="gx-pad-library-source"><label>Fonte do som<select id="gx-pad-source"><option value="midi">Roland XPS-10 · MIDI</option><option value="samples">Celular · Samples de áudio</option></select></label>'+
  '<label id="gx-pad-roland-wrapper">Kit interno do XPS-10<select id="gx-pad-roland-kit"></select></label>'+
  '<label id="gx-pad-local-wrapper">Biblioteca de áudio<select id="gx-pad-local-kit"><option value="0">Drum Kit 1 · Grauê original</option><option value="1">EFX 1 · Grauê original</option><option value="2">Worship Drums · Grauê original</option><option value="3">Worship EFX · Grauê original</option><option value="4">Meus Samples · para importar</option></select></label></div>'+
- '<div class="gx-pad-library-actions"><button id="gx-pad-use-roland">Usar este kit no Roland</button><label id="gx-pad-import-label">Pad para importar<select id="gx-pad-import-slot"></select></label><button id="gx-pad-import">Importar neste pad</button><button id="gx-pad-import-all">Importar kit (até 8 sons)</button><button id="gx-pad-stop-audio">Parar áudio do celular</button></div>'+
+ '<div class="gx-pad-library-actions"><button id="gx-pad-use-roland">Usar este kit no Roland</button><label id="gx-pad-import-label">Pad para importar<select id="gx-pad-import-slot"></select></label><button id="gx-pad-import">Importar neste pad</button><button id="gx-pad-import-all">Escolher até 8 áudios</button><button id="gx-pad-import-zip">Importar pacote ZIP</button><button id="gx-pad-stop-audio">Parar áudio do celular</button></div>'+
  '<small id="gx-pad-library-status" role="status" aria-live="polite">Os kits do Roland vêm da lista oficial, mas dependem de uma parte Rhythm habilitada. Os bancos Grauê geram sons originais no próprio celular.</small>'+
  '<small class="gx-pad-library-help">Os nomes Drum Kit / Worship são categorias do Grauê, não as amostras proprietárias do aplicativo da imagem. A saída USB do Roland transporta MIDI, não áudio. Para usar samples do celular na igreja, conecte a saída de áudio do telefone à mesa de som.</small>';
  const drumSection=el('gx-drums-pads').closest('.gx-drums-kit');
@@ -45,7 +45,7 @@
  function renderAudioSource(){
   const sample=audioMode==='samples';
   el('gx-pad-local-wrapper').hidden=!sample;el('gx-pad-import').hidden=!sample;
-  el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;
+  el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;el('gx-pad-import-zip').hidden=!sample;
   el('gx-pad-roland-wrapper').hidden=sample;el('gx-pad-use-roland').hidden=sample;
   const names=padLibrary?.banks?.[sampleBank]?.pads||[];
   const buttons=el('gx-drums-pads').querySelectorAll('button');
@@ -55,7 +55,7 @@
    b.querySelector('small').textContent=sample?(info?.source==='importado'?'Áudio importado':info?.available?'Áudio original Grauê':'Importe um sample'):'MIDI '+drumNotes[i][1];
    b.classList.toggle('gx-drum-empty',sample&&info&&!info.available);
   });
-  el('gx-pad-library-status').textContent=sample?'Som sai no CELULAR. Banco: '+el('gx-pad-local-kit').selectedOptions[0]?.textContent+'. Toque nos pads para ouvir ou importe seus samples.':'Som sai no XPS-10 por USB-MIDI. Selecione um kit para o canal '+drumChannel+' e confirme a parte Rhythm.';
+  el('gx-pad-library-status').textContent=sample?'Som sai no CELULAR. Banco: '+el('gx-pad-local-kit').selectedOptions[0]?.textContent+'. Toque nos pads para ouvir. Importe áudios soltos ou um ZIP de até 8 sons diretamente pelo celular.':'Som sai no XPS-10 por USB-MIDI. Selecione um kit para o canal '+drumChannel+' e confirme a parte Rhythm.';
   el('gx-beats-start').disabled=sample;
   el('gx-beats-status').textContent=sample?'O sequenciador atual é MIDI; selecione Roland para disparar loops. Os pads de samples funcionam individualmente.':'Looper MIDI pronto. A saída de som depende do kit configurado no Roland.';
  }
@@ -72,6 +72,10 @@
  el('gx-pad-import').onclick=()=>{selectedPad=+slotPicker.value;native('importPadSample',sampleBank,selectedPad);};
  el('gx-pad-import-all').onclick=()=>{
   if(confirm('Importar até 8 sons para o banco selecionado, substituindo os pads correspondentes no app? Os arquivos de origem não serão alterados.'))native('importPadKit',sampleBank);
+ };
+ el('gx-pad-import-zip').onclick=()=>{
+  if(confirm('Importar até 8 arquivos WAV, MP3 ou OGG de um ZIP? Os pads correspondentes serão atualizados somente no Grauê; o ZIP original será preservado.'))
+   native('importPadZip',sampleBank);
  };
  el('gx-pad-stop-audio').onclick=()=>native('stopPadSamples');
  renderAudioSource();
