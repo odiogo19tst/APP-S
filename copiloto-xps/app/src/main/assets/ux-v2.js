@@ -121,7 +121,7 @@
   const b=document.createElement('button');b.innerHTML='<strong>'+glyph+'</strong><span>'+title+'</span><small>'+desc+'</small>';
   b.onclick=()=>{if(i<2){let p=$x('livePart');p.value=String(i);if(p.onchange)p.onchange();switchTab('sound');}
   else if(i===2||i===3){switchTab('sound');soundSection=i===2?'split':'split';showSoundPanel();}
-  else if(i===10){switchTab('stage');callOld('liveDrums');}
+  else if(i===10){switchTab('drums');}
   else if(i===11){switchTab('sound');soundSection='effects';showSoundPanel();}
   else{switchTab('sound');soundSection='tones';toneCategory=({4:'Pf',5:'Pf',6:'Ky',7:'St',8:'Bs',9:'Sy'})[i]||'';renderCategories();showSoundPanel();}};
   $x('gx-stage-parts').append(b);
@@ -710,5 +710,6 @@
  if(window.Native?.getDirectApiState)window.Native.getDirectApiState();
  if(window.Native?.listBackups)window.Native.listBackups();
  // O sequenciador progride por BPM; atualizar continuamente o resumo sem redesenhar o mixer.
+ window.GraueCurrentChord=()=>String(song?.chords?.[idx]||'');
  setInterval(()=>{if(active==='stage'&&document.visibilityState!=='hidden')syncStage();},300);
 })();
