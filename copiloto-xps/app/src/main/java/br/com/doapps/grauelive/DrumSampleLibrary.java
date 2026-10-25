@@ -17,12 +17,14 @@ public final class DrumSampleLibrary {
  private final File directory;
  private final android.content.SharedPreferences prefs;
  private final SoundPool sounds;
+ private final Runnable onSampleLoaded;
  private final int[] soundIds=new int[16];
  private final boolean[] loaded=new boolean[16];
  private static final String[] EXTENSIONS={".wav",".mp3",".ogg"};
  private int pos(int bank,int slot){if(bank<2||bank>3||slot<0||slot>7)throw new IllegalArgumentException("Banco de samples inválido");return (bank-2)*8+slot;}
  private File findFile(int index){for(String ext:EXTENSIONS){File f=new File(directory,index+ext);if(f.isFile())return f;}return null;}
- public DrumSampleLibrary(Context owner){
+ public DrumSampleLibrary(Context owner,Runnable onLoaded){
+  onSampleLoaded=onLoaded;
   context=owner.getApplicationContext();
   directory=new File(context.getFilesDir(),"drum-samples");directory.mkdirs();
   prefs=context.getSharedPreferences("graue-drums-audio",Context.MODE_PRIVATE);
@@ -31,6 +33,7 @@ public final class DrumSampleLibrary {
   sounds=new SoundPool.Builder().setMaxStreams(8).setAudioAttributes(attrs).build();
   sounds.setOnLoadCompleteListener((pool,sampleId,status)->{
    for(int i=0;i<16;i++)if(soundIds[i]==sampleId)loaded[i]=(status==0);
+   if(onSampleLoaded!=null)onSampleLoaded.run();
   });
   for(int i=0;i<16;i++)if(findFile(i)!=null)load(i);
  }
