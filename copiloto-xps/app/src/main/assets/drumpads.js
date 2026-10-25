@@ -50,7 +50,7 @@
   if(routingText)routingText.textContent=sample?'Áudio gerado pelo celular: para ouvir no PA, envie a saída de áudio do celular à mesa. Não sai pelo USB-MIDI do XPS-10.':'Comandos MIDI enviados ao Roland; o som sai pelas saídas do teclado, usando o Drum Kit selecionado.';
 
   el('gx-pad-local-wrapper').hidden=!sample;el('gx-pad-import').hidden=!sample;
-  el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;el('gx-pad-import-zip').hidden=!sample;el('gx-pad-export-drive').hidden=!sample;
+  el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;el('gx-pad-import-zip').hidden=!sample;el('gx-pad-export-drive').hidden=false;
   el('gx-pad-roland-wrapper').hidden=sample;el('gx-pad-use-roland').hidden=sample;
   const selectedLibrary=padLibrary?.banks?.[sampleBank];
   const names=selectedLibrary?.pads||[];
