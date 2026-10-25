@@ -24,4 +24,7 @@ assert(ui.includes('window.Native.selectPerformance(n,userPerformances)'),'Perfo
 assert(app.includes('performanceNames:saved.performanceNames||{}'),'Learned performance names must persist');
 assert(css.includes('#gx-shell #gx-arm')&&css.includes('body.gx-ready #arm'),'Legacy MIDI toggle must be hidden');
 assert(css.includes('.gx-perf-grid'),'Compact performance grid CSS missing');
+assert(ui.includes('id="gx-modify-sliders"')&&ui.includes('function reflectModify(cc,value)'),'Physical CC live mixer missing');
+assert(ui.includes('window.Native?.cc?.(channel,cc,Number(slider.value))'),'Virtual faders must send MIDI directly');
+assert(css.includes('.gx-modify-sliders'),'Compact live mixer styling missing');
 console.log('Grauê v1.7: Gemma exact bytes, auto MIDI, fader reflection, USER/PRESET banks passed');
