@@ -8,9 +8,9 @@ const audio=fs.readFileSync(path.join(base,'java/br/com/doapps/grauelive/DrumSam
 const css=fs.readFileSync(path.join(base,'assets/ux-v2.css'),'utf8');
 const context={window:{}};vm.runInNewContext(catalog,context);
 const kits=context.window.XPS_TONES.filter(t=>t.category==='DRM'&&/^Dr[0-9]{3}$/.test(t.code));
-assert.equal(kits.length,28,'The current XPS-10 factory catalogue must have 19 drum kits and 9 GM2 kits');
+assert.equal(kits.length,30,'The Roland list includes 19 original + 9 GM2 kits and two mix kits');
 assert.equal(kits[0].code,'Dr001');
-assert.equal(kits[27].code,'Dr028');
+assert.equal(kits[27].code,'Dr028');\nassert.equal(kits[28].code,'Dr043');\nassert.equal(kits[29].code,'Dr044');
 for(const name of ['Drum Kit 1','EFX 1','Worship Drums','Worship EFX'])assert(ui.includes(name),'Library selector missing: '+name);
 for(const id of ['gx-roland-kit','gx-roland-kit-send','gx-drums-library','gx-drum-audio-bank','gx-drum-sample-slots'])assert(ui.includes(id),'UI missing: '+id);
 assert(js.includes("category==='DRM'"),'Must load actual drum kits, not guessed patches');
@@ -27,4 +27,4 @@ assert(audio.includes('new SoundPool.Builder()')&&audio.includes('sounds.play(')
 assert(audio.includes('getFilesDir()')&&audio.includes('12L*1024*1024'),'Sandboxed audio and safe file limits required');
 assert(audio.includes('pos(bank,slot)')&&audio.includes('bank<2||bank>3'),'Two independent Worship banks required');
 assert(css.includes('.gx-drum-library-tabs')&&css.includes('.gx-drum-sample-slots'),'Drum library responsive styles required');
-console.log('Drum Studio library: 28 Roland factory kits, 4 profiles, independent sample banks, real MIDI and audio import bridge verified');
+console.log('Drum Studio library: 30 catalogued Roland rhythm entries, 4 profiles, independent sample banks, real MIDI and audio import bridge verified');
