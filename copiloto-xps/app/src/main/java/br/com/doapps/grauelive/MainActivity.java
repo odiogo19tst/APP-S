@@ -49,9 +49,17 @@ public class MainActivity extends Activity {
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
   if("hardware".equals(k)&&autoUserRead){
-   autoUserRead=false;
-   if(hasCachedUsers())emitCachedUsers();
-   else new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
+   // A USB-MIDI port is not proof of SysEx compatibility. Read the 256
+   // user patches once only after the XPS-10 has returned a valid block.
+   boolean answered=d instanceof JSONObject&&(((JSONObject)d).has("setup:0")||((JSONObject)d).has("common:0"));
+   if(answered){
+    autoUserRead=false;
+    if(hasCachedUsers())emitCachedUsers();
+    else new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
+   }else{
+    autoUserRead=false;
+    emit("status","USB-MIDI conectado, mas sem resposta SysEx. Confira modo USB/MIDI e Device ID antes de consultar os USER.");
+   }
   }
   if("userTones".equals(k)&&d instanceof JSONArray){
    JSONArray entries=(JSONArray)d;
