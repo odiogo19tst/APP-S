@@ -48,7 +48,12 @@ public class MainActivity extends Activity {
   if("hardware".equals(k)&&autoUserRead){
    autoUserRead=false;
    if(hasCachedUsers())emitCachedUsers();
-   else new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
+   else if(d instanceof JSONObject&&((JSONObject)d).length()>1){
+    // Never attempt 256 USER requests after a complete SysEx timeout.
+    new Handler(Looper.getMainLooper()).postDelayed(()->{
+     if(midi!=null&&midi.isConnected())xps.readUsers();
+    },180);
+   }else emit("status","USB-MIDI conectado, mas sem resposta SysEx. USER não foi varrido. Confira modo MIDI e Device ID do XPS-10.");
   }
   if("userTones".equals(k)&&d instanceof JSONArray){
    JSONArray entries=(JSONArray)d;
