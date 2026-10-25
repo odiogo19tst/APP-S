@@ -29,7 +29,7 @@ public final class XpsController {
    io.emit("status","Endereço do timbre inválido.");return;
   }
   if(busy){io.emit("status","Leitura do XPS-10 em andamento. Toque novamente após concluir.");return;}
-  if(!hasPerformancePart(part)){io.emit("status","Performance ainda não confirmada. Troca temporária será tentada por Program Change.");return;}
+  if(!hasPerformancePart(part)){io.emit("status","Não há Performance ativa com parâmetros completos; selecione uma Performance e aguarde a leitura para editar esta parte.");return;}
   try{
    JSONArray edits=new JSONArray()
     .put(new JSONObject().put("section","part").put("index",part).put("offset",4).put("value",msb))
@@ -106,7 +106,7 @@ public final class XpsController {
  }
  private void abort(String message){generation++;busy=false;io.emit("hardwareBusy",false);io.emit("status",message);io.emit("hardware",snapshot());}
  public void cancelWrites(){if(busy)abort("Operação interrompida. Parte dos comandos pode ter sido enviada; leia novamente.");}
- public void write(String json,boolean armed){if(!armed){io.emit("status","Ative o envio MIDI em Sons.");return;}if(busy){io.emit("status","Aguarde a operação atual.");return;}
+ public void write(String json,boolean armed){if(!armed){io.emit("status","USB-MIDI não conectado. Conecte o XPS-10 para testar a edição.");return;}if(busy){io.emit("status","Aguarde a operação atual.");return;}
   try{JSONArray items=new JSONArray(json);if(items.length()<1||items.length()>128)throw new IllegalArgumentException("Quantidade inválida de parâmetros");Map<Integer,Integer> target=new LinkedHashMap<>();for(int i=0;i<items.length();i++){JSONObject o=items.getJSONObject(i);String section=o.getString("section");if(section.equals("mfxparam")){int unit=o.getInt("index"),type=o.getInt("effect");if(!Integer.valueOf(type).equals(state.get(XpsProtocol.block("mfx",unit).start)))throw new IllegalArgumentException("O tipo MFX mudou. Leia novamente.");int a=MfxParameters.address(unit,type,o.getInt("offset"),o.getInt("value"));int[] v=MfxParameters.nibbles(o.getInt("value"));for(int n=0;n<4;n++)if(target.put(a+n,v[n])!=null)throw new IllegalArgumentException("Parâmetro duplicado");}else{int a=XpsProtocol.writeAddress(section,o.getInt("index"),o.getInt("offset"),o.getInt("value"));if(target.put(a,o.getInt("value"))!=null)throw new IllegalArgumentException("Parâmetro duplicado");}}
    for(int i=0;i<3;i++){int a=XpsProtocol.block("mfx",i).start;if(target.containsKey(a))for(int k=17;k<145;k++)if(target.containsKey(a+k))throw new IllegalArgumentException("Troque o tipo MFX e leia antes de editar seus parâmetros");}
    boolean onlyMode=target.size()==1&&target.containsKey(XpsProtocol.address(1,0,0,0));if(!onlyMode&&!Integer.valueOf(1).equals(state.get(XpsProtocol.address(1,0,0,0))))throw new IllegalArgumentException("Leia o teclado e use modo Performance antes de editar");
@@ -120,5 +120,5 @@ public final class XpsController {
   for(int i=0;i<keys.size();){int start=keys.get(i),end=i+1;while(end<keys.size()&&keys.get(end)==keys.get(end-1)+1)end++;int[] values=new int[end-i];for(int k=i;k<end;k++)values[k-i]=target.get(keys.get(k));byte[] packet=XpsProtocol.packet(0x12,start,values);h.postDelayed(()->{if(token!=generation)return;if(!io.send(packet))abort("Falha no envio. Leia novamente antes de continuar.");},delay);delay+=35;i=end;}
   h.postDelayed(()->{if(token!=generation)return;if(target.containsKey(XpsProtocol.address(1,0,0,0))||target.containsKey(XpsProtocol.address(1,0,0,38))){readNow();return;}List<XpsProtocol.Block> touched=new ArrayList<>();for(XpsProtocol.Block b:XpsProtocol.blocks())if(target.keySet().stream().anyMatch(a->a>=b.start&&a<b.start+b.size)){touched.add(b);if(b.section.equals("part")&&(target.containsKey(b.start+4)||target.containsKey(b.start+5)||target.containsKey(b.start+6)))touched.add(XpsProtocol.patches().get(b.index));}readBlocks(touched,false);},delay+400);
  }
- public void undo(boolean armed){if(!armed||busy){io.emit("status","Ative envio e aguarde a operação atual.");return;}if(undo.isEmpty()){io.emit("status","Não há alteração com estado anterior conhecido.");return;}Map<Integer,Integer> old=undo;undo=new LinkedHashMap<>();send(old);}
+ public void undo(boolean armed){if(!armed||busy){io.emit("status","Conecte o XPS-10 e aguarde a leitura ou edição atual.");return;}if(undo.isEmpty()){io.emit("status","Não há alteração temporária com estado anterior conhecido.");return;}Map<Integer,Integer> old=undo;undo=new LinkedHashMap<>();send(old);}
 }
