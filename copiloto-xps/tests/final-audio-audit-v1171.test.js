@@ -1,0 +1,25 @@
+/* Final smoke audit for the ACTUAL v1.17 baseline; no claim of physical Roland validation. */
+const fs=require('node:fs'),assert=require('node:assert/strict'),path=require('node:path'),vm=require('node:vm');
+const root=path.resolve(__dirname,'../app/src/main');
+const asset=n=>fs.readFileSync(path.join(root,'assets',n),'utf8');
+const java=n=>fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive',n),'utf8');
+const sample=java('PadSampleEngine.java'),activity=java('MainActivity.java'),drums=asset('drumpads.js'),tones=asset('tones.js'),app=asset('app.js'),ui=asset('ux-v2.js');
+let ctx={window:{}};vm.runInNewContext(asset('tones-data.js'),ctx,{timeout:3000});
+const catalog=ctx.window.XPS_TONES;
+assert.equal(catalog.length,1564,'Do not lose any factory tones while fixing the pad library');
+assert(drums.includes('Celular · Samples de áudio')&&drums.includes('Roland XPS-10 · MIDI'),'Source modes must stay distinct');
+assert(drums.includes('id="gx-pad-local-kit"')&&drums.includes('id="gx-pad-roland-kit"'),'Both kit selectors must exist');
+assert(drums.includes('playPadSample')&&drums.includes('selectDrumKit'),'Both devices have real bindings');
+for(let bank=0;bank<8;bank++)assert(drums.includes('value="'+bank+'"'),'Audio kit bank absent: '+bank);
+assert(activity.includes('importPadZip')&&activity.includes('importPadKit')&&activity.includes('getPadSampleLibrary'),'Android file library bindings absent');
+assert(sample.includes('BANKS=8, PADS=8')&&sample.includes('sampleIds=new int[BANKS][PADS]'),'Audio bank capacity regressed');
+assert(sample.includes('while(longStreams.size()>=4)'),'Too many simultaneously playing MediaPlayers');
+assert(sample.includes('while(recentStreams.size()>24)'),'SoundPool stream ID history should be capped');
+assert(sample.includes('try{player.release();}catch(Exception ignored){}'),'Failed long sample prepare must release audio resources');
+assert(sample.includes('recentStreams.clear()')&&sample.includes('longStreams.clear()'),'Pad Stop must free retained players');
+assert(activity.includes('rootLayout.setBackgroundColor(android.graphics.Color.rgb(7,17,28))'),'System bar inset may show white-on-white icons');
+assert(app.includes('xpsToneCache:saved.xpsToneCache||[]'),'User tone cache persistence regressed');
+assert(tones.includes('conservado o último cache válido'),'Failed Roland SysEx must not destroy existing USER tones');
+assert(ui.includes('gx-unified-usb')&&ui.includes('gx-direct-key'),'One USB control and post-install OpenAI key must remain');
+assert(activity.includes('xps.initialSync()'),'USB initial read must remain automatic');
+console.log('PASS: Grauê 1.17.1 smoke — 1564 tones, 8 banks, sound resource limits, saved USER, USB and Android bars');

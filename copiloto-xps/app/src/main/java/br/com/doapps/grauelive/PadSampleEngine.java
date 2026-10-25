@@ -40,9 +40,9 @@ public final class PadSampleEngine {
  private final SoundPool pool;
  private final int[][] sampleIds=new int[BANKS][PADS];
  private final File[][] longAudio=new File[BANKS][PADS];
- private final Set<MediaPlayer> longStreams=Collections.newSetFromMap(new ConcurrentHashMap<MediaPlayer,Boolean>());
+ private final LinkedHashSet<MediaPlayer> longStreams=new LinkedHashSet<>(); // insertion order enables oldest-first voice stealing
  private final boolean[][] loaded=new boolean[BANKS][PADS];
- private final Set<Integer> streams=Collections.newSetFromMap(new ConcurrentHashMap<Integer,Boolean>());
+ private final ArrayDeque<Integer> recentStreams=new ArrayDeque<>(); // only the most recent 24 stream IDs matter
  private volatile boolean ready=false;
  public PadSampleEngine(Context context){
   ctx=context.getApplicationContext();
@@ -126,7 +126,20 @@ public final class PadSampleEngine {
     player.setOnPreparedListener(p->{synchronized(PadSampleEngine.this){if(longStreams.contains(p))p.start();}});
     player.setOnCompletionListener(p->{synchronized(PadSampleEngine.this){longStreams.remove(p);p.release();}});
     player.setOnErrorListener((p,what,extra)->{synchronized(PadSampleEngine.this){longStreams.remove(p);p.release();}return true;});
-    longStreams.add(player);player.prepareAsync();return "";
+    // Pads may be played rapidly during worship. Do not allocate unlimited MediaPlayers.
+    while(longStreams.size()>=4){
+     Iterator<MediaPlayer> iterator=longStreams.iterator();
+     MediaPlayer oldest=iterator.next();iterator.remove();
+     try{oldest.stop();}catch(Exception ignored){}
+     try{oldest.release();}catch(Exception ignored){}
+    }
+    longStreams.add(player);
+    try{player.prepareAsync();}catch(Exception failure){
+     longStreams.remove(player);
+     try{player.release();}catch(Exception ignored){}
+     throw failure;
+    }
+    return "";
    }catch(Exception e){return "Sample longo não pôde ser aberto: "+e.getMessage();}
   }
   int sound=sampleIds[bank][pad];
@@ -135,11 +148,13 @@ public final class PadSampleEngine {
   float gain=Math.min(1f,velocity/100f);
   int stream=pool.play(sound,gain,gain,1,0,1f);
   if(stream==0)return "Saída de áudio do celular indisponível.";
-  streams.add(stream);
+  recentStreams.addLast(stream);
+  while(recentStreams.size()>24)recentStreams.removeFirst();
   return "";
  }
  public synchronized void stop(){
-  for(int stream:streams)pool.stop(stream);streams.clear();
+  for(int stream:recentStreams)pool.stop(stream);
+  recentStreams.clear();
   for(MediaPlayer mp:longStreams){
    try{mp.stop();}catch(Exception ignored){}
    try{mp.release();}catch(Exception ignored){}
