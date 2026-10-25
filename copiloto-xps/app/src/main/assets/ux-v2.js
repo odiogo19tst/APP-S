@@ -254,10 +254,16 @@
  function showSoundPanel(){
    shell.querySelectorAll('[data-gx-sound]').forEach(b=>b.classList.toggle('on',b.dataset.gxSound===soundSection));
    const tonesMode=soundSection==='tones'||soundSection==='favorites';
+   $x('gx-one-touch').classList.toggle('gx-physical-favorites-mode',soundSection==='favorites');
    $x('gx-one-touch').hidden=!tonesMode;
    $x('gx-performance-banks').hidden=soundSection!=='performance';
    $x('gx-advanced-mixer').hidden=tonesMode;
-   if(soundSection==='favorites'){toneOnlyFavs=true;$x('gx-tone-favorites').classList.add('on');renderToneList();}
+   if(soundSection==='favorites'){
+    // This tab represents Roland's physical banks, not a phone-made favorite filter.
+    toneOnlyFavs=false;toneCategory='';
+    $x('gx-tone-favorites').classList.remove('on');
+    renderToneList();renderCategories();
+   }
    if(soundSection==='tones'){toneOnlyFavs=false;$x('gx-tone-favorites').classList.remove('on');renderToneList();}
    if(soundSection==='split'||soundSection==='effects'||soundSection==='arpeggio')openLegacy('sound');
    if(!tonesMode)renderMixer();
@@ -712,7 +718,7 @@
   if(kind==='backups'){
    backupRows=Array.isArray(data)?data:[];renderBackups();
    $x('gx-roland-favorites-status').textContent=backupRows.length
-    ?backupRows.length+' backup(s) guardado(s), mas favoritos físicos ainda não decodificados'
+    ?backupRows.length+' arquivo(s) de backup guardado(s). Formato dos favoritos ainda pendente de validação.'
     :'Ainda não importados · sem backup do Roland';
   }
   if(kind==='midiDiagnostics'){
