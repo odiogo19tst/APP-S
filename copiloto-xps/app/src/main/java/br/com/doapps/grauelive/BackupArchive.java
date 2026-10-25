@@ -68,6 +68,15 @@ public final class BackupArchive {
   }
   save(catalog);return catalog;
  }
+ /** Preserve original filename on export. Library byte copy remains immutable. */
+ public synchronized String originalName(String sha)throws Exception {
+  JSONArray cat=read();
+  for(int i=0;i<cat.length();i++){
+   JSONObject item=cat.getJSONObject(i);
+   if(sha.equals(item.optString("sha256")))return item.optString("name","backup.bin");
+  }
+  throw new IOException("Arquivo não encontrado no catálogo de backups");
+ }
  public synchronized File fileFor(String sha) throws Exception {
   if(sha==null||!sha.matches("[a-f0-9]{64}"))throw new IOException("Identificador invalido");
   boolean known=false;JSONArray cat=read();for(int i=0;i<cat.length();i++)known|=sha.equals(cat.getJSONObject(i).optString("sha256"));
