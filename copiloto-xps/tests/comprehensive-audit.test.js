@@ -1,0 +1,43 @@
+/* Source-level audit. Hardware playback requires a connected XPS-10. */
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const base=path.resolve(__dirname,'../app/src/main');
+const assets=path.join(base,'assets');
+const f=x=>fs.readFileSync(path.join(assets,x),'utf8');
+const js=f('ux-v2.js'),tone=f('tones.js'),app=f('app.js'),live=f('live.js');
+const native=fs.readFileSync(path.join(base,'java/br/com/doapps/grauelive/MainActivity.java'),'utf8');
+const midi=fs.readFileSync(path.join(base,'java/br/com/doapps/grauelive/UsbMidi.java'),'utf8');
+const sample=fs.readFileSync(path.join(base,'java/br/com/doapps/grauelive/LocalPadLibrary.java'),'utf8');
+const xps=fs.readFileSync(path.join(base,'java/br/com/doapps/grauelive/XpsController.java'),'utf8');
+const sandbox={window:{}};vm.runInNewContext(f('tones-data.js'),sandbox,{timeout:2500});
+const factory=sandbox.window.XPS_TONES;
+assert(Array.isArray(factory)&&factory.length>500,'Fábrica Roland deve estar presente offline');
+assert.equal(new Set(factory.map(t=>t.code)).size,factory.length,'Códigos de timbre fábrica duplicados');
+for(const t of factory){
+ assert(/^(Pf|Ky|St|Bs|Sy|Wr|Dr|Sp)[0-9]+$/.test(t.code),'Código inválido: '+t.code);
+ assert(Number.isInteger(t.msb)&&t.msb>=0&&t.msb<=127,'MSB inválido: '+t.code);
+ assert(Number.isInteger(t.lsb)&&t.lsb>=0&&t.lsb<=127,'LSB inválido: '+t.code);
+ assert(Number.isInteger(t.program)&&t.program>=1&&t.program<=128,'Programa inválido: '+t.code);
+}
+assert(app.includes('xpsToneCache:saved.xpsToneCache||[]'),'USER cache não persistido');
+assert(tone.includes('saved.xpsToneCache=cache;persist()'),'Leitura USER não salva');
+assert(tone.includes('Sem resposta da leitura USER. Mantendo último cache'),'Timeout não deve apagar lista válida');
+assert(js.includes('gx-sample-dialog')&&js.includes('gx-pad-bank')&&js.includes('gx-sample-grid'),'Biblioteca de pads não visível');
+assert(js.includes('window.Native?.padHit')&&js.includes('window.Native?.playSamplePad'),'Separação MIDI / áudio local ausente');
+assert(js.includes('window.Native.importSamplePad(bank,n)'),'Importação real de samples não conectada');
+assert(live.includes('window.GrauePadLibrary?.open'),'Tela ao vivo ainda usa pad editor legado');
+assert(native.includes('@JavascriptInterface public void importSamplePad('));
+assert(native.includes('@JavascriptInterface public void playSamplePad('));
+assert(native.includes('if(req==8)'), 'Picker de áudio não tratado');
+assert(native.includes('new LocalPadLibrary(this'), 'Biblioteca sem inicialização');
+assert(native.includes('samplePads.close();'), 'Biblioteca não é liberada em onDestroy');
+assert(sample.includes('new SoundPool.Builder()')&&sample.includes('ACTION')===false,'Samples devem usar áudio do Android, não MIDI');
+assert(sample.includes('MAX=10*1024*1024'),'Tamanho de áudio não limitado');
+assert(sample.includes('setOnLoadCompleteListener'),'Sample não aguarda preparação');
+assert(sample.includes('play(String bank,int slot)'),'Pad importado não pode tocar');
+assert(native.includes('receivedRolandSysex++')&&js.includes("kind==='xpsSysex'"),'Diagnóstico USB vs SysEx ausente');
+assert(midi.includes('getInputPortCount()>0')&&midi.includes('getOutputPortCount()>0'),'Conexão não verifica MIDI ida+volta');
+assert(native.includes('armed=ready;'),'MIDI precisa habilitar automaticamente após conectar USB');
+assert(xps.includes('Não foi possível confirmar todos os valores enviados'),'Sem alerta após falha SysEx');
+assert(js.includes("toneOnlyFavs=false;soundSection='tones'"),'Todas não remove filtro Favoritos');
+assert(js.includes('bancos físicos 0–9 do Roland não são legíveis'),'Não fingir importação dos bancos Roland');
+console.log('Auditoria: catálogo offline ('+factory.length+' timbres), persistência, pads MIDI/Android, USB e segurança passaram no código.');
