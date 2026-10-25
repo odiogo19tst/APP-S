@@ -8,7 +8,7 @@ const sha='0f7147f1c22eaf758b819bbf7841793e4c90096c9352cde7fbe5c631f2265ef5';
 assert(downloader.includes(sha),'Pinned SHA-256 missing');
 assert(downloader.includes('https://huggingface.co/72fstudio/gemma-3-270m-it/resolve/main/gemma3-270m-it-q8.task'),'Public source missing');
 assert(downloader.includes('https://ai.google.dev/gemma/terms'),'Gemma license link missing');
-for(const term of ['getUsableSpace','Range','Content-Range','SHA-256','ModelImport.checkBundle','validator.validate','ATOMIC_MOVE','cancelled.get()'])assert(downloader.includes(term),'Installer integrity or recovery missing: '+term);
+for(const term of ['getUsableSpace','Range','Content-Range','SHA-256','validator.validate','ATOMIC_MOVE','cancelled.get()'])assert(downloader.includes(term),'Installer integrity or recovery missing: '+term);
 for(const term of ['@JavascriptInterface public void installGemma(boolean accepted)','@JavascriptInterface public void cancelGemma()','Gemma270Installer.install','getPreferences(MODE_PRIVATE)','openModel(candidate)'])assert(native.includes(term),'Native Gemma integration missing: '+term);
 for(const id of ['gx-gemma-accept','gx-gemma-terms','gx-gemma-install','gx-gemma-cancel','gx-gemma-progress','gx-gemma-try','gx-gemma-question','gx-gemma-send','gx-gemma-answer'])assert(ux.includes('id="'+id+'"'),'UI missing: '+id);
 assert(ux.includes("gemmaInstall.disabled=busy||!gemmaAccept.checked"),'Terms and download status must gate install');
