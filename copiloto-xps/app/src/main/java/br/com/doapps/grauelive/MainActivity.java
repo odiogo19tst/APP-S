@@ -29,6 +29,11 @@ public class MainActivity extends Activity {
   catch(Exception ignored){}
  }
  private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
+ private void emitCachedPerformance(){
+  String stored=getPreferences(MODE_PRIVATE).getString("xpsPerformanceCache","");
+  if(!stored.isEmpty())try{emit("cachedPerformance",new JSONObject(stored));}catch(Exception ignored){}
+ }
+
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
@@ -39,12 +44,18 @@ public class MainActivity extends Activity {
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
-  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();emitCachedUsers();
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();emitCachedUsers();emitCachedPerformance();emit("gemmaLastError",getPreferences(MODE_PRIVATE).getString("gemmaLastError",""));
    emit("xpsConnection",midi!=null&&midi.isConnected());
    emit("armed",armed);}});
   web.addJavascriptInterface(new Bridge(),"Native");
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
+  if("hardware".equals(k)&&d instanceof JSONObject){
+   JSONObject snapshot=(JSONObject)d;
+   if(snapshot.has("common:0")||snapshot.has("part:0")){
+    getPreferences(MODE_PRIVATE).edit().putString("xpsPerformanceCache",snapshot.toString()).apply();
+   }
+  }
   if("hardware".equals(k)&&autoUserRead){
    autoUserRead=false;
    if(hasCachedUsers())emitCachedUsers();
@@ -189,6 +200,8 @@ public class MainActivity extends Activity {
 
   @JavascriptInterface public void cancelHardware(){runOnUiThread(()->xps.cancelWrites());}
   @JavascriptInterface public void readHardware(){runOnUiThread(()->xps.read());}
+  @JavascriptInterface public void refreshPerformance(){runOnUiThread(()->{if(midi!=null&&midi.isConnected())xps.read();else emit("status","XPS-10 não conectado.");});}
+
   @JavascriptInterface public void editHardware(String json){if(json.length()<40000)runOnUiThread(()->xps.write(json,armed));}
   @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
   @JavascriptInterface public void connect(){runOnUiThread(()->{MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
@@ -219,13 +232,17 @@ public class MainActivity extends Activity {
       catch(Exception ignored){}
      },candidate->{try(LlmInference check=openModel(candidate)){}});
      if(llm!=null){llm.close();llm=null;}
-     getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",true).apply();
+     getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",true).remove("gemmaLastError").apply();
+     emit("gemmaLastError","");
      modelInfo();
      emit("status","Gemma instalada. Abra o Copiloto e teste uma pergunta offline.");
      emit("gemmaProgress",new org.json.JSONObject().put("progress",100).put("busy",false).put("message","IA pronta para conversar sem internet."));
     }catch(Exception e){
-     emit("status","Gemma: "+e.getMessage());
-     try{emit("gemmaProgress",new org.json.JSONObject().put("progress",-1).put("busy",false).put("message",e.getMessage()));}catch(Exception ignored){}
+     String reason=e.getClass().getSimpleName()+": "+String.valueOf(e.getMessage());
+     getPreferences(MODE_PRIVATE).edit().putString("gemmaLastError",reason.substring(0,Math.min(450,reason.length()))).apply();
+     emit("status","Gemma não iniciou; download preservado para revalidar.");
+     emit("gemmaLastError",reason);
+     try{emit("gemmaProgress",new org.json.JSONObject().put("progress",-1).put("busy",false).put("message","Modelo não carregou. Use Jarvis Online ou toque em Verificar novamente."));}catch(Exception ignored){}
     }finally{gemmaBusy.set(false);}
    });
   }
