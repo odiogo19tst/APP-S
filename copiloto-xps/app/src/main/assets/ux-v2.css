@@ -608,3 +608,18 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell .gx-drums-pads button strong{overflow-wrap:anywhere}
 #gx-shell .gx-drum-library [hidden]{display:none!important}
 @media(max-width:700px){.gx-pad-library-source{grid-template-columns:1fr}.gx-pad-library-actions>*{flex:1 1 45%}.gx-pad-library-actions label{min-width:120px}.gx-drum-library{padding:10px}}
+
+
+/* Mirror only physical CC7 messages; preserve independent split/dual parts. */
+.gx-played-feedback{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px;align-items:center;border:1px solid #1d766d!important}
+.gx-played-feedback>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.gx-played-feedback small{font-size:10px;color:#9ac3ca}
+.gx-played-feedback strong{font-size:16px;color:#e8fff8;overflow-wrap:anywhere}
+.gx-played-feedback>small{grid-column:1/-1}
+.gx-faders-physical{display:flex;flex-direction:column;gap:10px;border:1px solid #287c77!important}
+.gx-physical-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.gx-physical-two label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#d3f4f0}
+.gx-physical-two input{width:100%;accent-color:#32e1bf}
+.gx-physical-two output{font-size:19px;font-weight:700;color:#e9fcff}
+.gx-faders-physical>small{font-size:11px;color:#aec8d0;line-height:1.4}
+@media(max-width:650px){.gx-played-feedback{grid-template-columns:1fr 1fr;gap:5px}.gx-played-feedback strong{font-size:13px}}
