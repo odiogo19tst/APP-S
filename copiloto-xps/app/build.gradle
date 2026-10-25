@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 37
-        versionName '1.21.0-midi-refresh'
+        versionCode 38
+        versionName '1.23.0-audit-fix'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }

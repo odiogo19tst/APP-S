@@ -15,6 +15,7 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInference;
 public class MainActivity extends Activity {
  private android.widget.LinearLayout rootLayout; private CifraPanel cifraPanel; private DrumSequencer sequencer;
  private boolean autoUserRead=false;
+ private boolean stoppedWhileConnected=false;
  private final java.util.Map<Integer,Integer> assistNotes=new java.util.HashMap<>();
  private int assistSerial=0;
  private final java.util.Set<Integer> droneNotes=new java.util.HashSet<>();
@@ -43,6 +44,26 @@ public class MainActivity extends Activity {
   catch(Exception ignored){}
  }
  private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
+ /** Save only verified USER entries and merge partial MIDI scans without losing older positions. */
+ private void mergeUserToneCache(JSONArray incoming){
+  if(incoming==null||incoming.length()==0)return;
+  JSONArray previous;
+  try{previous=new JSONArray(getPreferences(MODE_PRIVATE).getString("xpsUserCache","[]"));}
+  catch(Exception ignored){previous=new JSONArray();}
+  java.util.LinkedHashMap<String,JSONObject> entries=new java.util.LinkedHashMap<>();
+  for(JSONArray list:new JSONArray[]{previous,incoming}){
+   for(int i=0;i<list.length();i++){
+    JSONObject tone=list.optJSONObject(i);if(tone==null)continue;
+    String code=tone.optString("code","");
+    int msb=tone.optInt("msb",-1),lsb=tone.optInt("lsb",-1),program=tone.optInt("program",-1);
+    if(!code.matches("USER[0-9]{3}")||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128)continue;
+    entries.put(code,tone);
+   }
+  }
+  JSONArray merged=new JSONArray();
+  for(JSONObject tone:entries.values())merged.put(tone);
+  if(merged.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",merged.toString()).apply();
+ }
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
  private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1; private String exportKitSettings="{}";
@@ -72,8 +93,7 @@ public class MainActivity extends Activity {
    else emit("status","USB-MIDI conectado, mas sem resposta SysEx. Leitura de USER/Favorites não iniciada; verifique o teclado.");
   }
   if("userTones".equals(k)&&d instanceof JSONArray){
-   JSONArray entries=(JSONArray)d;
-   if(entries.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",entries.toString()).apply();
+   mergeUserToneCache((JSONArray)d);
   }
  }});
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
@@ -134,7 +154,23 @@ public class MainActivity extends Activity {
   layoutPanels();
  }
  @Override public void onConfigurationChanged(android.content.res.Configuration config){super.onConfigurationChanged(config);layoutPanels();web.invalidate();}
- @Override protected void onResume(){super.onResume();if(cifraPanel!=null)cifraPanel.resume();}
+ @Override protected void onResume(){
+  super.onResume();
+  if(cifraPanel!=null)cifraPanel.resume();
+  // onStop stops active notes for safety but intentionally keeps the USB port open.
+  // Restore outbound MIDI on returning from Cifra Club, file picker or another app.
+  if(midi!=null&&midi.isConnected()){
+   armed=true;
+   emit("armed",true);
+   emit("xpsConnection",true);
+   if(stoppedWhileConnected&&xps!=null)xps.readWhenIdle(45);
+  }else if(midi!=null){
+   armed=false;
+   emit("armed",false);
+   emit("xpsConnection",false);
+  }
+  stoppedWhileConnected=false;
+ }
  private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+(new JSONArray().put(data).toString()+"[0]")+")",null);}catch(Exception ignored){} });}
  private void captureShare(Intent intent){if(Intent.ACTION_SEND.equals(intent.getAction())&&"text/plain".equals(intent.getType())){String text=intent.getStringExtra(Intent.EXTRA_TEXT);if(text!=null)pendingShare=text.substring(0,Math.min(text.length(),200000));}}
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);captureShare(intent);if(pageReady&&!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}}
@@ -623,6 +659,6 @@ public class MainActivity extends Activity {
  if(req==5){java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else if(data.getData()!=null)uris.add(data.getData());emit("backups",backupArchive.importFiles(uris));emit("status","Backups copiados para a biblioteca. Originais preservados; formato ainda não interpretado.");return;}
  if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
  if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>1000000)throw new IOException("Arquivo maior que 1 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
- @Override protected void onStop(){super.onStop();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
+ @Override protected void onStop(){super.onStop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
  @Override protected void onDestroy(){if(cifraPanel!=null)cifraPanel.destroy();stopPadNotes();padSamples.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
 }
