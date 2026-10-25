@@ -12,7 +12,7 @@
  let droneOn=false;
  let audioMode=settings.audioMode==='midi'?'midi':'samples';
  let sampleBank=Number.isInteger(settings.sampleBank)&&settings.sampleBank>=0&&settings.sampleBank<8?settings.sampleBank:5;
- let selectedPad=0,padLibrary=null;
+ let selectedPad=0,padLibrary=null,usbAttached=false;
  const xpsDrumKits=(window.XPS_TONES||[]).filter(t=>/^Dr0(0[1-9]|1[0-9]|2[0-8])$/.test(t.code)&&t.category==='DRM');
  let selectedRoland=typeof settings.rolandKit==='string'?settings.rolandKit:'Dr001';
 
@@ -44,10 +44,18 @@
  el('gx-pad-local-kit').value=String(sampleBank);
  function renderAudioSource(){
   const sample=audioMode==='samples';
+  const deviceLabel=el('gx-drums-device-state');
+  const routingText=el('gx-drums-device-state')?.nextElementSibling;
+  if(deviceLabel)deviceLabel.textContent=sample?'● Samples do celular · USB não necessário':usbAttached?'● USB-MIDI conectado · kit de bateria a confirmar':'● Conecte o XPS-10 via USB-MIDI';
+  if(routingText)routingText.textContent=sample?'Áudio gerado pelo celular: para ouvir no PA, envie a saída de áudio do celular à mesa. Não sai pelo USB-MIDI do XPS-10.':'Comandos MIDI enviados ao Roland; o som sai pelas saídas do teclado, usando o Drum Kit selecionado.';
+
   el('gx-pad-local-wrapper').hidden=!sample;el('gx-pad-import').hidden=!sample;
   el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;el('gx-pad-import-zip').hidden=!sample;
   el('gx-pad-roland-wrapper').hidden=sample;el('gx-pad-use-roland').hidden=sample;
-  const names=padLibrary?.banks?.[sampleBank]?.pads||[];
+  const selectedLibrary=padLibrary?.banks?.[sampleBank];
+  const names=selectedLibrary?.pads||[];
+  const option=el('gx-pad-local-kit').options[sampleBank];
+  if(selectedLibrary&&option)option.textContent=selectedLibrary.name;
   const buttons=el('gx-drums-pads').querySelectorAll('button');
   buttons.forEach((b,i)=>{
    const info=names[i],label=sample?(info?.label||drumNotes[i][0]):drumNotes[i][0];
@@ -55,7 +63,10 @@
    b.querySelector('small').textContent=sample?(info?.source==='importado'?'Áudio importado':info?.available?'Áudio original Grauê':'Importe um sample'):'MIDI '+drumNotes[i][1];
    b.classList.toggle('gx-drum-empty',sample&&info&&!info.available);
   });
-  el('gx-pad-library-status').textContent=sample?'Som no CELULAR: '+el('gx-pad-local-kit').selectedOptions[0]?.textContent+'. Os bancos CC0 não precisam de USB nem internet. Meus Samples aceita WAV/MP3/OGG e ZIP com até 8 sons, inclusive pelo seletor do Google Drive.':'Som no XPS-10 por MIDI. Confirme a parte Rhythm no teclado.';
+  const usable=names.filter(x=>x?.available).length;
+  const loaded=names.filter(x=>x?.loaded).length;
+  const selectedName=selectedLibrary?.name||el('gx-pad-local-kit').selectedOptions[0]?.textContent||'Biblioteca';
+  el('gx-pad-library-status').textContent=sample?selectedName+' — '+usable+'/8 sons disponíveis'+(padLibrary?' ('+loaded+' preparados)':' · carregando biblioteca')+'. Toque para ouvir no CELULAR. Personalize com arquivos WAV/MP3/OGG ou ZIP, inclusive do Google Drive.':'Fonte ROLAND: MIDI no canal '+drumChannel+'. Escolha um kit interno e confirme a parte de bateria habilitada no XPS-10.';
   el('gx-beats-start').disabled=sample;
   el('gx-beats-status').textContent=sample?'Pads CC0 prontos no celular. O loop de 16 passos ainda usa MIDI; os samples podem ser disparados individualmente.':'Looper MIDI pronto. A saída de som depende do kit configurado no Roland.';
  }
@@ -183,7 +194,7 @@
    el('gx-pad-library-status').textContent='Comando MIDI enviado: '+(choice?.name||'kit')+'. Som não confirmado por SysEx; teste tocando um pad.';
   }
   if(type==='droneStatus'){droneOn=!!payload;el('gx-drone-status').textContent=droneOn?'● Pad contínuo ativo — toque Parar Pad':'Pad parado';el('gx-drone-start').classList.toggle('on',droneOn);}
-  if(type==='xpsConnection')el('gx-drums-device-state').textContent=payload?'● USB-MIDI conectado · partes requerem timbres configurados':'● USB-MIDI desconectado';
+  if(type==='xpsConnection'){usbAttached=!!payload;renderAudioSource();}
   if(type==='sequenceStep'&&payload<0)el('gx-beats-status').textContent='Loop parado.';
   if(type==='xpsConnection'&&!payload){droneOn=false;el('gx-drone-status').textContent='USB desconectado — notas liberadas.';}
  };
