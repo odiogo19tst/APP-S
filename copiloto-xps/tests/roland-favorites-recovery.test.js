@@ -18,6 +18,6 @@ assert(native.includes('else if(xps.hasValidSysex())'),'Auto 256 read must be ga
 assert(native.includes('@JavascriptInterface public void getMidiDiagnostics()'),'No native USB report');
 assert(native.includes('.put("validSysexPackets",xps.validSysexCount())'),'Report must count actual packets');
 assert(backup.includes('String originalName(String sha)'),'Backup export should preserve filename');
-assert(native.includes('putExtra(Intent.EXTRA_TITLE,backupArchive.originalName(sha))'),'Original backup extension not preserved');
+assert(native.includes('String originalName=backupArchive.originalName(sha)')&&native.includes('putExtra(Intent.EXTRA_TITLE,originalName)'),'Original backup extension not preserved');
 assert(css.includes('.gx-roland-favorites'),'Responsive Roland UI missing');
 console.log('Roland physical favorites correctly separate; SysEx validated; backup preservation; diagnostics enabled');
