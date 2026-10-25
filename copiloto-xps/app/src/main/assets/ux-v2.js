@@ -303,7 +303,7 @@
   const out=$x('gx-played-chord'),verdict=$x('gx-played-verdict');
   const actual=typeof notes==='function'?notes().filter(n=>Number.isInteger(n)&&n>=0&&n<=127):[];
   out.textContent=actual.length?M.chord(actual)+(actual.length<3?' · notas isoladas':''):'—';
-  const chosen=songs.some(m=>m&&m.title===song.title)||/^Exercício\\b/i.test(song.title);
+  const chosen=songs.some(m=>m&&m.title===song.title)||song.title.startsWith('Exercício');
   if(!chosen){verdict.textContent='Selecione uma cifra para comparar';return;}
   const expected=song.chords?.[idx]||'',target=M.tones(expected);
   if(!target.length){verdict.textContent='Acorde esperado não reconhecido';return;}
