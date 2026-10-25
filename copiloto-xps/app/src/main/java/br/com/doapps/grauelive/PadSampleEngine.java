@@ -199,6 +199,79 @@ public final class PadSampleEngine {
   load(bank,pad,dest);
  }
 
+ /**
+  * Copies the selected 8-pad library to a portable ZIP using the Android DocumentsProvider.
+  * The caller picks Google Drive or local storage; no Google credential is accessed.
+  * We preserve audio bytes (including imported samples), order and app configuration.
+  */
+ public synchronized int exportZipKit(int bank,Uri destination,String configJson)throws Exception{
+  if(bank<0||bank>=BANKS||destination==null)throw new IOException("Banco ou destino inválido");
+  JSONObject config=new JSONObject(configJson==null?"{}":configJson);
+  if(configJson!=null&&configJson.length()>12000)throw new IOException("Configuração extensa demais");
+  JSONObject manifest=new JSONObject().put("format","graue-pad-kit").put("version",1)
+     .put("sourceBank",bank).put("name",NAMES[bank]).put("settings",config)
+     .put("exportedAt",System.currentTimeMillis());
+  JSONArray pads=new JSONArray();
+  java.util.List<File> files=new ArrayList<>();
+  java.util.List<String> entries=new ArrayList<>();
+  long total=0;
+  for(int p=0;p<PADS;p++){
+   File audio=soundFile(bank,p);
+   String label=audio==null?LABELS[bank][p]:prefs.getString("label_"+bank+"_"+p,LABELS[bank][p]);
+   if(audio==null){File builtin=new File(root,(bank>=5?"cc0_":"graue_")+bank+"_"+p+".wav");if(builtin.isFile())audio=builtin;}
+   JSONObject item=new JSONObject().put("slot",p).put("label",label);
+   if(audio!=null&&audio.isFile()){
+    String name=audio.getName().toLowerCase(Locale.ROOT);
+    String extension=name.endsWith(".mp3")?"mp3":name.endsWith(".ogg")?"ogg":"wav";
+    if(audio.length()>12L*1024*1024)throw new IOException("Pad "+(p+1)+" acima de 12 MB");
+    total+=audio.length();
+    if(total>70L*1024*1024)throw new IOException("Kit excede 70 MB; exporte pads separadamente");
+    String entry=String.format(Locale.ROOT,"%02d__pad.%s",p+1,extension);
+    files.add(audio);entries.add(entry);
+    item.put("file",entry);
+   }else item.put("file",JSONObject.NULL);
+   pads.put(item);
+  }
+  manifest.put("pads",pads);
+  OutputStream raw=ctx.getContentResolver().openOutputStream(destination,"w");
+  if(raw==null)throw new IOException("Google Drive ou destino não permitiu gravar arquivo");
+  try(java.util.zip.ZipOutputStream zip=new java.util.zip.ZipOutputStream(new BufferedOutputStream(raw))){
+   java.util.zip.ZipEntry metadata=new java.util.zip.ZipEntry("graue-kit.json");
+   zip.putNextEntry(metadata);
+   byte[] json=manifest.toString(2).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+   zip.write(json);zip.closeEntry();
+   byte[] buf=new byte[16384];
+   for(int i=0;i<files.size();i++){
+    zip.putNextEntry(new java.util.zip.ZipEntry(entries.get(i)));
+    try(InputStream in=new BufferedInputStream(new FileInputStream(files.get(i)))){
+     int n;while((n=in.read(buf))!=-1)zip.write(buf,0,n);
+    }
+    zip.closeEntry();
+   }
+  }
+  return files.size();
+ }
+ /** Reads settings only from a Grauê ZIP (never executes a file or arbitrary JSON). */
+ public JSONObject readZipSettings(Uri file)throws Exception{
+  InputStream raw=ctx.getContentResolver().openInputStream(file);
+  if(raw==null)throw new IOException("Pacote não encontrado");
+  try(ZipInputStream zip=new ZipInputStream(new BufferedInputStream(raw))){
+   ZipEntry entry;
+   while((entry=zip.getNextEntry())!=null){
+    if("graue-kit.json".equals(entry.getName())&&!entry.isDirectory()){
+     ByteArrayOutputStream buffer=new ByteArrayOutputStream();
+     byte[] block=new byte[2048];int n;
+     while((n=zip.read(block))!=-1){if(buffer.size()+n>16000)throw new IOException("Metadados de kit extensos");buffer.write(block,0,n);}
+     JSONObject manifest=new JSONObject(buffer.toString("UTF-8"));
+     if(!"graue-pad-kit".equals(manifest.optString("format"))||manifest.optInt("version")!=1)
+      throw new IOException("Versão do kit não suportada");
+     return manifest.optJSONObject("settings");
+    }
+    zip.closeEntry();
+   }
+  }
+  return null;
+ }
  /** Imports up to eight individually supplied sounds from a ZIP, entirely offline.
   * ZIP entry paths are NEVER used as local file paths; extracted audio is bounded.
   * This imports only files the musician provides, never proprietary libraries.
@@ -208,6 +281,7 @@ public final class PadSampleEngine {
   final int maxPerFile=12*1024*1024, maxTotal=70*1024*1024;
   List<File> staged=new ArrayList<>();
   List<String> types=new ArrayList<>(),titles=new ArrayList<>();
+  List<Integer> positions=new ArrayList<>();
   long sum=0;
   try{
    InputStream raw=ctx.getContentResolver().openInputStream(uri);
@@ -225,7 +299,12 @@ public final class PadSampleEngine {
       if(!ext.isEmpty()){
        if(staged.size()>=PADS)throw new IOException("O ZIP tem mais de 8 áudios. Separe em outro kit.");
        File tmp=File.createTempFile("graue_zip_", "."+ext,root);
-       staged.add(tmp);types.add(ext);titles.add(last.length()>40?last.substring(0,40):last);
+       staged.add(tmp);types.add(ext);
+       java.util.regex.Matcher slotMatcher=java.util.regex.Pattern.compile("^0([1-8])__pad\\.(?:wav|mp3|ogg)$",java.util.regex.Pattern.CASE_INSENSITIVE).matcher(last);
+       int position=slotMatcher.matches()?Integer.parseInt(slotMatcher.group(1))-1:staged.size()-1;
+       if(positions.contains(position))throw new IOException("ZIP contém dois sons para o mesmo pad.");
+       positions.add(position);
+       titles.add(last.length()>40?last.substring(0,40):last);
        int n;long individual=0;byte[] bytes=new byte[16384];
        try(OutputStream out=new FileOutputStream(tmp)){
         while((n=input.read(bytes))!=-1){
@@ -243,13 +322,14 @@ public final class PadSampleEngine {
    if(staged.isEmpty())throw new IOException("Nenhum WAV, MP3 ou OGG encontrado dentro do ZIP.");
    // Extraction completed before replacing any assigned pad. Original ZIP stays untouched.
    for(int i=0;i<staged.size();i++){
-    String name="pad_"+bank+"_"+i+"."+types.get(i);
+    int position=positions.get(i);
+    String name="pad_"+bank+"_"+position+"."+types.get(i);
     File dest=new File(root,name);
     java.nio.file.Files.copy(staged.get(i).toPath(),dest.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-    String previous=prefs.getString("slot_"+bank+"_"+i,"");
-    if(!prefs.edit().putString("slot_"+bank+"_"+i,name).putString("label_"+bank+"_"+i,titles.get(i)).commit())
-     throw new IOException("Falha ao guardar a atribuição do pad "+(i+1));
-    load(bank,i,dest);
+    String previous=prefs.getString("slot_"+bank+"_"+position,"");
+    if(!prefs.edit().putString("slot_"+bank+"_"+position,name).putString("label_"+bank+"_"+position,titles.get(i)).commit())
+     throw new IOException("Falha ao guardar a atribuição do pad "+(position+1));
+    load(bank,position,dest);
     if(!previous.isEmpty()&&!previous.equals(name)&&previous.matches("pad_[0-7]_[0-7]\\.(wav|mp3|ogg)"))
      new File(root,previous).delete();
    }
