@@ -463,3 +463,57 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 
 /* Even in the legacy editor, the global USB entry point is the only connector. */
 body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {display:none!important}
+
+
+/* v1.7 · palco enxuto. Controles MIDI são habilitados com USB, não por botão. */
+#gx-shell #gx-arm,body.gx-ready #liveArm,body.gx-ready #arm,
+#gx-shell #gx-read,#gx-shell #gx-connect,
+#gx-shell #gx-perf-read,#gx-shell #gx-user-patches,
+#gx-shell #gx-device-connect,#gx-shell #gx-connect-settings,
+#gx-shell #gx-read-settings{display:none!important}
+#gx-shell .gx-stage-footer{display:flex;align-items:center;gap:6px;margin:3px 0;justify-content:flex-end}
+#gx-shell .gx-stage-footer #gx-show-mode{min-height:42px;padding:7px 12px}
+#gx-shell .gx-zone{margin:4px 0}
+#gx-shell .gx-fav-grid{gap:4px}
+#gx-shell .gx-panel{padding:9px!important}
+#gx-shell .gx-silent-note,#gx-shell .gx-assist>small,
+#gx-shell .gx-tone-tip,#gx-shell .gx-backup-intro,
+#gx-shell .gx-gemma-source,#gx-shell .gx-gemma-panel>p,
+#gx-shell .gx-jarvis-memory>p{display:none}
+#gx-shell .gx-silent-content strong{font-size:20px}
+#gx-shell .gx-stage-parts{gap:5px}
+#gx-shell .gx-stage-parts button{min-height:48px!important;padding:5px 3px!important}
+#gx-shell .gx-stage-parts small{display:none}
+#gx-shell .gx-assist-controls button{min-height:50px!important}
+#gx-shell .gx-sound-layout{gap:7px}
+#gx-shell .gx-sound-right{gap:7px}
+#gx-shell .gx-tone-list{max-height:62vh}
+#gx-shell .gx-bank-slots button{min-height:47px}
+#gx-shell .gx-performance{padding:8px!important}
+#gx-shell .gx-perf-row{gap:6px}
+#gx-shell .gx-performance small{font-size:10px}
+#gx-shell .gx-performance strong{font-size:17px;min-width:0}
+.gx-performance-banks{display:flex;flex-direction:column;gap:7px}
+.gx-perf-tools{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.gx-perf-tools strong{color:#72e6d6;font-size:13px;flex:1}
+.gx-perf-tools span{min-width:36px;text-align:center;font-size:11px}
+#gx-shell .gx-perf-tools button{min-height:40px;padding:7px 10px;font-size:12px}
+#gx-shell .gx-perf-tools button.on{background:#099e87;color:#061b20;border-color:#3be0c0}
+.gx-perf-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+#gx-shell .gx-perf-grid button{min-height:55px;text-align:center;padding:6px 4px;font-size:12px;overflow-wrap:anywhere}
+#gx-shell .gx-performance-banks>small{font-size:10px;color:#acc9d3}
+#gx-shell .gx-one-touch .gx-tone-list{margin:0}
+@media(min-width:840px) and (orientation:landscape){
+  .gx-perf-grid{grid-template-columns:repeat(8,minmax(0,1fr))}
+  #gx-shell .gx-sound-layout{grid-template-columns:minmax(110px,.18fr) minmax(360px,1fr) minmax(145px,.25fr)}
+  #gx-shell .gx-sound-left button{min-height:42px!important;padding:6px 9px!important;font-size:12px}
+  #gx-shell .gx-assist-controls{flex-wrap:nowrap}
+}
+@media(max-width:700px){
+  #gx-shell .gx-stage-summary{gap:5px}
+  #gx-shell .gx-stage-actions button{min-height:66px}
+  #gx-shell .gx-fav-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #gx-shell .gx-stage-parts{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #gx-shell .gx-mixer-grid{gap:4px}
+  #gx-shell .gx-tone-categories{gap:4px}
+}
