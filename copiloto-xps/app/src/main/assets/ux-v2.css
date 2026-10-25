@@ -774,3 +774,7 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell .gx-bank-slot-row>.gx-bank-action{min-height:32px;padding:3px;font-size:10px}
 #gx-shell .gx-bank-slot-row>.gx-bank-action-danger{color:#ffc7c7}
 #gx-shell .gx-tone-pick,#gx-shell .gx-fav-tile,#gx-shell .gx-fav-entry,#gx-shell .gx-bank-slot,#gx-shell .gx-live-bank-slot{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+
+/* Current lyrics autoscroll speed, legible during performances. */
+#gx-shell #gx-scroll-speed-value{font-size:13px;font-weight:700;color:#10496e}
+#gx-shell .gx-scroll-controls small{color:#506c7e;line-height:1.35}
