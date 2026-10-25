@@ -371,6 +371,56 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void editHardware(String json){if(json.length()<40000)runOnUiThread(()->xps.write(json,armed));}
   @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
   @JavascriptInterface public void connect(){runOnUiThread(()->{MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
+  /** Refreshes MIDI ports in both directions; never clears cached tones, performances or favorites.
+   * Safe for an unplug/replug between songs; releases active notes before changing ports. */
+  @JavascriptInterface public void refreshMidiPorts(){
+   runOnUiThread(()->{
+    if(midi==null){emit("status","Subsistema USB-MIDI não inicializado.");return;}
+    MidiDeviceInfo[] found=midi.devices();
+    int currentId=midi.connectedDeviceId();
+    int incoming=0,outgoing=0;
+    for(MidiDeviceInfo info:found){
+     // Android output ports RECEIVE messages from the keyboard;
+     // Android input ports SEND commands to the keyboard.
+     incoming+=info.getOutputPortCount();
+     outgoing+=info.getInputPortCount();
+    }
+    try{
+     JSONObject detail=new JSONObject()
+      .put("devices",found.length)
+      .put("inputPorts",incoming)
+      .put("outputPorts",outgoing)
+      .put("connected",midi.isConnected())
+      .put("refreshing",found.length>0);
+     emit("midiPorts",detail);
+    }catch(Exception ignored){}
+    if(found.length==0){
+     if(midi.isConnected()){
+      if(sequencer!=null)sequencer.stop();
+      stopPadNotes();
+      midi.disconnect();
+     }
+     armed=false;autoUserRead=false;
+     emit("armed",false);emit("xpsConnection",false);
+     emit("status","Atualização MIDI: nenhuma entrada/saída USB encontrada. Reconecte o cabo; seus timbres e favoritos continuam salvos.");
+     return;
+    }
+    MidiDeviceInfo selected=null;
+    for(MidiDeviceInfo info:found)if(info.getId()==currentId){selected=info;break;}
+    if(selected==null&&found.length==1)selected=found[0];
+    if(selected==null){
+     emit("status","Há "+found.length+" dispositivos MIDI disponíveis. Escolha o XPS-10 na lista.");
+     new Bridge().connect(); // Same selection dialog as the single global connection.
+     return;
+    }
+    if(sequencer!=null)sequencer.stop();
+    stopPadNotes(); // Release pad, drone and assist notes before reopening the device.
+    armed=false;
+    emit("armed",false);emit("xpsConnection",false);
+    emit("status","Atualizando entrada e saída MIDI do XPS-10…");
+    midi.connect(selected); // Reopens both ports, resets parsers, triggers initialSync once.
+   });
+  }
   @JavascriptInterface public void microphone(boolean on){runOnUiThread(()->{if(!on){audio.stop();emit("mic",false);}else if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},1);else{audio.start();emit("mic",audio.isRunning());}});}
   @JavascriptInterface public void arm(boolean value){runOnUiThread(()->{
   // Compatibility: connection is the only switch; no separate MIDI activation.
