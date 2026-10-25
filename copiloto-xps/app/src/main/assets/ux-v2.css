@@ -637,3 +637,12 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 .gx-inspection-report pre{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;line-height:1.45;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px}
 .gx-inspection-report>small{font-size:11px;color:#9bbdc8}
 #gx-shell .gx-backup-row button{min-height:44px}
+
+
+/* Roland favorites tab displays only verifiable physical favorites, never local placeholders. */
+#gx-shell .gx-physical-favorites-mode .gx-tone-heading,
+#gx-shell .gx-physical-favorites-mode .gx-tone-categories,
+#gx-shell .gx-physical-favorites-mode .gx-tone-toolbar,
+#gx-shell .gx-physical-favorites-mode .gx-tone-count,
+#gx-shell .gx-physical-favorites-mode .gx-tone-list {display:none!important}
+#gx-shell .gx-physical-favorites-mode .gx-roland-favorites {order:0;margin:0}
