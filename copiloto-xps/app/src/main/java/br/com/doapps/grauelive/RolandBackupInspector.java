@@ -27,18 +27,18 @@ public final class RolandBackupInspector {
   JSONArray members=new JSONArray();
   if(isZip) {
    long totalDeclared=0;
-   try(ZipInputStream zip=new ZipInputStream(new BufferedInputStream(new FileInputStream(file)))){
-    ZipEntry entry;int count=0;
-    while((entry=zip.getNextEntry())!=null&&count<120){
+   try(ZipFile zip=new ZipFile(file)){
+    Enumeration<? extends ZipEntry> entries=zip.entries();int count=0;
+    while(entries.hasMoreElements()&&count<120){
+     ZipEntry entry=entries.nextElement();
      count++;
      if(entry.getSize()>0){totalDeclared+=entry.getSize();if(totalDeclared>500L*1024*1024)throw new IOException("ZIP maior que o limite de inspeção");}
      String entryName=entry.getName();
      JSONObject info=new JSONObject().put("path",entryName.length()>180?entryName.substring(0,180):entryName)
        .put("bytes",entry.getSize()).put("directory",entry.isDirectory());
      members.put(info);
-     zip.closeEntry();
     }
-    out.put("entryListTruncated",count>=120);
+    out.put("entryListTruncated",entries.hasMoreElements());
    }catch(ZipException e){out.put("container","ZIP inválido/criptografado");}
   }
   out.put("files",members);
