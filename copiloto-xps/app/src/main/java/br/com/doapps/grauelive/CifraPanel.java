@@ -12,7 +12,7 @@ final class CifraPanel extends LinearLayout {
  private final WebView browser;
  private final TextView address;
  private final Importer importer;
- interface Importer {void accept(String title,String text);}
+ interface Importer {void accept(org.json.JSONObject score);}
  CifraPanel(Activity activity, Importer importer, Runnable close) {
   super(activity);this.importer=importer;setOrientation(VERTICAL);setBackgroundColor(0xff101827);
   LinearLayout bar=new LinearLayout(activity);
@@ -35,38 +35,43 @@ final class CifraPanel extends LinearLayout {
   button(bar,"↻",()->browser.reload());
   button(bar,"Início",()->browser.loadUrl("https://www.cifraclub.com.br/"));
   button(bar,"Externo",()->{String u=browser.getUrl();if(u!=null&&"https".equalsIgnoreCase(Uri.parse(u).getScheme()))try{activity.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(u)));}catch(Exception ignored){address.setText("Nenhum navegador disponível.");}});
-  button(bar,"Importar",this::importCurrent);
+  button(bar,"Trazer cifra",this::importCurrent);
   button(bar,"Fechar",close);
   String last=nav.getString("last_url","https://www.cifraclub.com.br/");Uri target=Uri.parse(last);String host=target.getHost();boolean trusted="https".equalsIgnoreCase(target.getScheme())&&host!=null&&(host.equals("cifraclub.com.br")||host.endsWith(".cifraclub.com.br"));
   browser.loadUrl(trusted?last:"https://www.cifraclub.com.br/");
  }
  void importCurrent(){
-   Uri uri=Uri.parse(browser.getUrl()==null?"":browser.getUrl());String host=uri.getHost();if(host==null||!(host.equals("cifraclub.com.br")||host.endsWith(".cifraclub.com.br"))){address.setText("Abra a cifra no Cifra Club antes de importar.");return;}
-   // Busca somente o conteúdo da cifra aberta pelo usuário. O novo layout do Cifra Club pode não usar <pre>.
-   // Não acessa cookies, credenciais nem páginas fora do domínio permitido.
-   String script = """
-     (() => {
-       const selectors = ['pre', '#cifra', '.cifra_cnt', '.cifra', '[data-testid="cifra-content"]',
-         '[data-testid="chord-sheet"]', '[class*="chord-sheet"]', '[class*="cifra-content"]',
-         '[class*="cifra_cnt"]', 'main article pre'];
-       const candidates = [];
-       for (const sel of selectors) for (const e of document.querySelectorAll(sel)) {
-         const t = (e.innerText || '').trim();
-         if (t.length >= 30 && t.length <= 200000) candidates.push(t);
-       }
-       // Preserva quebras de linha para que o parser local possa ler acordes e versos.
-       const score = t => {
-         const lines = t.split(String.fromCharCode(10)).map(x => x.trim());
-         const patterns = lines.filter(x => /(^| )[A-G](#|b)?(m|maj|sus|dim|aug|7|9|11|13)?[0-9]*( |$)/.test(x)).length;
-         return patterns * 12 - Math.max(0, t.length - 10000) / 400;
-       };
-       candidates.sort((a,b) => score(b)-score(a));
-       const content = candidates[0] || '';
-       return JSON.stringify({title:(document.querySelector('h1')?.innerText || document.title || '').slice(0,180),
-         text:content.slice(0,100000)});
-     })()
-   """;
-   browser.evaluateJavascript(script,result->{try{String json=(String)new org.json.JSONTokener(result).nextValue();org.json.JSONObject d=new org.json.JSONObject(json);String text=d.getString("text");if(text.trim().isEmpty()){address.setText("Não encontrei a cifra neste layout. Use Compartilhar/Importar texto.");return;}importer.accept(d.getString("title"),text);address.setText("Cifra enviada ao Grauê. Revise o tom e os acordes.");}catch(Exception e){address.setText("Importação indisponível nesta página. Use Compartilhar texto.");}});
+   final String page=browser.getUrl()==null?"":browser.getUrl();
+   final Uri uri=Uri.parse(page);String host=uri.getHost();
+   if(!"https".equalsIgnoreCase(uri.getScheme())||host==null||!(host.equals("cifraclub.com.br")||host.endsWith(".cifraclub.com.br"))){
+    address.setText("Abra uma cifra no Cifra Club para importar.");return;
+   }
+   try{
+    // Only script that runs in the current Cifra Club WebView.
+    // The script classifies the DOM the user already opened: no crawling or cookie access.
+    byte[] jsBytes;
+    try(java.io.InputStream input=getContext().getAssets().open("cifra-extractor.js");
+        java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream()){
+     byte[] buf=new byte[8192];int n;
+     while((n=input.read(buf))!=-1){if(output.size()+n>90000)throw new java.io.IOException("Extrator grande demais");output.write(buf,0,n);}
+     jsBytes=output.toByteArray();
+    }
+    String js=new String(jsBytes,java.nio.charset.StandardCharsets.UTF_8);
+    address.setText("Analisando acordes e letra automaticamente…");
+    browser.evaluateJavascript(js+"\nJSON.stringify(window.GraueCifraExtract(document, location.href));",result->{
+     try{
+      Object decoded=new org.json.JSONTokener(result).nextValue();
+      if(!(decoded instanceof String))throw new org.json.JSONException("Resultado não textual");
+      org.json.JSONObject data=new org.json.JSONObject((String)decoded);
+      if(!data.optBoolean("ok")){
+       address.setText(data.optString("error","Não consegui identificar a cifra nesta página."));return;
+      }
+      if(data.optString("text","").isBlank()){address.setText("Cifra sem versos detectáveis. Página mantida no navegador.");return;}
+      importer.accept(data);
+      address.setText("Cifra importada para o Grauê. Navegador recolhido.");
+     }catch(Exception e){address.setText("Não foi possível interpretar esta versão da página. Confira se abriu uma cifra.");}
+    });
+   }catch(Exception e){address.setText("Extrator indisponível. Verifique os arquivos do app.");}
   }
  private void button(LinearLayout bar,String title,Runnable action){Button b=new Button(getContext());b.setText(title);b.setTextSize(11);b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(4,0,4,0);b.setOnClickListener(v->action.run());bar.addView(b,new LayoutParams(0,-2,1));}
  void pause(){browser.onPause();CookieManager.getInstance().flush();}
