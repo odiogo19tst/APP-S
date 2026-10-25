@@ -515,3 +515,24 @@ body.gx-ready #liveArm,body.gx-ready label:has(#arm){display:none!important}
  #gx-shell .gx-cc-item input[type=range]{height:65px;min-height:65px}
  #gx-shell .gx-tone-list{max-height:36vh}
 }
+
+
+/* Grauê sample library: MIDI note pads vs. Android audio samples are separate. */
+#gx-shell #gx-open-sample-pads{min-height:48px;background:#0b6462;border:1px solid #1ab3a9;color:#fff;font-weight:700}
+.gx-sample-dialog{box-sizing:border-box;width:min(750px,calc(100vw - 18px));max-height:calc(100dvh - 28px);overflow-y:auto;background:#0c1d29;color:#e7fffd;padding:14px;border:1px solid #28b29f;border-radius:14px;box-shadow:0 18px 60px #000a}
+.gx-sample-dialog::backdrop{background:#000b}
+.gx-sample-dialog header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.gx-sample-dialog header strong{font-size:19px;color:#80ead4}
+.gx-sample-dialog p{font-size:12px;line-height:1.5;color:#bdced5}
+.gx-sample-dialog label{display:flex;flex-direction:column;gap:6px;margin:9px 0;font-size:12px;font-weight:700}
+.gx-sample-dialog select{box-sizing:border-box;width:100%;min-height:44px;padding:10px;background:#142f3d;border:1px solid #345967;border-radius:8px;color:#fff;font-size:13px}
+.gx-sample-dialog button{min-height:44px;border:1px solid #2d6c74;border-radius:9px;color:#fff;background:#1a3747;padding:9px}
+.gx-sample-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:14px 0}
+.gx-sample-cell{display:flex;flex-direction:column;gap:5px;min-width:0}
+.gx-sample-hit{min-height:95px!important;padding:9px 7px!important;background:linear-gradient(135deg,#124452,#09273b)!important;border-color:#29797b!important;font-size:12px;overflow-wrap:anywhere}
+.gx-sample-hit:active{background:#116e6b!important}
+.gx-sample-hit:disabled{opacity:.45}
+.gx-sample-import{font-size:11px;background:#23404e!important}
+#gx-sample-help{display:block;color:#98c6cd;line-height:1.4;font-size:12px;margin-bottom:8px}
+#gx-sample-stop{width:100%}
+@media(max-width:700px){.gx-sample-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-sample-hit{min-height:86px!important}.gx-sample-dialog{padding:10px}}
