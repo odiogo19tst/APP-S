@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
  private BackupArchive backupArchive; private LocalPadLibrary samplePads;
  private String pendingPadBank="drums";private int pendingPadSlot=0;
+ private int receivedRolandSysex=0;
  private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
@@ -69,10 +70,17 @@ public class MainActivity extends Activity {
    if(entries.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",entries.toString()).apply();
   }
  }});
-  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
+  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){
+  if(XpsProtocol.decode(p)!=null){
+   receivedRolandSysex++;
+   if(receivedRolandSysex==1||receivedRolandSysex%16==0)emit("xpsSysex",receivedRolandSysex);
+  }
+  xps.accept(p);
+}public void status(String t){
  // MIDI permissions and data transport are distinct from Roland SysEx readback.
  // Automatically enable sending ONLY when the OS confirms both MIDI ports are open.
  final boolean ready=t!=null&&t.startsWith("USB conectado")&&midi!=null&&midi.isConnected();
+ receivedRolandSysex=0;emit("xpsSysex",0);
  stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
  armed=ready;
  emit("armed",armed);
