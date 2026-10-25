@@ -29,7 +29,7 @@
  el('gx-drums-channel').onchange=()=>{drumChannel=+el('gx-drums-channel').value;native('stopSequence');save();};
  el('gx-drone-channel').onchange=()=>{native('stopDronePad');droneOn=false;droneChannel=+el('gx-drone-channel').value;save();};
  el('gx-beats-bpm').onchange=()=>{bpm=Math.min(180,Math.max(40,Number(el('gx-beats-bpm').value)||72));el('gx-beats-bpm').value=String(bpm);save();};
- const rolandKits=(window.XPS_TONES||[]).filter(t=>t.category==='DRM'&&/^Dr\\d{3}$/.test(t.code)&&t.msb>=0&&t.lsb>=0&&t.program>=1);
+ const rolandKits=(window.XPS_TONES||[]).filter(t=>t.category==='DRM'&&/^Dr[0-9]{3}$/.test(t.code)&&t.msb>=0&&t.lsb>=0&&t.program>=1);
  const rolandSelect=el('gx-roland-kit');
  for(const kit of rolandKits){
   const option=document.createElement('option');option.value=kit.code;
