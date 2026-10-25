@@ -22,4 +22,15 @@ assert(byok.includes('setInstanceFollowRedirects(false)'),'Prevent credential re
 assert(native.includes('@JavascriptInterface public void configureDirectApi')&&native.includes('directApi.request(prepared)'),'Direct API native and inference path required');
 assert(native.includes('forgetDirectApi()'),'Must support local key deletion');
 assert(!ui.includes('window.Native.configureDirectApi("sk-'),'Never hardcode secret in app');
+
+assert(native.includes('final boolean ready=t!=null&&t.startsWith("USB conectado")&&midi!=null&&midi.isConnected()'),'MIDI must arm only after both ports connect');
+assert(native.includes('armed=ready;')&&native.includes('emit("armed",armed)'),'Native must auto-arm and auto-disarm with USB lifecycle');
+assert(native.includes('if(session==midiSession&&midi!=null&&midi.isConnected()&&armed)xps.read();'),'Read must start automatically and never use a stale USB session');
+assert(native.includes('@Override protected void onResume()')&&native.includes('armed=true;emit("armed",true);emit("xpsConnection",true);'),'Resuming with USB must restore automatic MIDI sending');
+assert(native.includes('@JavascriptInterface public void arm(boolean unused)'),'Legacy MIDI switch must not disable USB auto-enable');
+assert(native.includes('emit("xpsConnection",midi!=null&&midi.isConnected())'),'Webview reload must recover real USB state');
+assert(!ui.includes('id="gx-arm"'),'No extra Enable MIDI button on stage');
+assert(!ui.includes("callOld('liveArm')"),'No staged enabling via legacy UI');
+assert(ui.includes('id="gx-midi-ready"')&&ui.includes('MIDI liberado automaticamente'),'Stage should show actual auto-enable');
+assert(css.includes('#liveArm')&&css.includes('label:has(#arm)'),'Hide redundant legacy MIDI switches');
 console.log('Grauê 1.6: factory tones, filters, unified USB, Android encrypted direct API checks passed');

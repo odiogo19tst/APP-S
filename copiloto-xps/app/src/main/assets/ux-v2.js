@@ -19,14 +19,14 @@
 '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
  '<div class="gx-panel gx-assist"><div class="gx-section-label">✦ JARVIS MUSICAL · ACORDE DE APOIO <small>Som gerado pelo XPS-10 por MIDI</small></div><div class="gx-assist-controls"><div><strong id="gx-assist-chord">—</strong><small>acorde atual da música</small></div><label>Canal<select id="gx-assist-channel"></select></label><button id="gx-assist-play">▶ Tocar acorde</button><button id="gx-assist-stop">■ Parar</button></div><small>Um toque envia o acorde por 900 ms, somente com MIDI ativado. Escolha um canal de recepção que não interfira nas notas que você está tocando. Nunca toca sem seu comando.</small></div>',
  '<div class="gx-panel gx-zone"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
- '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm">Habilitar envio MIDI</button><button id="gx-show-mode">Modo show ↔</button></div></div>',
+ '<div class="gx-stage-footer"><span id="gx-midi-ready" class="gx-midi-ready">● Conecte o USB: MIDI e leitura iniciam juntos</span><button id="gx-show-mode">Modo show ↔</button></div></div>',
  '<div class="gx-screen" data-gx-screen="repertoire"><div class="gx-rep-layout">',
  '<aside class="gx-panel gx-rep-library"><div class="gx-section-label">▏ Meu Repertório</div><input id="gx-search" placeholder="Buscar música, artista ou tom…" aria-label="Buscar repertório"><div class="gx-filters"><button class="on" data-gx-filter="all">Todas</button><button data-gx-filter="favorites">Favoritas</button><button data-gx-filter="setlist">Setlist</button><button data-gx-filter="recent">Recentes</button><button id="gx-add-song">+</button></div><div id="gx-songs" class="gx-song-list"></div></aside>',
  '<section class="gx-rep-view"><div class="gx-rep-tabs"><button class="on" data-gx-rep="cifra">Cifra integrada</button><button data-gx-rep="letter">Letra</button><button data-gx-rep="notes">Anotações</button><button data-gx-rep="setlist">Setlist</button></div>',
  '<div class="gx-paper"><div class="gx-cifra-head"><div><b>♬ Cifra Club</b><small>Navegação integrada no aplicativo</small></div><button id="gx-open-cifra">Buscar no Cifra Club ↗</button></div><div class="gx-paper-main"><div class="gx-paper-copy"><h2 id="gx-cifra-title">Escolha uma música</h2><span id="gx-cifra-meta">Importe letras e acordes para o seu repertório</span><p id="gx-cifra-key">Tom de referência: —</p><div id="gx-cifra-content">Selecione uma música ou abra o Cifra Club para importar sua cifra.</div></div><aside class="gx-paper-actions"><button class="gx-blue" id="gx-import-cifra">Importar cifra desta página</button><button id="gx-save-cifra">Salvar no repertório</button><button id="gx-transpose-cifra">Transpor +1</button><button id="gx-view-cifra">Abrir navegador</button><div class="gx-session">✓ Sessão gerenciada pelo Cifra Club<small>O login depende do site e pode exigir nova autenticação.</small></div></aside></div></div>',
  '<p class="gx-note">A cifra do site abre no painel nativo ao lado em paisagem; o botão Importar copia apenas a música aberta quando o site permite a leitura. Nenhuma sincronização automática de conta foi prometida.</p></section></div></div>',
  '<div class="gx-screen" data-gx-screen="sound"><div class="gx-sound-layout"><aside class="gx-panel gx-sound-nav"><button data-gx-sound="performance">▣ Performance</button><button class="on" data-gx-sound="tones">♧ Timbres</button><button data-gx-sound="parts">♮ Partes (1–16)</button><button data-gx-sound="mixer">☷ Mixer</button><button data-gx-sound="split">◉ Split / Layer</button><button data-gx-sound="effects">♬ Efeitos (MFX)</button><button data-gx-sound="arpeggio">▥ Arpejador</button><button data-gx-sound="favorites">★ Favoritos</button><button id="gx-advanced">⚙ Editor completo</button></aside>',
- '<div class="gx-sound-center"><div class="gx-panel gx-performance"><small>PERFORMANCE ATUAL</small><div class="gx-perf-row"><strong id="gx-perf-name">Aguardando leitura do teclado</strong><button id="gx-perf-read">Ler</button><button id="gx-perf-edit">Editar</button><button id="gx-perf-new">Timbres</button><button id="gx-user-patches">Ler USER</button></div></div><div id="gx-one-touch" class="gx-panel gx-one-touch"><div class="gx-tone-heading"><strong>TOCAR AGORA — XPS-10</strong><label>Parte <select id="gx-tone-part"></select></label></div><div id="gx-tone-categories" class="gx-tone-categories"></div><div class="gx-tone-toolbar"><input id="gx-tone-search" type="search" placeholder="Buscar timbre, código ou categoria…"><button id="gx-tone-favorites">★ Favoritos</button></div><div class="gx-tone-count" id="gx-tone-count"></div><div id="gx-tone-list" class="gx-tone-list"></div><div class="gx-tone-banks"><div class="gx-section-label">BANCOS DE FAVORITOS DO APP — 0 A 9 <small>Não sobrescreve os bancos internos do Roland</small></div><div id="gx-bank-tabs" class="gx-bank-tabs"></div><div id="gx-bank-slots" class="gx-bank-slots"></div></div><p class="gx-tone-tip">Toque no som para enviar ao XPS-10. Segure por 3 segundos para editar. Na primeira conexão o app lê automaticamente; os 256 USER ficam guardados localmente.</p></div><dialog id="gx-tone-dialog" class="gx-tone-dialog"><div class="gx-tone-dialog-header"><strong id="gx-edit-name">Editar timbre</strong><button id="gx-edit-close">Fechar ✕</button></div><p id="gx-edit-status">Compare configurações temporárias sem sobrescrever os timbres USER.</p><div class="gx-variant-tabs"><button data-gx-variant="original" class="on">Original</button><button data-gx-variant="manual">Minha edição</button><button data-gx-variant="ai">Sugestão IA</button></div><label>Volume da parte <input id="gx-edit-volume" type="range" min="0" max="127" value="100"><output id="gx-edit-volume-value">100</output></label><label>Descrição e recomendações <textarea id="gx-edit-notes" rows="4" maxlength="1500" placeholder="Anotações e sugestões para esta Performance"></textarea></label><div class="gx-edit-actions"><button id="gx-edit-suggest">Pedir sugestão à Gemma</button><button id="gx-edit-test" class="gx-start">Testar no XPS-10</button><button id="gx-edit-save">Salvar no aplicativo</button><button id="gx-edit-undo">Desfazer teste</button></div><div id="gx-edit-confirm" hidden>Deseja salvar a configuração escolhida no Grauê? <button id="gx-edit-yes">Sim</button><button id="gx-edit-no">Não</button></div><small>Salvar aqui grava um preset no celular, NÃO sobrescreve a memória USER do teclado. Edições temporárias dependem do modo Performance e de leitura válida.</small></dialog><div class="gx-panel gx-mixer" id="gx-advanced-mixer"><div class="gx-section-label">PARTES MIDI (1–16)<div><button class="on" id="gx-parts-page1">1–8</button><button id="gx-parts-page2">9–16</button></div></div><div id="gx-mixer-parts" class="gx-mixer-grid"></div><p>Volumes da última leitura. Alterações só são enviadas quando o MIDI está habilitado.</p></div></div>',
+ '<div class="gx-sound-center"><div class="gx-panel gx-performance"><small>PERFORMANCE ATUAL</small><div class="gx-perf-row"><strong id="gx-perf-name">Aguardando leitura do teclado</strong><small id="gx-perf-source"></small><button id="gx-perf-local-save">☆ Salvar</button><button id="gx-perf-read">Ler</button><button id="gx-perf-edit">Editar</button><button id="gx-perf-new">Timbres</button><button id="gx-user-patches">Ler USER</button></div><div id="gx-perf-recent" class="gx-perf-recent"></div></div><div id="gx-one-touch" class="gx-panel gx-one-touch"><div class="gx-tone-heading"><strong>TOCAR AGORA — XPS-10</strong><label>Parte <select id="gx-tone-part"></select></label></div><div id="gx-tone-categories" class="gx-tone-categories"></div><div class="gx-tone-toolbar"><input id="gx-tone-search" type="search" placeholder="Buscar timbre, código ou categoria…"><button id="gx-tone-favorites">★ Favoritos</button></div><div class="gx-tone-count" id="gx-tone-count"></div><div id="gx-tone-list" class="gx-tone-list"></div><div class="gx-tone-banks"><div class="gx-section-label">BANCOS DE FAVORITOS DO APP — 0 A 9 <small>Não sobrescreve os bancos internos do Roland</small></div><div id="gx-bank-tabs" class="gx-bank-tabs"></div><div id="gx-bank-slots" class="gx-bank-slots"></div></div><p class="gx-tone-tip">Toque no som para enviar ao XPS-10. Segure por 3 segundos para editar. Na primeira conexão o app lê automaticamente; os 256 USER ficam guardados localmente.</p></div><dialog id="gx-tone-dialog" class="gx-tone-dialog"><div class="gx-tone-dialog-header"><strong id="gx-edit-name">Editar timbre</strong><button id="gx-edit-close">Fechar ✕</button></div><p id="gx-edit-status">Compare configurações temporárias sem sobrescrever os timbres USER.</p><div class="gx-variant-tabs"><button data-gx-variant="original" class="on">Original</button><button data-gx-variant="manual">Minha edição</button><button data-gx-variant="ai">Sugestão IA</button></div><label>Volume da parte <input id="gx-edit-volume" type="range" min="0" max="127" value="100"><output id="gx-edit-volume-value">100</output></label><label>Descrição e recomendações <textarea id="gx-edit-notes" rows="4" maxlength="1500" placeholder="Anotações e sugestões para esta Performance"></textarea></label><div class="gx-edit-actions"><button id="gx-edit-suggest">Pedir sugestão à Gemma</button><button id="gx-edit-test" class="gx-start">Testar no XPS-10</button><button id="gx-edit-save">Salvar no aplicativo</button><button id="gx-edit-undo">Desfazer teste</button></div><div id="gx-edit-confirm" hidden>Deseja salvar a configuração escolhida no Grauê? <button id="gx-edit-yes">Sim</button><button id="gx-edit-no">Não</button></div><small>Salvar aqui grava um preset no celular, NÃO sobrescreve a memória USER do teclado. Edições temporárias dependem do modo Performance e de leitura válida.</small></dialog><div class="gx-panel gx-cc-live"><div class="gx-section-label">FADERS MIDI <small id="gx-cc-status">Aguardando controles físicos</small></div><div id="gx-cc-grid" class="gx-cc-grid"></div></div><div class="gx-panel gx-mixer" id="gx-advanced-mixer"><div class="gx-section-label">PARTES MIDI (1–16)<div><button class="on" id="gx-parts-page1">1–8</button><button id="gx-parts-page2">9–16</button></div></div><div id="gx-mixer-parts" class="gx-mixer-grid"></div><p>Volumes da Performance. MIDI é ativado na conexão USB.</p></div></div>',
  '<aside class="gx-sound-right"><div class="gx-panel gx-device"><div id="gx-device-state">● XPS-10 • aguardando leitura</div><div class="gx-keyboard">▮ ▯ ▮ ▯ ▮ ▮ ▯ ▮ ▯ ▮ ▯ ▮</div><small>Controle USB-MIDI; não transmite áudio do teclado</small><button id="gx-device-connect">Conectar USB</button></div><div class="gx-panel gx-fav-side"><div class="gx-section-label">TIMBRES FAVORITOS <button id="gx-sound-fav-edit">Editar</button></div><div id="gx-sound-favorites"></div></div></aside></div></div>',
  '<div class="gx-screen" data-gx-screen="coach"><div class="gx-coach-layout"><div class="gx-panel gx-listening"><h3>Escuta e análise</h3><button id="gx-mic" class="gx-mic-circle" aria-label="Iniciar ou parar escuta">♩</button><strong id="gx-mic-label">Escuta parada</strong><span id="gx-mic-sub">Toque para iniciar o microfone</span><div class="gx-wave" id="gx-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>',
  '<div class="gx-panel gx-analysis"><h3>Resultado da análise</h3><div class="gx-analysis-grid"><div class="gx-reading"><small>NOTA DETECTADA</small><strong id="gx-heard-note">—</strong><span>Voz / instrumento dominante</span></div><div class="gx-reading"><small>TOM SUGERIDO</small><strong id="gx-heard-key">—</strong><span id="gx-heard-mode">Aguardando áudio</span></div><div class="gx-reading"><small>MODO</small><select id="gx-mode"><option value="0">Maior</option><option value="1">Menor</option></select><span>Referência da música</span></div><div class="gx-reading"><small>ACORDE MIDI</small><strong id="gx-heard-chord">—</strong><span>Teclas pressionadas</span></div><div class="gx-reading"><small>ÍNDICE DE CONFIANÇA</small><strong id="gx-heard-confidence">—</strong><span>Heurístico, não probabilidade</span></div><div class="gx-reading"><small>GRAU ATUAL</small><strong id="gx-heard-degree">—</strong><span>Baseado no tom de referência</span></div></div><div class="gx-section-label">HISTÓRICO DE NOTAS</div><div id="gx-note-history" class="gx-history">Aguardando notas reais…</div></div>',
@@ -111,7 +111,6 @@
  tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');
  const openLegacy=tab=>{document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
- const arm=()=>callOld('liveArm');
  const connect=()=>callOld('connect');
  $x('gx-unified-usb').onclick=()=>{if(!usbConnected)connect();else notify('USB-MIDI já conectado. A leitura é automática; a ausência de SysEx pode indicar modo MIDI ou Device ID diferente.');};
  const openCifra=()=>{switchTab('repertoire');callOld('liveCifra');};
@@ -144,7 +143,7 @@
  $x('gx-assist-stop').onclick=()=>window.Native?.stopAssistChord?.();
 
  $x('gx-edit-fav').onclick=()=>{switchTab('sound');soundSection='favorites';showSoundPanel();};
- $x('gx-connect').onclick=connect;$x('gx-read').onclick=read;$x('gx-arm').onclick=arm;$x('gx-show-mode').onclick=()=>callOld('liveFocus');
+ $x('gx-show-mode').onclick=()=>callOld('liveFocus');
  $x('gx-search').oninput=renderSongs;
  shell.querySelectorAll('[data-gx-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.gxFilter;shell.querySelectorAll('[data-gx-filter]').forEach(x=>x.classList.toggle('on',x===b));renderSongs();});
  $x('gx-add-song').onclick=()=>openLegacy('songs');
@@ -155,6 +154,13 @@
  $x('gx-transpose-cifra').onclick=()=>{callOld('up');transposeSteps++;sync();};
  shell.querySelectorAll('[data-gx-sound]').forEach(b=>b.onclick=()=>{soundSection=b.dataset.gxSound;showSoundPanel();});
  $x('gx-advanced').onclick=()=>openLegacy('sound');
+ $x('gx-perf-local-save').onclick=()=>{
+  const common=hw['common:0'];
+  if(!common){notify('Performance não lida.');return;}
+  const name=common.slice(0,12).map(n=>n>=32&&n<=126?String.fromCharCode(n):'').join('').trim()||'Performance';
+  saved.performanceHistory=[{name,at:Date.now(),parts:Array.from({length:16},(_,i)=>hw['part:'+i]||null)},...(saved.performanceHistory||[]).filter(p=>p.name!==name)].slice(0,20);
+  persist();renderPerformanceHistory();notify('Referência salva no celular. Nada escrito na memória Roland.');
+ };
  $x('gx-perf-read').onclick=read;$x('gx-perf-edit').onclick=()=>openLegacy('sound');$x('gx-perf-new').onclick=()=>openLegacy('sound');
  $x('gx-user-patches').onclick=()=>{if(confirm('Atualizar os 256 timbres USER? A leitura automática já mantém um cache local; repita somente após alterar o teclado.'))window.Native?.readUserTones?.();};
  $x('gx-parts-page1').onclick=()=>{partPage=0;renderMixer();};
@@ -489,6 +495,63 @@
   const selected=backupRows.filter(r=>backupSelection.has(r.sha256));
   el.textContent=selected.length===0?'Marque arquivos para comparar tamanho e assinatura.':selected.length===1?'1 backup selecionado — selecione mais um para comparar.':selected.length+' backups distintos selecionados. Assinaturas SHA-256 diferentes; timbres internos ainda não foram interpretados. A mesclagem não está habilitada.';
  }
+ let cachedPerformance=null;
+ function renderPerformanceHistory(){
+  const area=$x('gx-perf-recent');area.replaceChildren();
+  for(const entry of (saved.performanceHistory||[]).slice(0,7)){
+   const b=document.createElement('button');b.className='gx-perf-chip';b.textContent=entry.name;
+   b.title='Registrado no celular; não aplica Performance ao Roland';
+   b.onclick=()=>notify('Performance registrada: '+entry.name+'. Para tocar, escolha o timbre na lista.');
+   area.append(b);
+  }
+  if(!hw['common:0']&&cachedPerformance?.['common:0']){
+   const name=cachedPerformance['common:0'].slice(0,12).map(n=>n>=32&&n<=126?String.fromCharCode(n):'').join('').trim();
+   if(name){$x('gx-perf-name').textContent=name;$x('gx-perf-source').textContent='Última leitura salva';}
+  }
+ }
+ const controls=[[7,'Vol'],[11,'Expr'],[10,'Pan'],[74,'Cutoff'],[71,'Reson'],[73,'Attack'],[72,'Release'],[91,'Rev'],[93,'Cho']];
+ const liveCcValues=new Map();let incomingCc=0;
+ function currentMidiChannel(){
+  const p=hw['part:'+(+$x('gx-tone-part').value)];
+  return p&&Number.isInteger(p[0])?p[0]+1:1;
+ }
+ function redrawCc(){
+  const channel=currentMidiChannel();
+  $x('gx-cc-status').textContent=incomingCc?incomingCc+' eventos CC recebidos':'CC ao vivo · canal '+channel;
+  for(const [cc] of controls){
+   const slider=$x('gx-cc-'+cc),value=liveCcValues.get(channel+':'+cc);
+   if(slider&&Number.isInteger(value)&&slider.dataset.dragging!=='1'){
+    slider.value=String(value);$x('gx-cc-out-'+cc).textContent=String(value);
+   }
+  }
+ }
+ for(const [cc,name] of controls){
+  const item=document.createElement('div');item.className='gx-cc-item';
+  const label=document.createElement('label');label.textContent=name;label.setAttribute('for','gx-cc-'+cc);
+  const output=document.createElement('strong');output.id='gx-cc-out-'+cc;output.textContent='—';
+  const slider=document.createElement('input');slider.id='gx-cc-'+cc;slider.type='range';slider.min='0';slider.max='127';slider.value='64';
+  slider.setAttribute('aria-label',name+' controle '+cc);
+  slider.onpointerdown=()=>slider.dataset.dragging='1';
+  slider.onpointerup=()=>slider.dataset.dragging='';
+  slider.oninput=()=>output.textContent=slider.value;
+  slider.onchange=()=>{
+   slider.dataset.dragging='';
+   if(!usbConnected)return notify('Conecte USB-MIDI.');
+   const ch=currentMidiChannel(),v=Number(slider.value);
+   liveCcValues.set(ch+':'+cc,v);
+   window.Native?.cc?.(ch,cc,v);
+   $x('gx-cc-status').textContent='Enviado CC'+cc+' · CH'+ch;
+  };
+  item.append(label,output,slider);$x('gx-cc-grid').append(item);
+ }
+ function receivePhysicalCc(packet){
+  if(!Array.isArray(packet)||((packet[0]&240)!==176)||!controls.some(x=>x[0]===packet[1]))return;
+  const channel=(packet[0]&15)+1,cc=packet[1],value=packet[2];
+  if(!Number.isInteger(value)||value<0||value>127)return;
+  incomingCc++;liveCcValues.set(channel+':'+cc,value);redrawCc();
+ }
+ $x('gx-tone-part').addEventListener('change',redrawCc);
+ renderPerformanceHistory();
  function renderMixer(){
   $x('gx-parts-page1').classList.toggle('on',partPage===0);$x('gx-parts-page2').classList.toggle('on',partPage===1);
   let grid=$x('gx-mixer-parts');grid.replaceChildren();
@@ -501,7 +564,7 @@
    slider.oninput=()=>out.textContent=slider.value;
    slider.onchange=()=>{
     if(!p)return;
-    if(!$x('arm').checked){notify('Ative o envio MIDI antes de modificar volume.');renderMixer();return;}
+    if(!usbConnected){notify('Conecte USB-MIDI.');return;}
     if(!hw['setup:0']||hw['setup:0'][0]!==1){notify('Leia uma Performance válida do XPS-10 antes de editar o volume.');renderMixer();return;}
     if(!window.Native||!window.Native.editHardware){notify('Conecte o XPS-10 pelo USB e atualize a leitura.');return;}
     const level=Number(slider.value);
@@ -519,6 +582,9 @@
   const common=hw['common:0'];let perf='Performance ainda não lida';
   if(common&&common.length>=12){const v=common.slice(0,12).map(n=>n>=32&&n<=126?String.fromCharCode(n):'').join('').trim();if(v)perf=v;}
   $x('gx-perf-name').textContent=perf;
+  $x('gx-perf-source').textContent=common?'Lido agora':'Sem leitura atual';
+  if(!common)renderPerformanceHistory();
+  redrawCc();
   $x('gx-device-state').textContent=hw['setup:0']?'● Performance respondendo por MIDI':'● XPS-10 • aguardando leitura';
  }
  function syncStage(){
@@ -533,7 +599,7 @@
   $x('gx-assist-chord').textContent=song.chords?.[idx]||'—';
   renderSilentAdvisor();
   $x('gx-transpose').textContent=(transposeSteps>0?'+':'')+transposeSteps;
-  $x('gx-arm').textContent=$x('arm')?.checked?'Desabilitar envio MIDI':'Habilitar envio MIDI';
+  $x('gx-midi-ready').textContent=usbConnected?'● MIDI liberado automaticamente · pronto para usar':'● Conecte o USB: MIDI e leitura iniciam juntos';
  }
  function renderCoach(){
   $x('gx-mic-label').textContent=recording?'Escuta ativa':'Escuta parada';
@@ -558,9 +624,10 @@
   if(kind==='hardwareReset')hw={};
   if(kind==='mic')recording=!!data;
   if(kind==='audio'){lastAudio=data;if(Number.isInteger(data.midi)&&data.midi>=0){const n=friendlyNote(data.midi);if(notesHistory.at(-1)!==n)notesHistory=[...notesHistory,n].slice(-9);}}
-  if(kind==='midi'){lastCh=$x('chord').textContent;}
+  if(kind==='midi'){lastCh=$x('chord').textContent;receivePhysicalCc(data);}
   if(kind==='clear')lastCh='—';
   if(kind==='audio'||kind==='midi'||kind==='mic'||kind==='clear'){renderCoach();return;}
+  if(kind==='cachedPerformance'){cachedPerformance=data;renderPerformanceHistory();return;}
   if(kind==='hardware'||kind==='hardwareReset'){renderMixer();renderFavorites();syncStage();return;}
   if(kind==='armed'){syncStage();return;}
   if(kind==='backups'){backupRows=Array.isArray(data)?data:[];renderBackups();}
@@ -573,7 +640,8 @@
    $x('gx-unified-usb').textContent=usbConnected?'USB conectado':'Conectar USB';
    $x('gx-unified-usb').classList.toggle('connected',usbConnected);
    $x('gx-usb').textContent=usbConnected?'● MIDI conectado':'● USB desconectado';
-   $x('gx-device-state').textContent=usbConnected?'● MIDI conectado · aguardando resposta SysEx':'● USB desconectado';
+   $x('gx-device-state').textContent=usbConnected?'● USB e MIDI habilitados · resposta SysEx pendente':'● USB desconectado';
+   $x('gx-midi-ready').textContent=usbConnected?'● MIDI liberado automaticamente · pronto para usar':'● Conecte o USB: MIDI e leitura iniciam juntos';
   }
   if(kind==='answer'){
     if(silentPending){
@@ -581,6 +649,10 @@
      $x('gx-silent-ai-text').textContent=S(data||'Nenhuma sugestão disponível.').slice(0,500);
      renderSilentAdvisor();
     }else onToneAiAnswer(data);
+  }
+  if(kind==='gemmaLastError'){
+   if(data)gemmaInfo.textContent='Erro de carregamento: '+S(data).slice(0,320);
+   gemmaInstall.textContent=data?'Verificar novamente':'Instalar Gemma';
   }
   if(kind==='gemmaProgress'){
     const busy=!!data.busy,progress=Number(data.progress);
