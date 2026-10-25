@@ -623,3 +623,17 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 .gx-physical-two output{font-size:19px;font-weight:700;color:#e9fcff}
 .gx-faders-physical>small{font-size:11px;color:#aec8d0;line-height:1.4}
 @media(max-width:650px){.gx-played-feedback{grid-template-columns:1fr 1fr;gap:5px}.gx-played-feedback strong{font-size:13px}}
+
+
+/* Roland is authoritative: no synthetic performance slots or duplicated phone banks. */
+#gx-shell .gx-tone-banks,#gx-shell .gx-perf-tools button,#gx-shell #gx-perf-page,
+#gx-shell .gx-live-bank-tabs,#gx-shell .gx-live-bank-slots,
+#gx-shell .gx-live-banks-heading{display:none!important}
+#gx-shell .gx-performance-banks{min-height:130px;justify-content:center}
+#gx-shell .gx-real-source{font-size:13px;line-height:1.55;color:#c5dce2;white-space:normal;margin:7px 0!important}
+#gx-shell #gx-performance-source{display:block;font-size:11px;color:#6ce4d1;line-height:1.35;margin-top:7px}
+#gx-shell .gx-roland-favorites{order:-1;padding:14px}
+.gx-inspection-report{margin-top:9px;border:1px solid #447687;background:#092132;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;max-width:100%}
+.gx-inspection-report pre{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;line-height:1.45;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px}
+.gx-inspection-report>small{font-size:11px;color:#9bbdc8}
+#gx-shell .gx-backup-row button{min-height:44px}
