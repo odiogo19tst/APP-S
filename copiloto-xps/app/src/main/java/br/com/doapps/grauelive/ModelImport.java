@@ -9,6 +9,20 @@ public final class ModelImport {
  public interface Progress {void copied(long bytes);}
  public static void checkBundle(File file)throws IOException {
   if(!file.getName().endsWith(".task"))throw new IOException("O arquivo de trabalho precisa manter a extensão .task.");
+  // Some genuine .task artifacts use a LiteRT container rather than ZIP.
+  // Reject HTML/error downloads; defer opaque runtime format validation to
+  // the actual MediaPipe loader, which is always called before promotion.
+  if(file.length()<128)throw new IOException("Arquivo .task incompleto.");
+  byte[] header=new byte[256];int size;
+  try(InputStream in=new FileInputStream(file)){size=in.read(header);}
+  String begin=new String(header,0,Math.max(0,size),java.nio.charset.StandardCharsets.US_ASCII).trim().toLowerCase(java.util.Locale.ROOT);
+  if(begin.startsWith("<!doctype")||begin.startsWith("<html")||begin.startsWith("{")||begin.startsWith("access denied"))
+   throw new IOException("O download não é um modelo. Verifique o link e baixe o .task original.");
+  boolean zip=(header[0]=='P'&&header[1]=='K');
+  if(!zip){
+   if(file.length()<4096)throw new IOException("Pacote .task pequeno ou incompleto.");
+   return; // the neural runtime validates the non-ZIP bundle before installation
+  }
   try(ZipFile zip=new ZipFile(file)){
    // Container sanity only: entry names and compression are runtime-specific.
    // MediaPipe, not this importer, decides whether the model schema is supported.
