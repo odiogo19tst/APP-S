@@ -158,6 +158,21 @@ public class MainActivity extends Activity {
     else emit("status","Para testar volume e timbre juntos, primeiro leia uma Performance válida. Não alterei a configuração.");
    });
   }
+  @JavascriptInterface public void selectPerformance(int number,boolean user){
+    runOnUiThread(()->{
+      if(number<1||number>(user?128:16)){emit("status","Número de Performance fora da faixa.");return;}
+      if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado para selecionar a Performance.");return;}
+      // Roland XPS-10 MIDI Implementation: USER MSB 85 / LSB 0, preset MSB 85 / LSB 64.
+      boolean sent=midi.send(0xb0,0,85);
+      if(sent)sent=midi.send(0xb0,32,user?0:64);
+      if(sent)sent=midi.sendProgram(1,number-1);
+      if(sent){
+        try{emit("performanceSelected",new JSONObject().put("index",number).put("user",user));}catch(Exception ignored){}
+        emit("status","Performance "+(user?"USER ":"Preset ")+number+" solicitada no canal MIDI 1.");
+        new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi.isConnected())xps.read();},650);
+      }else emit("status","Não foi possível transmitir a seleção de Performance ao XPS-10.");
+    });
+  }
   @JavascriptInterface public void selectTone(int msb,int lsb,int program,int part){
    runOnUiThread(()->{
     if(msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>=16){
