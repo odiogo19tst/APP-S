@@ -46,6 +46,6 @@ jobs:
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Graue-XPS-v1.19-Cifra-Background-APK
+          name: Graue-XPS-v1.19.1-Cifra-Intro-APK
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
