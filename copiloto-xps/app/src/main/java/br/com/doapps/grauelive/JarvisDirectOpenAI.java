@@ -94,7 +94,15 @@ public final class JarvisDirectOpenAI {
     if(out.size()+n>32000)throw new IOException("Resposta maior que o limite");out.write(buf,0,n);
    }}
    if(status==401)throw new IOException("Chave inválida/revogada (401). Verifique em OpenAI Platform.");
-   if(status==429)throw new IOException("Limite de requisições ou créditos atingido (429).");
+   if(status==429){
+    String code="";
+    try {
+     JSONObject error=new JSONObject(out.toString("UTF-8")).optJSONObject("error");
+     if(error!=null)code=error.optString("code",error.optString("type",""));
+    }catch(Exception ignored){}
+    if("insufficient_quota".equals(code))throw new IOException("Sem créditos ou limite financeiro atingido na API OpenAI. Confira Billing na OpenAI Platform. A assinatura ChatGPT não cobre a API.");
+    throw new IOException("API 429: limite temporário de requisições/tokens, ou saldo insuficiente. Confira Billing e Limits; use Gemma offline.");
+   }
    if(status<200||status>=300)throw new IOException("API não disponível (HTTP "+status+"). Veja saldo e permissões da chave.");
    JSONObject result=new JSONObject(out.toString("UTF-8"));
    JSONArray items=result.optJSONArray("output");StringBuilder response=new StringBuilder();
