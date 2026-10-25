@@ -14,13 +14,14 @@
   const cleaned=text.replace(/\{(?:title|t|key|tom):\s*[^}]+\}\n?/gi,'').trim();
   const chords=[];
   function normalizeToken(t){return t.trim().replace(/^[|:()]+|[|:()]+$/g,'');}
-  // Inline chord names in ChordPro brackets. [Refrão] is a heading, not a chord.
-  for(const hit of cleaned.matchAll(/\[([^\]\n]+)\]/g)){
-   const ch=hit[1].trim();if(parseChord(ch))chords.push(ch);
-  }
-  // Lines of chords often alternate with lyrics; preserve every line for the reader.
+  // Preserve reading order: intro chord rows must precede later inline [Am] tokens.
   for(const raw of cleaned.split('\n')){
-   if(!raw.trim()||/^[ \t]*\[[^\]]+\][ \t]*$/.test(raw))continue;
+   if(!raw.trim())continue;
+   // [Refrão] is a section heading, not an invalid chord.
+   if(/^[ \t]*\[[^\]]+\][ \t]*$/.test(raw)&&!parseChord(raw.trim().slice(1,-1)))continue;
+   for(const hit of raw.matchAll(/\[([^\]\n]+)\]/g)){
+    const ch=hit[1].trim();if(parseChord(ch))chords.push(ch);
+   }
    let tokens=raw.trim().split(/\s+/).map(normalizeToken).filter(Boolean);
    if(!tokens.length||tokens.length>90)continue;
    const valid=tokens.filter(t=>parseChord(t));
