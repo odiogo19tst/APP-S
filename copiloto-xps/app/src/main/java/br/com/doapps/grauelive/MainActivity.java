@@ -36,7 +36,7 @@ public class MainActivity extends Activity {
  private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
- private DrumSampleLibrary drumSamples; private int importingDrumPad=-1;
+ private DrumSampleLibrary drumSamples; private int importingDrumPad=-1;private int importingDrumBank=2;
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
@@ -196,22 +196,22 @@ public class MainActivity extends Activity {
    });
   }
   @JavascriptInterface public void stopAssistChord(){runOnUiThread(()->stopAssist());}
-  @JavascriptInterface public void listDrumSamples(){
-   runOnUiThread(()->{try{emit("drumSamples",drumSamples.list());}catch(Exception e){emit("status","Biblioteca de samples: "+e.getMessage());}});
+  @JavascriptInterface public void listDrumSamples(int bank){
+   runOnUiThread(()->{try{emit("drumSamples",drumSamples.list(bank));}catch(Exception e){emit("status","Biblioteca de samples: "+e.getMessage());}});
   }
-  @JavascriptInterface public void importDrumSample(int pad){
-   if(pad<0||pad>7)return;
+  @JavascriptInterface public void importDrumSample(int bank,int pad){
+   if(bank<2||bank>3||pad<0||pad>7)return;
    runOnUiThread(()->{
-    importingDrumPad=pad;
+    importingDrumPad=pad;importingDrumBank=bank;
     Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("audio/*")
      .addCategory(Intent.CATEGORY_OPENABLE);
     startActivityForResult(i,7);
    });
   }
-  @JavascriptInterface public void playDrumSample(int pad){
+  @JavascriptInterface public void playDrumSample(int bank,int pad){
    runOnUiThread(()->{
-    if(pad<0||pad>=8)return;
-    if(!drumSamples.play(pad))emit("status","Sample não carregado ou formato não reproduzível. Importe MP3/WAV/OGG no pad "+(pad+1)+".");
+    if(bank<2||bank>3||pad<0||pad>=8)return;
+    if(!drumSamples.play(bank,pad))emit("status","Sample não carregado ou formato não reproduzível. Importe MP3/WAV/OGG no pad "+(pad+1)+".");
    });
   }
   @JavascriptInterface public void stopDrumSamples(){runOnUiThread(()->drumSamples.stop());}
@@ -446,8 +446,8 @@ public class MainActivity extends Activity {
  if(req==7){
    final int slot=importingDrumPad;importingDrumPad=-1;
    if(slot<0||slot>=8)throw new IOException("Nenhum pad selecionado");
-   drumSamples.importFile(slot,data.getData());
-   emit("drumSamples",drumSamples.list());
+   drumSamples.importFile(importingDrumBank,slot,data.getData());
+   emit("drumSamples",drumSamples.list(importingDrumBank));
    emit("status","Sample importado para o pad "+(slot+1)+". Som sai pelo celular/mesa, não pelo USB do teclado.");
    return;
  }
