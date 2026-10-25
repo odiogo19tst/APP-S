@@ -83,7 +83,7 @@ public class MainActivity extends Activity {
   armed=true;emit("armed",true);emit("xpsConnection",true);
   autoUserRead=!hasCachedUsers();
   emitCachedUsers();
-  new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.read();},300);
+  new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.initialSync();},300);
  }else if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){
   stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
   armed=false;autoUserRead=false;
