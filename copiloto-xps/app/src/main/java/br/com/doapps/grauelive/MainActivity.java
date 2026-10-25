@@ -36,7 +36,7 @@ public class MainActivity extends Activity {
  private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
- private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1;
+ private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1;
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
@@ -210,6 +210,16 @@ public class MainActivity extends Activity {
    });
   }
   @JavascriptInterface public void stopPadSamples(){runOnUiThread(()->padSamples.stop());}
+  @JavascriptInterface public void importPadKit(int bank){
+   if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Biblioteca inválida.");return;}
+   runOnUiThread(()->{
+    importKitBank=bank;
+    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("audio/*")
+      .addCategory(Intent.CATEGORY_OPENABLE)
+      .putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
+    startActivityForResult(pick,8);
+   });
+  }
   @JavascriptInterface public void importPadSample(int bank,int pad){
    if(bank<0||bank>=PadSampleEngine.BANKS||pad<0||pad>=PadSampleEngine.PADS){
     emit("status","Escolha um banco e pad válidos.");return;
@@ -450,6 +460,22 @@ public class MainActivity extends Activity {
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
+ if(req==8){
+  if(importKitBank<0||importKitBank>=PadSampleEngine.BANKS)throw new IOException("Kit não selecionado");
+  java.util.ArrayList<android.net.Uri> selected=new java.util.ArrayList<>();
+  if(data.getClipData()!=null){
+   if(data.getClipData().getItemCount()>8)throw new IOException("Selecione até 8 sons por kit");
+   for(int i=0;i<data.getClipData().getItemCount();i++)selected.add(data.getClipData().getItemAt(i).getUri());
+  }else if(data.getData()!=null)selected.add(data.getData());
+  int imported=0;
+  for(android.net.Uri uri:selected){
+   padSamples.importSample(importKitBank,imported,uri);
+   imported++;
+  }
+  emit("padSampleState",padSamples.state());
+  emit("status",imported+" arquivos importados. Pads 1 a "+imported+" atualizados; originais preservados.");
+  return;
+ }
  if(req==7){
   if(importPadBank<0||importPadIndex<0)throw new IOException("Pad importado sem destino");
   padSamples.importSample(importPadBank,importPadIndex,data.getData());
