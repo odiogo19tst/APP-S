@@ -30,8 +30,9 @@
  '<div class="gx-pad-library-source"><label>Fonte do som<select id="gx-pad-source"><option value="midi">Roland XPS-10 · MIDI</option><option value="samples">Celular · Samples de áudio</option></select></label>'+
  '<label id="gx-pad-roland-wrapper">Kit interno do XPS-10<select id="gx-pad-roland-kit"></select></label>'+
  '<label id="gx-pad-local-wrapper">Biblioteca de áudio<select id="gx-pad-local-kit"><option value="0">Drum Kit 1 · Grauê original</option><option value="1">EFX 1 · Grauê original</option><option value="2">Worship Drums · Grauê original</option><option value="3">Worship EFX · Grauê original</option><option value="4">Meus Samples · importar do celular / Drive</option><option value="5">Worship Groove · Vintage CC0</option><option value="6">Pop Groove · Bounce CC0</option><option value="7">Modern Hits · Trap CC0</option></select></label></div>'+
- '<div class="gx-pad-library-actions"><button id="gx-pad-use-roland">Usar este kit no Roland</button><label id="gx-pad-import-label">Pad para importar<select id="gx-pad-import-slot"></select></label><button id="gx-pad-import">Importar neste pad</button><button id="gx-pad-import-all">Escolher até 8 áudios</button><button id="gx-pad-import-zip">Importar ZIP / Drive</button><button id="gx-pad-export-drive">☁ Salvar kit no Google Drive</button><button id="gx-pad-stop-audio">Parar áudio do celular</button></div>'+
+ '<div class="gx-pad-library-actions"><button id="gx-pad-use-roland">Usar este kit no Roland</button><label id="gx-pad-import-label">Pad para importar<select id="gx-pad-import-slot"></select></label><button id="gx-pad-import">Importar neste pad</button><button id="gx-pad-import-all">Escolher até 8 áudios</button><button id="gx-pad-import-zip">Importar ZIP / Drive</button><button id="gx-pad-export-drive">☁ Salvar kit no Google Drive</button><button id="gx-pad-export-roland">Preparar Audio Pads do Roland (pendrive)</button><button id="gx-pad-stop-audio">Parar áudio do celular</button></div>'+
  '<small id="gx-pad-library-status" role="status" aria-live="polite">Os kits do Roland vêm da lista oficial, mas dependem de uma parte Rhythm habilitada. Novos kits 5–7 incluem samples CC0 reais, independentes do Roland, prontos offline. Você também pode importar sons do Drive ou salvar um kit completo como ZIP na sua nuvem.</small>'+
+ '<small class="gx-pad-roland-guide">Para ouvir seus samples nas saídas do XPS-10, use Preparar Audio Pads do Roland. O app cria um ZIP para pendrive: SONG LIST/GRAUE1 (pads 1–6) e GRAUE2 (7–8). Extraia no pendrive formatado pelo teclado e escolha a pasta em AUDIO PAD → LIST. Não é transmissão de áudio via USB-MIDI; os Audio Pads físicos não tocam dois arquivos simultaneamente.</small>'+
  '<small class="gx-pad-library-help">As bibliotecas CC0 vêm do projeto livre Boochi44/free-drum-samples (WAV reais). Não são sons proprietários do app mostrado nas imagens nem samples oficiais do Roland. A saída USB do Roland transporta MIDI, não áudio. Para usar samples do celular na igreja, conecte a saída de áudio do telefone à mesa de som.</small>';
  const drumSection=el('gx-drums-pads').closest('.gx-drums-kit');
  if(drumSection)drumSection.insertBefore(setup,drumSection.querySelector('.gx-drums-settings'));
@@ -51,7 +52,7 @@
 
   el('gx-pad-local-wrapper').hidden=!sample;el('gx-pad-import').hidden=!sample;
   el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;el('gx-pad-import-zip').hidden=!sample;el('gx-pad-export-drive').hidden=false;
-  el('gx-pad-roland-wrapper').hidden=sample;el('gx-pad-use-roland').hidden=sample;
+  el('gx-pad-roland-wrapper').hidden=sample;el('gx-pad-use-roland').hidden=sample;el('gx-pad-export-roland').hidden=!sample;
   const selectedLibrary=padLibrary?.banks?.[sampleBank];
   const names=selectedLibrary?.pads||[];
   const option=el('gx-pad-local-kit').options[sampleBank];
@@ -99,6 +100,11 @@
    el('gx-pad-library-status').textContent='Escolha Google Drive no seletor Android e a pasta desejada. O kit será salvo como ZIP.';
   }
  };
+  el('gx-pad-export-roland').onclick=()=>{
+   if(confirm('Criar pacote de áudio para o pendrive do XPS-10? O teclado possui seis Audio Pads físicos. A importação não ocorre pelo cabo MIDI.')){
+    native('exportRolandAudioPads',sampleBank);
+   }
+  };
   el('gx-pad-stop-audio').onclick=()=>native('stopPadSamples');
  renderAudioSource();
 
@@ -196,6 +202,9 @@
  const oldReceive=window.receive;
  window.receive=(type,payload)=>{
   if(oldReceive)oldReceive(type,payload);
+  if(type==='rolandPadExported'){
+   el('gx-pad-library-status').textContent='Pacote XPS-10 pronto: '+(Number(payload?.samples)||0)+' samples. Extraia SONG LIST no pendrive Roland; depois escolha GRAUE1 ou GRAUE2 em AUDIO PAD → LIST.';
+  }
   if(type==='padSampleState'){
    padLibrary=payload&&Array.isArray(payload.banks)?payload:null;
    renderAudioSource();

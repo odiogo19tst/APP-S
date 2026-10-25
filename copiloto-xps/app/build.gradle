@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 39
-        versionName '1.24.0-slow-score-scroll'
+        versionCode 40
+        versionName '1.25.0-roland-audio-pad-export'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }

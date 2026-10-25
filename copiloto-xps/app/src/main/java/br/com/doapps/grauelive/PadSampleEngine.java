@@ -6,6 +6,8 @@ import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.media.MediaPlayer;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 import android.database.Cursor;
@@ -204,6 +206,52 @@ public final class PadSampleEngine {
   * The caller picks Google Drive or local storage; no Google credential is accessed.
   * We preserve audio bytes (including imported samples), order and app configuration.
   */
+ /** Prepare the 8 local pads for the six physical XPS-10 AUDIO PADs (USB stick only).
+  * WAV gets converted to 44.1 kHz PCM; MP3 must already be 44.1 kHz.
+  * This method does NOT transmit audio over USB-MIDI or change instrument memory.
+  */
+ public synchronized int exportRolandAudioPads(int bank,Uri destination)throws Exception {
+  if(bank<0||bank>=BANKS||destination==null)throw new IOException("Banco ou destino Roland inválido.");
+  File[] sources=new File[PADS];
+  for(int i=0;i<PADS;i++){
+   File audio=soundFile(bank,i);
+   if(audio==null){
+    File builtIn=new File(root,(bank>=5?"cc0_":"graue_")+bank+"_"+i+".wav");
+    if(builtIn.isFile())audio=builtIn;
+   }
+   if(audio==null)continue; // Exporter adds a silent placeholder to preserve the pad mapping.
+   String name=audio.getName().toLowerCase(Locale.ROOT);
+   if(name.endsWith(".mp3")){
+    MediaExtractor extractor=new MediaExtractor();
+    try{
+     extractor.setDataSource(audio.getAbsolutePath());
+     boolean valid=false;
+     for(int track=0;track<extractor.getTrackCount();track++){
+      MediaFormat format=extractor.getTrackFormat(track);
+      String mime=format.containsKey(MediaFormat.KEY_MIME)?format.getString(MediaFormat.KEY_MIME):"";
+      if(mime!=null&&mime.startsWith("audio/")&&format.containsKey(MediaFormat.KEY_SAMPLE_RATE)&&
+         format.getInteger(MediaFormat.KEY_SAMPLE_RATE)==44100){valid=true;break;}
+     }
+     if(!valid)throw new IOException("Pad "+(i+1)+": MP3 precisa estar em 44.1 kHz para o Roland.");
+    }finally{extractor.release();}
+   }
+   sources[i]=audio;
+  }
+  // Export fully to a private temporary file before asking the document provider to store it.
+  File staged=File.createTempFile("graue_roland_",".zip",ctx.getCacheDir());
+  try{
+   int count;
+   try(OutputStream zip=new BufferedOutputStream(new FileOutputStream(staged))){
+    count=RolandAudioPadExporter.export(sources,zip);
+   }
+   OutputStream output=ctx.getContentResolver().openOutputStream(destination,"w");
+   if(output==null)throw new IOException("Destino não permitiu salvar o pacote Roland.");
+   try(InputStream in=new BufferedInputStream(new FileInputStream(staged));OutputStream out=new BufferedOutputStream(output)){
+    byte[] bytes=new byte[16384];int n;while((n=in.read(bytes))!=-1)out.write(bytes,0,n);
+   }
+   return count;
+  }finally{staged.delete();}
+ }
  public synchronized int exportZipKit(int bank,Uri destination,String configJson)throws Exception{
   if(bank<0||bank>=BANKS||destination==null)throw new IOException("Banco ou destino inválido");
   JSONObject config=new JSONObject(configJson==null?"{}":configJson);

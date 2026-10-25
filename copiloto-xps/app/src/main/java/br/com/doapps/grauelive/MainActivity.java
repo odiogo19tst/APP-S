@@ -66,7 +66,7 @@ public class MainActivity extends Activity {
  }
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
- private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1; private String exportKitSettings="{}";
+ private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1,exportRolandBank=-1; private String exportKitSettings="{}";
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
@@ -281,6 +281,19 @@ public class MainActivity extends Activity {
   /** Android Storage Access Framework lets the musician choose Google Drive as destination.
     * No Google OAuth token, Drive API key or broad storage permission is needed.
     */
+  /** Save a ZIP containing SONG LIST/GRAUE1 and GRAUE2 for XPS-10 AUDIO PADs.
+   * Do not imply that USB COMPUTER can transport audio files.
+   */
+  @JavascriptInterface public void exportRolandAudioPads(int bank){
+   if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Selecione uma biblioteca válida.");return;}
+   runOnUiThread(()->{
+    exportRolandBank=bank;
+    Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT)
+      .addCategory(Intent.CATEGORY_OPENABLE).setType("application/zip")
+      .putExtra(Intent.EXTRA_TITLE,"GRAUE-XPS10-PADS-Banco-"+(bank+1)+".zip");
+    startActivityForResult(save,11);
+   });
+  }
   @JavascriptInterface public void exportPadKitToDrive(int bank,String settings){
    if(bank<0||bank>=PadSampleEngine.BANKS||settings==null||settings.length()>12000){
     emit("status","Banco ou configurações de Drum Pad inválidos.");return;
@@ -612,6 +625,13 @@ public class MainActivity extends Activity {
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
+ if(req==11){
+  int bank=exportRolandBank;
+  int count=padSamples.exportRolandAudioPads(bank,data.getData());
+  emit("rolandPadExported",new JSONObject().put("bank",bank).put("samples",count));
+  emit("status","Pacote Roland salvo: "+count+" sons reais. Extraia SONG LIST/GRAUE1 e GRAUE2 no pendrive formatado pelo XPS-10; pressione LIST e escolha o grupo. O USB-MIDI não envia áudio.");
+  return;
+ }
  if(req==10){
   int bank=exportKitBank;
   if(bank<0||bank>=PadSampleEngine.BANKS)throw new IOException("Banco não definido");
