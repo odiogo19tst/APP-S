@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
+import android.media.MediaPlayer;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 import android.database.Cursor;
@@ -30,6 +32,8 @@ public final class PadSampleEngine {
  private final File root;
  private final SoundPool pool;
  private final int[][] sampleIds=new int[BANKS][PADS];
+ private final File[][] longAudio=new File[BANKS][PADS];
+ private final Set<MediaPlayer> longStreams=Collections.newSetFromMap(new ConcurrentHashMap<MediaPlayer,Boolean>());
  private final boolean[][] loaded=new boolean[BANKS][PADS];
  private final Set<Integer> streams=Collections.newSetFromMap(new ConcurrentHashMap<Integer,Boolean>());
  private volatile boolean ready=false;
@@ -64,8 +68,16 @@ public final class PadSampleEngine {
  }
  private synchronized void load(int bank,int pad,File file){
   if(sampleIds[bank][pad]!=0)pool.unload(sampleIds[bank][pad]);
-  loaded[bank][pad]=false;
-  sampleIds[bank][pad]=pool.load(file.getAbsolutePath(),1);
+  sampleIds[bank][pad]=0;loaded[bank][pad]=false;longAudio[bank][pad]=null;
+  boolean longTrack=file.length()>1500000;
+  if(!longTrack)try{
+   MediaMetadataRetriever meta=new MediaMetadataRetriever();
+   try{meta.setDataSource(file.getAbsolutePath());String ms=meta.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+    if(ms!=null)longTrack=Long.parseLong(ms)>5500;
+   }finally{meta.release();}
+  }catch(Exception ignored){}
+  if(longTrack){longAudio[bank][pad]=file;loaded[bank][pad]=true;}
+  else sampleIds[bank][pad]=pool.load(file.getAbsolutePath(),1);
  }
  public synchronized JSONObject state() throws Exception {
   JSONObject object=new JSONObject().put("ready",ready);
@@ -86,6 +98,20 @@ public final class PadSampleEngine {
  }
  public synchronized String play(int bank,int pad,int velocity) {
   if(bank<0||bank>=BANKS||pad<0||pad>=PADS||velocity<1||velocity>127)return "Pad inválido.";
+  File longFile=longAudio[bank][pad];
+  if(longFile!=null){
+   try{
+    MediaPlayer player=new MediaPlayer();
+    player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+      .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
+    player.setDataSource(longFile.getAbsolutePath());
+    float gain=Math.min(1f,velocity/100f);player.setVolume(gain,gain);
+    player.setOnPreparedListener(p->{synchronized(PadSampleEngine.this){if(longStreams.contains(p))p.start();}});
+    player.setOnCompletionListener(p->{synchronized(PadSampleEngine.this){longStreams.remove(p);p.release();}});
+    player.setOnErrorListener((p,what,extra)->{synchronized(PadSampleEngine.this){longStreams.remove(p);p.release();}return true;});
+    longStreams.add(player);player.prepareAsync();return "";
+   }catch(Exception e){return "Sample longo não pôde ser aberto: "+e.getMessage();}
+  }
   int sound=sampleIds[bank][pad];
   if(sound==0)return bank==4?"Este pad está vazio. Importe um WAV ou MP3.":"Biblioteca ainda preparando áudio.";
   if(!loaded[bank][pad])return "Sample carregando; tente novamente.";
@@ -95,7 +121,14 @@ public final class PadSampleEngine {
   streams.add(stream);
   return "";
  }
- public synchronized void stop(){for(int stream:streams)pool.stop(stream);streams.clear();}
+ public synchronized void stop(){
+  for(int stream:streams)pool.stop(stream);streams.clear();
+  for(MediaPlayer mp:longStreams){
+   try{mp.stop();}catch(Exception ignored){}
+   try{mp.release();}catch(Exception ignored){}
+  }
+  longStreams.clear();
+ }
  public synchronized void release(){stop();pool.release();}
  public synchronized void importSample(int bank,int pad,Uri uri)throws Exception{
   if(bank<0||bank>=BANKS||pad<0||pad>=PADS)throw new IOException("Banco ou pad inválido");
