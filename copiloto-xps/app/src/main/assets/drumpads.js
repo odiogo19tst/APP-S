@@ -30,8 +30,8 @@
  '<div class="gx-pad-library-source"><label>Fonte do som<select id="gx-pad-source"><option value="midi">Roland XPS-10 · MIDI</option><option value="samples">Celular · Samples de áudio</option></select></label>'+
  '<label id="gx-pad-roland-wrapper">Kit interno do XPS-10<select id="gx-pad-roland-kit"></select></label>'+
  '<label id="gx-pad-local-wrapper">Biblioteca de áudio<select id="gx-pad-local-kit"><option value="0">Drum Kit 1 · Grauê original</option><option value="1">EFX 1 · Grauê original</option><option value="2">Worship Drums · Grauê original</option><option value="3">Worship EFX · Grauê original</option><option value="4">Meus Samples · importar do celular / Drive</option><option value="5">Worship Groove · Vintage CC0</option><option value="6">Pop Groove · Bounce CC0</option><option value="7">Modern Hits · Trap CC0</option></select></label></div>'+
- '<div class="gx-pad-library-actions"><button id="gx-pad-use-roland">Usar este kit no Roland</button><label id="gx-pad-import-label">Pad para importar<select id="gx-pad-import-slot"></select></label><button id="gx-pad-import">Importar neste pad</button><button id="gx-pad-import-all">Escolher até 8 áudios</button><button id="gx-pad-import-zip">Importar pacote ZIP</button><button id="gx-pad-stop-audio">Parar áudio do celular</button></div>'+
- '<small id="gx-pad-library-status" role="status" aria-live="polite">Os kits do Roland vêm da lista oficial, mas dependem de uma parte Rhythm habilitada. Novos kits 5–7 incluem samples CC0 reais, independentes do Roland, prontos offline. Você também pode escolher sons do Google Drive pelo seletor de arquivos Android.</small>'+
+ '<div class="gx-pad-library-actions"><button id="gx-pad-use-roland">Usar este kit no Roland</button><label id="gx-pad-import-label">Pad para importar<select id="gx-pad-import-slot"></select></label><button id="gx-pad-import">Importar neste pad</button><button id="gx-pad-import-all">Escolher até 8 áudios</button><button id="gx-pad-import-zip">Importar ZIP / Drive</button><button id="gx-pad-export-drive">☁ Salvar kit no Google Drive</button><button id="gx-pad-stop-audio">Parar áudio do celular</button></div>'+
+ '<small id="gx-pad-library-status" role="status" aria-live="polite">Os kits do Roland vêm da lista oficial, mas dependem de uma parte Rhythm habilitada. Novos kits 5–7 incluem samples CC0 reais, independentes do Roland, prontos offline. Você também pode importar sons do Drive ou salvar um kit completo como ZIP na sua nuvem.</small>'+
  '<small class="gx-pad-library-help">As bibliotecas CC0 vêm do projeto livre Boochi44/free-drum-samples (WAV reais). Não são sons proprietários do app mostrado nas imagens nem samples oficiais do Roland. A saída USB do Roland transporta MIDI, não áudio. Para usar samples do celular na igreja, conecte a saída de áudio do telefone à mesa de som.</small>';
  const drumSection=el('gx-drums-pads').closest('.gx-drums-kit');
  if(drumSection)drumSection.insertBefore(setup,drumSection.querySelector('.gx-drums-settings'));
@@ -50,7 +50,7 @@
   if(routingText)routingText.textContent=sample?'Áudio gerado pelo celular: para ouvir no PA, envie a saída de áudio do celular à mesa. Não sai pelo USB-MIDI do XPS-10.':'Comandos MIDI enviados ao Roland; o som sai pelas saídas do teclado, usando o Drum Kit selecionado.';
 
   el('gx-pad-local-wrapper').hidden=!sample;el('gx-pad-import').hidden=!sample;
-  el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;el('gx-pad-import-zip').hidden=!sample;
+  el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;el('gx-pad-import-zip').hidden=!sample;el('gx-pad-export-drive').hidden=false;
   el('gx-pad-roland-wrapper').hidden=sample;el('gx-pad-use-roland').hidden=sample;
   const selectedLibrary=padLibrary?.banks?.[sampleBank];
   const names=selectedLibrary?.pads||[];
@@ -88,7 +88,18 @@
   if(confirm('Importar até 8 arquivos WAV, MP3 ou OGG de um ZIP? Os pads correspondentes serão atualizados somente no Grauê; o ZIP original será preservado.'))
    native('importPadZip',sampleBank);
  };
- el('gx-pad-stop-audio').onclick=()=>native('stopPadSamples');
+ el('gx-pad-export-drive').onclick=()=>{
+  save();
+  // Export full selected kit (all available WAV/MP3/OGG bytes and musical layout).
+  // ACTION_CREATE_DOCUMENT offers Google Drive when it is installed/signed in on Android.
+  // This is not an automatic upload or a request for Google credentials.
+  const settings={schema:1,audioMode,drumChannel,droneChannel,bpm,rolandKit:selectedRoland,
+    grid:grid.map(row=>row.map(v=>Number(v)||0))};
+  if(native('exportPadKitToDrive',sampleBank,JSON.stringify(settings))){
+   el('gx-pad-library-status').textContent='Escolha Google Drive no seletor Android e a pasta desejada. O kit será salvo como ZIP.';
+  }
+ };
+  el('gx-pad-stop-audio').onclick=()=>native('stopPadSamples');
  renderAudioSource();
 
  el('gx-drums-channel').onchange=()=>{drumChannel=+el('gx-drums-channel').value;native('stopSequence');save();renderAudioSource();};
@@ -188,6 +199,28 @@
   if(type==='padSampleState'){
    padLibrary=payload&&Array.isArray(payload.banks)?payload:null;
    renderAudioSource();
+  }
+  if(type==='padDriveExported'){
+   el('gx-pad-library-status').textContent='Kit exportado no destino escolhido: '+(Number(payload?.samples)||0)+' samples e configurações. Se salvou no Drive, confira a sincronização.';
+  }
+  if(type==='padKitRestored'){
+   const x=payload?.settings||{};
+   if(Number.isInteger(payload?.bank)&&payload.bank>=0&&payload.bank<8)sampleBank=payload.bank;
+   if(Number.isInteger(x.drumChannel)&&x.drumChannel>=1&&x.drumChannel<=16)drumChannel=x.drumChannel;
+   if(Number.isInteger(x.droneChannel)&&x.droneChannel>=1&&x.droneChannel<=16)droneChannel=x.droneChannel;
+   if(Number.isInteger(x.bpm)&&x.bpm>=40&&x.bpm<=180)bpm=x.bpm;
+   if(typeof x.rolandKit==='string'&&xpsDrumKits.some(t=>t.code===x.rolandKit))selectedRoland=x.rolandKit;
+   if(Array.isArray(x.grid)&&x.grid.length===8&&x.grid.every(row=>Array.isArray(row)&&row.length===16&&row.every(v=>Number.isInteger(v)&&v>=0&&v<=127)))
+    grid=x.grid.map(row=>[...row]);
+   audioMode='samples'; // Restoring a ZIP always selects the independent audio library, not Roland memory.
+   el('gx-pad-source').value=audioMode;
+   el('gx-pad-local-kit').value=String(sampleBank);
+   el('gx-drums-channel').value=String(drumChannel);
+   el('gx-drone-channel').value=String(droneChannel);
+   el('gx-beats-bpm').value=String(bpm);
+   kits.value=selectedRoland;
+   save();renderSteps();renderAudioSource();
+   el('gx-pad-library-status').textContent='Kit restaurado do ZIP/Drive: samples e configurações carregados. Confira os pads antes da apresentação.';
   }
   if(type==='drumKitSent'){
    const choice=xpsDrumKits.find(x=>x.msb===payload?.msb&&x.lsb===payload?.lsb&&x.program===payload?.program);
