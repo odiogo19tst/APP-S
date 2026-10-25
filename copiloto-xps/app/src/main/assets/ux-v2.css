@@ -589,3 +589,32 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell .gx-roland-actions button{flex:1;min-height:44px;min-width:145px;padding:9px 12px;font-size:12px}
 #gx-shell #gx-roland-backup-import{background:#128e78;border-color:#30d7b5}
 @media(max-width:700px){.gx-roland-favorites{padding:10px}.gx-roland-actions{flex-direction:column}}
+
+
+/* Banco de drum kits do XPS-10 e samples próprios, independente do teclado */
+.gx-drum-library{display:grid;gap:9px;border:1px solid #236f7f;background:linear-gradient(125deg,#092938,#122a40);border-radius:11px;padding:10px;margin:10px 0 14px}
+.gx-drum-library-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+#gx-shell .gx-drum-library-tabs button{min-width:0;min-height:50px;padding:7px 5px;font-size:12px;line-height:1.15;overflow-wrap:anywhere}
+#gx-shell .gx-drum-library-tabs button.on{background:#089b86;border-color:#49e3c5;color:white;font-weight:750}
+.gx-drum-source{display:flex;flex-direction:column;gap:4px;color:#add0d6}
+.gx-drum-source strong{font-size:15px;color:#dcfcf6}
+.gx-drum-source span{font-size:11px;line-height:1.45}
+.gx-roland-kits{display:flex;gap:7px;align-items:end}
+.gx-roland-kits label{flex:1;min-width:150px;display:flex;flex-direction:column;gap:5px;font-size:11px;color:#acccd3}
+#gx-shell .gx-roland-kits select{box-sizing:border-box;width:100%;min-height:44px;background:#081e29;border:1px solid #398073;color:#f1fffa;border-radius:8px;padding:8px}
+#gx-shell #gx-roland-kit-send{min-height:44px;padding:8px 12px;background:#157e6d;border-color:#41d8bb;color:#fff;font-weight:700}
+.gx-drum-audio-bank p{font-size:11px;color:#d1e2e5;line-height:1.5;margin:5px 0 9px!important}
+.gx-drum-sample-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.gx-sample-slot{display:flex;align-items:center;justify-content:space-between;gap:5px;background:#0d2532;border:1px solid #2f5669;border-radius:8px;padding:7px;min-width:0}
+.gx-sample-name{min-width:0;display:flex;flex-direction:column;gap:3px}
+.gx-sample-name strong{font-size:11px;color:#e9faff}
+.gx-sample-name small{font-size:10px;color:#a0becd;overflow-wrap:anywhere}
+#gx-shell .gx-sample-slot button{font-size:11px;min-width:88px;min-height:44px;padding:8px 6px}
+#gx-drum-sample-info{color:#79dacc;font-size:11px;line-height:1.4}
+#gx-drum-audio-bank[hidden],#gx-roland-kits[hidden]{display:none!important}
+@media(max-width:700px){
+ .gx-drum-library-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gx-drum-sample-slots{grid-template-columns:1fr}
+ .gx-roland-kits{flex-direction:column;align-items:stretch}
+ #gx-shell .gx-roland-kits button{width:100%}
+}
