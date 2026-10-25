@@ -36,7 +36,7 @@ public class MainActivity extends Activity {
  private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
- private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1;
+ private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1;
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
@@ -210,6 +210,16 @@ public class MainActivity extends Activity {
    });
   }
   @JavascriptInterface public void stopPadSamples(){runOnUiThread(()->padSamples.stop());}
+  @JavascriptInterface public void importPadZip(int bank){
+   if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Biblioteca inválida.");return;}
+   runOnUiThread(()->{
+    importZipBank=bank;
+    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*")
+      .addCategory(Intent.CATEGORY_OPENABLE)
+      .putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"application/zip","application/x-zip-compressed","application/octet-stream"});
+    startActivityForResult(pick,9);
+   });
+  }
   @JavascriptInterface public void importPadKit(int bank){
    if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Biblioteca inválida.");return;}
    runOnUiThread(()->{
@@ -460,6 +470,14 @@ public class MainActivity extends Activity {
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
+ if(req==9){
+  int bank=importZipBank;
+  if(bank<0||bank>=PadSampleEngine.BANKS)throw new IOException("Banco de destino inválido");
+  int count=padSamples.importZipKit(bank,data.getData());
+  emit("padSampleState",padSamples.state());
+  emit("status",count+" samples importados do ZIP para o banco "+(bank+1)+". Original preservado; toque para testar.");
+  return;
+ }
  if(req==8){
   if(importKitBank<0||importKitBank>=PadSampleEngine.BANKS)throw new IOException("Kit não selecionado");
   java.util.ArrayList<android.net.Uri> selected=new java.util.ArrayList<>();

@@ -14,6 +14,8 @@ import org.json.JSONObject;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /** Independent audio pad libraries. Built-in samples are original synthesized WAV files.
  * User audio stays private to this Android app, never transferred over USB-MIDI. */
@@ -165,6 +167,64 @@ public final class PadSampleEngine {
   if(!prefs.edit().putString("slot_"+bank+"_"+pad,newName).putString("label_"+bank+"_"+pad,title).commit())
     throw new IOException("Não foi possível guardar este sample");
   load(bank,pad,dest);
+ }
+
+ /** Imports up to eight individually supplied sounds from a ZIP, entirely offline.
+  * ZIP entry paths are NEVER used as local file paths; extracted audio is bounded.
+  * This imports only files the musician provides, never proprietary libraries.
+  */
+ public synchronized int importZipKit(int bank,Uri uri)throws Exception{
+  if(bank<0||bank>=BANKS||uri==null)throw new IOException("Selecione um banco e um ZIP válidos.");
+  final int maxPerFile=12*1024*1024, maxTotal=70*1024*1024;
+  List<File> staged=new ArrayList<>();
+  List<String> types=new ArrayList<>(),titles=new ArrayList<>();
+  long sum=0;
+  try{
+   InputStream raw=ctx.getContentResolver().openInputStream(uri);
+   if(raw==null)throw new IOException("Arquivo ZIP inacessível.");
+   try(ZipInputStream input=new ZipInputStream(new BufferedInputStream(raw))){
+    ZipEntry entry;
+    while((entry=input.getNextEntry())!=null){
+     String name=entry.getName();
+     if(!entry.isDirectory()&&name!=null){
+      String normal=name.replace('\\','/');
+      String last=normal.substring(normal.lastIndexOf('/')+1);
+      String lower=last.toLowerCase(Locale.ROOT);
+      if(normal.contains("..")||normal.startsWith("/")||normal.startsWith("__MACOSX/")){input.closeEntry();continue;}
+      String ext=lower.endsWith(".wav")?"wav":lower.endsWith(".mp3")?"mp3":lower.endsWith(".ogg")?"ogg":"";
+      if(!ext.isEmpty()){
+       if(staged.size()>=PADS)throw new IOException("O ZIP tem mais de 8 áudios. Separe em outro kit.");
+       File tmp=File.createTempFile("graue_zip_", "."+ext,root);
+       staged.add(tmp);types.add(ext);titles.add(last.length()>40?last.substring(0,40):last);
+       int n;long individual=0;byte[] bytes=new byte[16384];
+       try(OutputStream out=new FileOutputStream(tmp)){
+        while((n=input.read(bytes))!=-1){
+         individual+=n;sum+=n;
+         if(individual>maxPerFile||sum>maxTotal)throw new IOException("Limite de 12 MB por sample ou 70 MB por ZIP.");
+         out.write(bytes,0,n);
+        }
+       }
+       if(individual<64)throw new IOException("Áudio vazio: "+last);
+      }
+     }
+     input.closeEntry();
+    }
+   }
+   if(staged.isEmpty())throw new IOException("Nenhum WAV, MP3 ou OGG encontrado dentro do ZIP.");
+   // Extraction completed before replacing any assigned pad. Original ZIP stays untouched.
+   for(int i=0;i<staged.size();i++){
+    String name="pad_"+bank+"_"+i+"."+types.get(i);
+    File dest=new File(root,name);
+    java.nio.file.Files.copy(staged.get(i).toPath(),dest.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    String previous=prefs.getString("slot_"+bank+"_"+i,"");
+    if(!prefs.edit().putString("slot_"+bank+"_"+i,name).putString("label_"+bank+"_"+i,titles.get(i)).commit())
+     throw new IOException("Falha ao guardar a atribuição do pad "+(i+1));
+    load(bank,i,dest);
+    if(!previous.isEmpty()&&!previous.equals(name)&&previous.matches("pad_[0-4]_[0-7]\\.(wav|mp3|ogg)"))
+     new File(root,previous).delete();
+   }
+   return staged.size();
+  }finally{for(File file:staged)file.delete();}
  }
  // Deterministic ORIGINAL generated percussion and FX (not copied Roland or 3rd-party packs).
  private void createWave(File out,int bank,int pad)throws Exception{

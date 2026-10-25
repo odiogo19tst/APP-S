@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 25
-        versionName '1.11.1-faders-cifras'
+        versionCode 26
+        versionName '1.12.0-drum-zip'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
