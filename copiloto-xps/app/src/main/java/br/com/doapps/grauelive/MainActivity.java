@@ -524,7 +524,7 @@ public class MainActivity extends Activity {
   int count=padSamples.importZipKit(bank,data.getData());
   if(metadata!=null){
    padSamples.restoreZipLabels(bank,metadata);
-   emit("padKitRestored",metadata.optJSONObject("settings")==null?new JSONObject():metadata.getJSONObject("settings"));
+   emit("padKitRestored",new JSONObject().put("bank",bank).put("settings",metadata.optJSONObject("settings")==null?new JSONObject():metadata.getJSONObject("settings")));
   }
   emit("padSampleState",padSamples.state());
   emit("status",count+" samples importados do ZIP para o banco "+(bank+1)+". Original preservado; toque para testar.");
