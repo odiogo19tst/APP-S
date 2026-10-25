@@ -9,9 +9,13 @@ public final class XpsController {
  private final IO io;private final Handler h=new Handler(Looper.getMainLooper());
  private final Map<Integer,Integer> state=new HashMap<>();private Map<Integer,Integer> undo=new LinkedHashMap<>();
  private Map<Integer,Integer> expected=new LinkedHashMap<>();private int generation=0;private boolean busy=false;
+ private int validSysexPackets=0;
+ /** This is an observed response, unlike USB-MIDI port connection or sent requests. */
+ public boolean hasValidSysex(){return validSysexPackets>0;}
+ public int validSysexCount(){return validSysexPackets;}
  public XpsController(IO io){this.io=io;}
  private List<XpsProtocol.Block> performanceBlocks(){List<XpsProtocol.Block> b=XpsProtocol.blocks();b.addAll(XpsProtocol.patches());return b;}
- public void readUsers(){if(busy){io.emit("status","Aguarde a operação atual.");return;}busy=true;io.emit("hardwareBusy",true);int token=++generation,delay=0;for(XpsProtocol.Block b:XpsProtocol.users()){for(int i=0;i<b.size;i++)state.remove(b.start+i);h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Sem porta MIDI de saída.");return;}if(b.index%32==0)io.emit("status","Consultando timbres de usuário: "+(b.index+1)+" / 256…");},delay);delay+=100;}h.postDelayed(()->{if(token!=generation)return;busy=false;io.emit("hardwareBusy",false);JSONArray tones=new JSONArray();for(XpsProtocol.Block b:XpsProtocol.users()){StringBuilder name=new StringBuilder();boolean complete=true;for(int i=0;i<12;i++){Integer c=state.get(b.start+i);if(c==null){complete=false;break;}name.append(c>=32&&c<=126?(char)(int)c:' ');}if(complete)try{JSONObject t=new JSONObject();t.put("code",String.format(java.util.Locale.ROOT,"USER%03d",b.index+1));t.put("name",name.toString().trim());t.put("category","USER");t.put("msb",87);t.put("lsb",b.index/128);t.put("program",b.index%128+1);tones.put(t);}catch(JSONException ignored){}}io.emit("userTones",tones);io.emit("status",tones.length()+" de 256 posições de usuário responderam. Posições sem resposta não foram inventadas.");},delay+1500);}
+ public void readUsers(){if(!hasValidSysex()){io.emit("status","USB-MIDI detectado, mas o XPS-10 não respondeu SysEx. Não vou enviar 256 consultas sem confirmação. Verifique driver GENERIC, modo MIDI e Device ID.");return;}if(busy){io.emit("status","Aguarde a operação atual.");return;}busy=true;io.emit("hardwareBusy",true);int token=++generation,delay=0;for(XpsProtocol.Block b:XpsProtocol.users()){for(int i=0;i<b.size;i++)state.remove(b.start+i);h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Sem porta MIDI de saída.");return;}if(b.index%32==0)io.emit("status","Consultando timbres de usuário: "+(b.index+1)+" / 256…");},delay);delay+=100;}h.postDelayed(()->{if(token!=generation)return;busy=false;io.emit("hardwareBusy",false);JSONArray tones=new JSONArray();for(XpsProtocol.Block b:XpsProtocol.users()){StringBuilder name=new StringBuilder();boolean complete=true;for(int i=0;i<12;i++){Integer c=state.get(b.start+i);if(c==null){complete=false;break;}name.append(c>=32&&c<=126?(char)(int)c:' ');}if(complete)try{JSONObject t=new JSONObject();t.put("code",String.format(java.util.Locale.ROOT,"USER%03d",b.index+1));t.put("name",name.toString().trim());t.put("category","USER");t.put("msb",87);t.put("lsb",b.index/128);t.put("program",b.index%128+1);tones.put(t);}catch(JSONException ignored){}}io.emit("userTones",tones);io.emit("status",tones.length()+" de 256 posições de usuário responderam. Posições sem resposta não foram inventadas.");},delay+1500);}
  /** A tap is an explicit authorization to audition a tone, not a request to save in USER memory. */
  public boolean hasPerformancePart(int part){
   if(part<0||part>15)return false;
@@ -35,9 +39,11 @@ public final class XpsController {
    write(edits.toString(),true); // single explicit tap; guarded snapshot+readback, never WRITE to user memory
   }catch(JSONException e){io.emit("status","Não foi possível selecionar o timbre: "+e.getMessage());}
  }
- public void reset(){generation++;state.clear();undo.clear();expected.clear();busy=false;io.emit("hardwareReset",true);}
+ public void reset(){generation++;state.clear();undo.clear();expected.clear();busy=false;validSysexPackets=0;io.emit("hardwareReset",true);}
  public void accept(byte[] packet){
   XpsProtocol.Data d=XpsProtocol.decode(packet);if(d==null)return;
+  validSysexPackets++;
+  if(validSysexPackets==1)io.emit("sysexReady",true);
   java.util.Set<String> changed=new java.util.LinkedHashSet<>();
   for(int i=0;i<d.values.length;i++){
    int address=d.start+i;
