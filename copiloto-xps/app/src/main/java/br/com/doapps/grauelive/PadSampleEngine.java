@@ -252,7 +252,7 @@ public final class PadSampleEngine {
   return files.size();
  }
  /** Reads settings only from a Grauê ZIP (never executes a file or arbitrary JSON). */
- public JSONObject readZipSettings(Uri file)throws Exception{
+ public JSONObject readZipManifest(Uri file)throws Exception{
   InputStream raw=ctx.getContentResolver().openInputStream(file);
   if(raw==null)throw new IOException("Pacote não encontrado");
   try(ZipInputStream zip=new ZipInputStream(new BufferedInputStream(raw))){
@@ -265,12 +265,28 @@ public final class PadSampleEngine {
      JSONObject manifest=new JSONObject(buffer.toString("UTF-8"));
      if(!"graue-pad-kit".equals(manifest.optString("format"))||manifest.optInt("version")!=1)
       throw new IOException("Versão do kit não suportada");
-     return manifest.optJSONObject("settings");
+     return manifest;
     }
     zip.closeEntry();
    }
   }
   return null;
+ }
+ /** Restore human-readable pad labels, never filesystem names or paths from the ZIP. */
+ public synchronized void restoreZipLabels(int bank,JSONObject manifest)throws Exception{
+  if(bank<0||bank>=BANKS||manifest==null||!"graue-pad-kit".equals(manifest.optString("format")))return;
+  JSONArray pads=manifest.optJSONArray("pads");if(pads==null||pads.length()>PADS)return;
+  SharedPreferences.Editor updates=prefs.edit();
+  for(int i=0;i<pads.length();i++){
+   JSONObject item=pads.optJSONObject(i);
+   if(item==null)continue;
+   int position=item.optInt("slot",-1);
+   if(position<0||position>=PADS||soundFile(bank,position)==null)continue;
+   String label=item.optString("label",LABELS[bank][position]).replaceAll("[\\p{Cntrl}]"," ");
+   if(label.length()>40)label=label.substring(0,40);
+   updates.putString("label_"+bank+"_"+position,label);
+  }
+  if(!updates.commit())throw new IOException("Não foi possível restaurar os nomes dos pads");
  }
  /** Imports up to eight individually supplied sounds from a ZIP, entirely offline.
   * ZIP entry paths are NEVER used as local file paths; extracted audio is bounded.
