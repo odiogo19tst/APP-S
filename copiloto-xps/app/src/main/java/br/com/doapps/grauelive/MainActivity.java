@@ -38,7 +38,9 @@ public class MainActivity extends Activity {
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
-  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();emitCachedUsers();}});
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();emitCachedUsers();
+   emit("xpsConnection",midi!=null&&midi.isConnected());
+   emit("armed",armed);}});
   web.addJavascriptInterface(new Bridge(),"Native");
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
@@ -53,13 +55,22 @@ public class MainActivity extends Activity {
   }
  }});
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
+ // MIDI permissions and data transport are distinct from Roland SysEx readback.
+ // Automatically enable sending ONLY when the OS confirms both MIDI ports are open.
+ final boolean ready=t!=null&&t.startsWith("USB conectado")&&midi!=null&&midi.isConnected();
  stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
- emit("status",t);emit("clear","");armed=false;emit("armed",false);
- if(t!=null&&t.startsWith("USB conectado")){
-  autoUserRead=!hasCachedUsers();emit("xpsConnection",true);
-  emitCachedUsers(); // user names are cached, not re-scanned at every opening
-  new Handler(Looper.getMainLooper()).postDelayed(()->xps.read(),250);
- }else{autoUserRead=false;emit("xpsConnection",false);}
+ armed=ready;
+ emit("armed",armed);
+ emit("status",ready?"USB-MIDI pronto: envio habilitado automaticamente. Lendo XPS-10 uma vez…":t);
+ emit("clear","");
+ emit("xpsConnection",ready);
+ if(ready){
+  autoUserRead=!hasCachedUsers();
+  emitCachedUsers(); // USER names survive app restarts; never scan on every screen
+  new Handler(Looper.getMainLooper()).postDelayed(()->{
+   if(midi!=null&&midi.isConnected()&&armed)xps.read();
+  },250);
+ }else autoUserRead=false;
 }public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}});
   sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
@@ -175,7 +186,12 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
   @JavascriptInterface public void connect(){runOnUiThread(()->{MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
   @JavascriptInterface public void microphone(boolean on){runOnUiThread(()->{if(!on){audio.stop();emit("mic",false);}else if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},1);else{audio.start();emit("mic",audio.isRunning());}});}
-  @JavascriptInterface public void arm(boolean value){runOnUiThread(()->{armed=value;if(!armed){sequencer.stop();stopPadNotes();xps.cancelWrites();}emit("armed",armed);});}
+  @JavascriptInterface public void arm(boolean value){runOnUiThread(()->{
+   // Legacy control remains for compatibility; never arm without an actual USB output.
+   armed=value&&midi!=null&&midi.isConnected();
+   if(!armed){sequencer.stop();stopPadNotes();xps.cancelWrites();}
+   emit("armed",armed);
+  });}
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Ative o envio MIDI antes de aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
   @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
   @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
