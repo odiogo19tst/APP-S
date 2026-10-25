@@ -72,7 +72,6 @@
  el('gx-pad-import').onclick=()=>{selectedPad=+slotPicker.value;native('importPadSample',sampleBank,selectedPad);};
  el('gx-pad-stop-audio').onclick=()=>native('stopPadSamples');
  renderAudioSource();
- native('getPadSampleLibrary');
 
  el('gx-drums-channel').onchange=()=>{drumChannel=+el('gx-drums-channel').value;native('stopSequence');save();renderAudioSource();};
  el('gx-drone-channel').onchange=()=>{native('stopDronePad');droneOn=false;droneChannel=+el('gx-drone-channel').value;save();};
@@ -89,6 +88,7 @@
   };
   el('gx-drums-pads').append(btn);
  }
+ renderAudioSource();
  el('gx-drums-velocity').oninput=()=>el('gx-drums-velocity-out').textContent=el('gx-drums-velocity').value;
  el('gx-drums-reverb').oninput=()=>el('gx-drums-reverb-out').textContent=el('gx-drums-reverb').value;
  el('gx-drums-apply-reverb').onclick=()=>native('cc',drumChannel,91,+el('gx-drums-reverb').value);
@@ -181,4 +181,5 @@
   if(type==='xpsConnection'&&!payload){droneOn=false;el('gx-drone-status').textContent='USB desconectado — notas liberadas.';}
  };
  renderSteps();
+ native('getPadSampleLibrary');
 })();
