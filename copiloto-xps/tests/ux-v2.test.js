@@ -20,7 +20,9 @@ for(const id of ['gx-start','gx-next','gx-panic','gx-down','gx-up','gx-import-ci
 for(const key of ['window.Native.importCifra','window.Native.editHardware','window.ToneLibrary','const prior=window.receive']){
  assert(ux.includes(key),'Missing real action binding: '+key);
 }
-assert(ux.includes("if(!$x('arm').checked)"),'Mixer must not transmit when disarmed');
+const activity=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/MainActivity.java'),'utf8');
+assert(activity.includes('armed=true;emit("armed",true);emit("xpsConnection",true)'), 'Send MIDI must enable on USB connect');
+assert(activity.includes('xps.write(json,armed)'), 'Native rejects MIDI editing if disconnected');
 assert(ux.includes("if(confirm("),'Panic must request confirmation');
 assert(!ux.includes('login mantido')&&!ux.includes('92%'),'No simulated session or confidence');
 assert(css.includes('@media(max-width:700px)'),'Portrait layout not adapted');
