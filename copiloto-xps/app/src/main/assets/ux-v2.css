@@ -589,3 +589,22 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell .gx-roland-actions button{flex:1;min-height:44px;min-width:145px;padding:9px 12px;font-size:12px}
 #gx-shell #gx-roland-backup-import{background:#128e78;border-color:#30d7b5}
 @media(max-width:700px){.gx-roland-favorites{padding:10px}.gx-roland-actions{flex-direction:column}}
+
+
+/* DrumPad libraries: Roland rhythm patches vs audio samples made on the Android device. */
+.gx-drum-library{border:1px solid #276d80;background:linear-gradient(105deg,#0d2935,#103141);border-radius:12px;padding:12px;margin:8px 0 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.gx-pad-library-source{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gx-drum-library label{display:flex;flex-direction:column;gap:5px;color:#c6e4e5;font-weight:600;font-size:12px;min-width:0}
+#gx-shell .gx-drum-library select{box-sizing:border-box;width:100%;min-height:46px;background:#0a2231;color:#effcfc;border:1px solid #39687d;border-radius:9px;padding:8px;font-size:13px}
+.gx-pad-library-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:end}
+#gx-shell .gx-pad-library-actions button{min-height:46px;padding:9px 12px;font-size:12px;font-weight:650}
+#gx-shell #gx-pad-use-roland{background:#13745f;border-color:#31bc9d;color:#fff}
+#gx-shell #gx-pad-import{background:#19768d;border-color:#42b6cf;color:#fff}
+#gx-shell #gx-pad-stop-audio{background:#522f43;border-color:#93566a;color:#fff}
+.gx-pad-library-actions label{min-width:140px;flex:1}
+.gx-drum-library small{color:#9fc8d1;font-size:11px;line-height:1.5}
+.gx-drum-library .gx-pad-library-help{color:#d4ceda}
+#gx-shell .gx-drum-key.gx-drum-empty{opacity:.65;border-style:dashed}
+#gx-shell .gx-drums-pads button strong{overflow-wrap:anywhere}
+#gx-shell .gx-drum-library [hidden]{display:none!important}
+@media(max-width:700px){.gx-pad-library-source{grid-template-columns:1fr}.gx-pad-library-actions>*{flex:1 1 45%}.gx-pad-library-actions label{min-width:120px}.gx-drum-library{padding:10px}}

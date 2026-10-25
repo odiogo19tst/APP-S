@@ -36,16 +36,18 @@ public class MainActivity extends Activity {
  private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
+ private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1;
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
-  backupArchive=new BackupArchive(this);jarvisGateway=new JarvisCloudGateway(this);directApi=new JarvisDirectOpenAI(this);
+  backupArchive=new BackupArchive(this);padSamples=new PadSampleEngine(this);jarvisGateway=new JarvisCloudGateway(this);directApi=new JarvisDirectOpenAI(this);
   getWindow().setStatusBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
   web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();emitCachedUsers();}});
   web.addJavascriptInterface(new Bridge(),"Native");
+  worker.execute(()->{try{padSamples.prepare();emit("padSampleState",padSamples.state());}catch(Exception e){emit("status","Áudio dos pads indisponível: "+e.getMessage());}});
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
   if("hardware".equals(k)&&autoUserRead){
@@ -197,6 +199,56 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void stopAssistChord(){runOnUiThread(()->stopAssist());}
   @JavascriptInterface public void padHit(int channel,int note,int velocity){runOnUiThread(()->{if(!armed){emit("status","Ative envio MIDI para tocar os pads.");return;}if(channel<1||channel>16||note<0||note>127||velocity<1||velocity>127)return;int key=(channel-1)*128+note,token=++padSerial;if(!midi.send(0x90+channel-1,note,velocity)){sequencer.stop();emit("status","Sem saída MIDI conectada.");return;}padTokens.put(key,token);padHandler.postDelayed(()->{if(Integer.valueOf(token).equals(padTokens.get(key))){midi.send(0x80+channel-1,note,0);padTokens.remove(key);}},120);});}
   @JavascriptInterface public void stopPads(){runOnUiThread(()->stopPadNotes());}
+  @JavascriptInterface public void getPadSampleLibrary(){
+   try{emit("padSampleState",padSamples.state());}
+   catch(Exception e){emit("status","Biblioteca de samples: "+e.getMessage());}
+  }
+  @JavascriptInterface public void playPadSample(int bank,int pad,int velocity){
+   runOnUiThread(()->{
+    String issue=padSamples.play(bank,pad,velocity);
+    if(!issue.isEmpty())emit("status",issue);
+   });
+  }
+  @JavascriptInterface public void stopPadSamples(){runOnUiThread(()->padSamples.stop());}
+  @JavascriptInterface public void importPadKit(int bank){
+   if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Biblioteca inválida.");return;}
+   runOnUiThread(()->{
+    importKitBank=bank;
+    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("audio/*")
+      .addCategory(Intent.CATEGORY_OPENABLE)
+      .putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
+    startActivityForResult(pick,8);
+   });
+  }
+  @JavascriptInterface public void importPadSample(int bank,int pad){
+   if(bank<0||bank>=PadSampleEngine.BANKS||pad<0||pad>=PadSampleEngine.PADS){
+    emit("status","Escolha um banco e pad válidos.");return;
+   }
+   runOnUiThread(()->{
+    importPadBank=bank;importPadIndex=pad;
+    Intent picker=new Intent(Intent.ACTION_OPEN_DOCUMENT)
+       .setType("audio/*").addCategory(Intent.CATEGORY_OPENABLE);
+    startActivityForResult(picker,7);
+   });
+  }
+  /** Roland XPS-10 published drum-bank/patch MIDI values, not sampled audio. */
+  @JavascriptInterface public void selectDrumKit(int channel,int msb,int lsb,int program){
+   runOnUiThread(()->{
+    if(channel<1||channel>16||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128){
+     emit("status","Parâmetros MIDI de kit inválidos.");return;
+    }
+    if(midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 pelo USB-MIDI.");return;}
+    boolean sent=midi.send(0xB0+channel-1,0,msb);
+    if(sent)sent=midi.send(0xB0+channel-1,32,lsb);
+    if(sent)sent=midi.sendProgram(channel,program-1);
+    if(sent){
+     try{emit("drumKitSent",new JSONObject().put("channel",channel)
+       .put("msb",msb).put("lsb",lsb).put("program",program));}catch(Exception ignored){}
+     emit("status","Kit de bateria enviado no canal "+channel+". Confirme o som; a parte deve aceitar Rhythm/Program Change.");
+    }else emit("status","Falha ao enviar Bank Select / Program Change do kit.");
+   });
+  }
+
 
   @JavascriptInterface public void openReference(String name){runOnUiThread(()->{String url=null;if(name.equals("model"))url="https://huggingface.co/litert-community/Gemma3-1B-IT/tree/main";if(name.equals("gemmaTerms"))url="https://ai.google.dev/gemma/terms";if(name.equals("gemmaSource"))url="https://huggingface.co/72fstudio/gemma-3-270m-it";if(name.equals("effects"))url="https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf";if(name.equals("louve"))url="https://louveapp.com.br/";if(name.equals("cifra"))url="https://www.cifraclub.com.br/";if(url!=null)try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(Exception e){emit("status","Não foi possível abrir o navegador.");}});}
   @JavascriptInterface public void testModel(){ask("Responda em português: qual a diferença entre ataque e release de um pad? Use no máximo três frases.");}
@@ -408,9 +460,32 @@ public class MainActivity extends Activity {
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
+ if(req==8){
+  if(importKitBank<0||importKitBank>=PadSampleEngine.BANKS)throw new IOException("Kit não selecionado");
+  java.util.ArrayList<android.net.Uri> selected=new java.util.ArrayList<>();
+  if(data.getClipData()!=null){
+   if(data.getClipData().getItemCount()>8)throw new IOException("Selecione até 8 sons por kit");
+   for(int i=0;i<data.getClipData().getItemCount();i++)selected.add(data.getClipData().getItemAt(i).getUri());
+  }else if(data.getData()!=null)selected.add(data.getData());
+  int imported=0;
+  for(android.net.Uri uri:selected){
+   padSamples.importSample(importKitBank,imported,uri);
+   imported++;
+  }
+  emit("padSampleState",padSamples.state());
+  emit("status",imported+" arquivos importados. Pads 1 a "+imported+" atualizados; originais preservados.");
+  return;
+ }
+ if(req==7){
+  if(importPadBank<0||importPadIndex<0)throw new IOException("Pad importado sem destino");
+  padSamples.importSample(importPadBank,importPadIndex,data.getData());
+  emit("padSampleState",padSamples.state());
+  emit("status","Sample importado para o Grauê. Arquivo original preservado.");
+  return;
+ }
  if(req==5){java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else if(data.getData()!=null)uris.add(data.getData());emit("backups",backupArchive.importFiles(uris));emit("status","Backups copiados para a biblioteca. Originais preservados; formato ainda não interpretado.");return;}
  if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
  if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>1000000)throw new IOException("Arquivo maior que 1 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
- @Override protected void onStop(){super.onStop();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
- @Override protected void onDestroy(){if(cifraPanel!=null)cifraPanel.destroy();stopPadNotes();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
+ @Override protected void onStop(){super.onStop();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
+ @Override protected void onDestroy(){if(cifraPanel!=null)cifraPanel.destroy();stopPadNotes();padSamples.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
 }
