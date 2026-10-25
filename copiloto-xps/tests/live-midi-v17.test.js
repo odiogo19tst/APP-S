@@ -11,7 +11,7 @@ assert(gemma.includes('EXPECTED_BYTES=303950933L'),'Gemma SHA-pinned artifact ex
 assert(gemma.includes('0f7147f1c22eaf758b819bbf7841793e4c90096c9352cde7fbe5c631f2265ef5'),'Gemma hash guard missing');
 assert(native.includes('armed=true;emit("armed",true);emit("xpsConnection",true)'),'MIDI must auto-enable with USB');
 assert(native.includes('armed=false;autoUserRead=false'),'MIDI must disable when disconnected');
-assert(native.includes('new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.read();},300)'),'Automatic read on connect missing');
+assert(native.includes('new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.initialSync();},300)'),'Automatic verified SysEx probe on connect missing');
 assert(native.includes('selectPerformance(int number,boolean user)'),'Documented XPS-10 performance bank select missing');
 assert(native.includes('midi.send(0xb0,0,85)')&&native.includes('midi.send(0xb0,32,user?0:64)'),'Roland performance MSB/LSB wrong');
 assert(midi.includes('io.emit("hardwarePhysical",updated)'),'Incoming physical SysEx should update screen');
@@ -20,7 +20,7 @@ assert(ui.includes("if((status&240)===176"),'Incoming CC physical fader render m
 assert(ui.includes("slider.id='gx-part-slider-'+i"),'Mixer faders need stable IDs');
 assert(ui.includes('id="gx-performance-banks"'),'USER/PRESET performance selector missing');
 assert(ui.includes('id="gx-perf-grid"'),'Bank performance buttons missing');
-assert(ui.includes('window.Native.selectPerformance(n,userPerformances)'),'Performance select not wired');
+assert(!ui.includes('window.Native.selectPerformance(n,userPerformances)'),'Do not expose unverified 144 stored Performances as ready-to-select');
 assert(app.includes('performanceNames:saved.performanceNames||{}'),'Learned performance names must persist');
 assert(css.includes('#gx-shell #gx-arm')&&css.includes('body.gx-ready #arm'),'Legacy MIDI toggle must be hidden');
 assert(css.includes('.gx-perf-grid'),'Compact performance grid CSS missing');

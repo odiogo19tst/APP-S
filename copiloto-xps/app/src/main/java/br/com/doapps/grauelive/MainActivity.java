@@ -28,6 +28,15 @@ public class MainActivity extends Activity {
   assistNotes.clear();assistSerial++;
  }
 
+ private void restoreConfirmedMidiCache(){
+  String snapshot=getPreferences(MODE_PRIVATE).getString("xpsVerifiedPerformanceCache","");
+  if(snapshot.isEmpty())return;
+  try{JSONObject saved=new JSONObject(snapshot);if(saved.optInt("completeBlocks")>0){
+    saved.put("source","midi-cache");
+    saved.put("fullStateVerified",false);
+    emit("hardwareCache",saved);
+  }}catch(Exception ignored){}
+ }
  private void emitCachedUsers(){
   String stored=getPreferences(MODE_PRIVATE).getString("xpsUserCache","");
   if(!stored.isEmpty())try{emit("userTones",new JSONArray(stored));emit("status","Timbres USER recuperados do cache local. Não é necessário ler novamente.");}
@@ -45,11 +54,17 @@ public class MainActivity extends Activity {
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
-  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();emitCachedUsers();}});
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();restoreConfirmedMidiCache();emitCachedUsers();}});
   web.addJavascriptInterface(new Bridge(),"Native");
   worker.execute(()->{try{padSamples.prepare();emit("padSampleState",padSamples.state());}catch(Exception e){emit("status","Áudio dos pads indisponível: "+e.getMessage());}});
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
+  if("hardware".equals(k)&&d instanceof JSONObject){
+   JSONObject snap=(JSONObject)d;
+   if(snap.optInt("completeBlocks",0)>0&&snap.optInt("validSysexPackets",0)>0){
+    getPreferences(MODE_PRIVATE).edit().putString("xpsVerifiedPerformanceCache",snap.toString()).apply();
+   }
+  }
   if("hardware".equals(k)&&autoUserRead){
    autoUserRead=false;
    if(hasCachedUsers())emitCachedUsers();
@@ -68,7 +83,7 @@ public class MainActivity extends Activity {
   armed=true;emit("armed",true);emit("xpsConnection",true);
   autoUserRead=!hasCachedUsers();
   emitCachedUsers();
-  new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.read();},300);
+  new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.initialSync();},300);
  }else if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){
   stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
   armed=false;autoUserRead=false;
@@ -332,6 +347,14 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
   @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
   @JavascriptInterface public void listBackups(){worker.execute(()->{try{emit("backups",backupArchive.list());}catch(Exception e){emit("status","Biblioteca: "+e.getMessage());}});}
+  @JavascriptInterface public void inspectRolandBackup(String sha){
+   worker.execute(()->{
+    try{
+     File original=backupArchive.fileFor(sha);
+     emit("backupInspection",RolandBackupInspector.inspect(original,backupArchive.originalName(sha)));
+    }catch(Exception e){emit("status","Não foi possível examinar o backup: "+e.getMessage());}
+   });
+  }
   @JavascriptInterface public void importXpsBackups(){runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(i,5);});}
   @JavascriptInterface public void exportXpsBackup(String sha){worker.execute(()->{try{File file=backupArchive.fileFor(sha);String originalName=backupArchive.originalName(sha);backupExportSha=sha;runOnUiThread(()->startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/octet-stream").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,originalName),6));}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void deleteXpsBackup(String sha){worker.execute(()->{try{if(backupArchive.delete(sha)){emit("backups",backupArchive.list());emit("status","Copia local excluida. Nenhuma alteração foi feita no XPS-10.");}}catch(Exception e){emit("status",e.getMessage());}});}

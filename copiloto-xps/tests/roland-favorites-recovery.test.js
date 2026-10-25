@@ -7,7 +7,7 @@ const ui=fs.readFileSync(path.join(base,'assets/ux-v2.js'),'utf8');
 const css=fs.readFileSync(path.join(base,'assets/ux-v2.css'),'utf8');
 for(const id of ['gx-roland-favorites','gx-roland-favorites-status','gx-roland-backup-import','gx-roland-view-backups','gx-midi-report'])assert(ui.includes('id="'+id+'"'),'Missing control '+id);
 assert(ui.includes('Os 100 registros de FAVORITE do Roland'),'Physical favorite bank distinction missing');
-assert(ui.includes('MEUS FAVORITOS DO GRAUÊ'),'Personal banks must be distinguished');
+assert(ui.includes('BANCOS LOCAIS ANTIGOS (ARQUIVADOS)'),'Phone-only legacy banks must be marked archived and hidden');
 assert(ui.includes('ainda não interpreta automaticamente o formato proprietário'),'Do not claim parsing unknown proprietary format');
 assert(ui.includes("rolandFavoriteEntriesDecoded:0"),'Missing explicit physical favorite parse status');
 assert(ui.includes("window.Native?.getMidiDiagnostics?.()"),'No safe diagnostics');
