@@ -646,3 +646,74 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell .gx-physical-favorites-mode .gx-tone-count,
 #gx-shell .gx-physical-favorites-mode .gx-tone-list {display:none!important}
 #gx-shell .gx-physical-favorites-mode .gx-roland-favorites {order:0;margin:0}
+
+
+/* 1.14 — Fix: Performance name collapsed to one character per line.
+ * The original flex row allowed the name to shrink to 0 while the
+ * description and edit controls reserved their widths.
+ * On compact portrait screens these are stacked, never squeezed.
+ */
+#gx-shell .gx-sound-center,
+#gx-shell .gx-performance,
+#gx-shell .gx-perf-row {min-width:0;max-width:100%;box-sizing:border-box}
+#gx-shell .gx-perf-row{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  align-items:center;
+  width:100%;
+}
+#gx-shell .gx-perf-row > #gx-perf-name{
+  grid-column:1/-1;
+  display:block;
+  flex:none;
+  min-width:0;
+  max-width:100%;
+  width:auto;
+  font-size:clamp(15px,4.4vw,19px);
+  line-height:1.32;
+  text-align:left;
+  white-space:normal;
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+#gx-shell .gx-perf-row > #gx-performance-source{
+  grid-column:1/-1;
+  display:block;
+  min-width:0;
+  margin:0!important;
+  font-size:11px;
+  line-height:1.4;
+  white-space:normal;
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+#gx-shell .gx-perf-row > button{
+  min-width:0;
+  width:100%;
+  min-height:44px;
+  margin:0;
+  white-space:normal;
+}
+@media (min-width:850px) and (orientation:landscape){
+  #gx-shell .gx-perf-row{
+    grid-template-columns:minmax(180px,1fr) repeat(2,minmax(78px,max-content));
+    align-items:center;
+  }
+  #gx-shell .gx-perf-row > #gx-perf-name{
+    grid-column:1;
+    grid-row:1;
+  }
+  #gx-shell .gx-perf-row > #gx-performance-source{
+    grid-column:1;
+    grid-row:2;
+  }
+  #gx-shell .gx-perf-row > #gx-perf-edit{
+    grid-column:2;
+    grid-row:1/span 2;
+  }
+  #gx-shell .gx-perf-row > #gx-perf-new{
+    grid-column:3;
+    grid-row:1/span 2;
+  }
+}
