@@ -17,9 +17,9 @@
  '<div class="gx-stage-actions"><button class="gx-start" id="gx-start">▶<span>Iniciar</span></button><button id="gx-pause">Ⅱ<span>Pausar</span></button><button id="gx-next">⏭<span>Próxima música</span></button><button class="gx-danger" id="gx-panic">⚠<span>Parar MIDI</span></button><div class="gx-transpose"><button id="gx-down" aria-label="Transpor abaixo">−</button><strong id="gx-transpose">0</strong><button id="gx-up" aria-label="Transpor acima">+</button><small>Transpor cifra</small></div><button id="gx-show-favorites">★<span>Favoritos</span></button></div>',
  '<div class="gx-panel gx-silent-advisor" id="gx-silent-advisor"><div class="gx-silent-head"><strong>✦ JARVIS · SUGESTÕES SILENCIOSAS</strong><span id="gx-silent-source">Cifra e favoritos do celular</span></div><div class="gx-silent-content"><div><small>PRÓXIMA HARMONIA</small><strong id="gx-silent-next">—</strong><small id="gx-silent-detail">Abra uma música do repertório.</small></div><div><small>TIMBRE PREPARADO</small><strong id="gx-silent-tone">—</strong><small id="gx-silent-tone-detail">Marque sons como favoritos para receber sugestões.</small></div></div><div class="gx-silent-actions"><button id="gx-silent-accept" disabled>Aplicar timbre</button><button id="gx-silent-alternate" disabled>Outra sugestão</button><button id="gx-silent-ai">Dica da IA local</button><button id="gx-silent-dismiss">Ignorar</button></div><p id="gx-silent-ai-text" role="status" aria-live="polite"></p><p class="gx-silent-note">Sugestões visuais, sem fala nem som. Timbres só mudam com seu toque. A próxima harmonia vem da cifra, não de reconhecimento automático da banda.</p></div>',
 '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
- '<div class="gx-panel gx-assist"><div class="gx-section-label">✦ JARVIS MUSICAL · ACORDE DE APOIO <small>Som gerado pelo XPS-10 por MIDI</small></div><div class="gx-assist-controls"><div><strong id="gx-assist-chord">—</strong><small>acorde atual da música</small></div><label>Canal<select id="gx-assist-channel"></select></label><button id="gx-assist-play">▶ Tocar acorde</button><button id="gx-assist-stop">■ Parar</button></div><small>Um toque envia o acorde por 900 ms, somente com MIDI ativado. Escolha um canal de recepção que não interfira nas notas que você está tocando. Nunca toca sem seu comando.</small></div>',
+ '<div class="gx-panel gx-assist"><div class="gx-section-label">✦ JARVIS MUSICAL <small>ACORDE DE APOIO</small></div><div class="gx-assist-controls"><div><strong id="gx-assist-chord">—</strong><small>acorde atual da música</small></div><label>Canal<select id="gx-assist-channel"></select></label><button id="gx-assist-play">▶ Tocar acorde</button><button id="gx-assist-stop">■ Parar</button></div><small>Envio automático ao conectar · acordes só tocam com seu comando</small></div>',
  '<div class="gx-panel gx-zone"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
- '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm">Habilitar envio MIDI</button><button id="gx-show-mode">Modo show ↔</button></div></div>',
+ '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm" hidden>Envio MIDI automático</button><button id="gx-show-mode">Modo show ↔</button></div></div>',
  '<div class="gx-screen" data-gx-screen="repertoire"><div class="gx-rep-layout">',
  '<aside class="gx-panel gx-rep-library"><div class="gx-section-label">▏ Meu Repertório</div><input id="gx-search" placeholder="Buscar música, artista ou tom…" aria-label="Buscar repertório"><div class="gx-filters"><button class="on" data-gx-filter="all">Todas</button><button data-gx-filter="favorites">Favoritas</button><button data-gx-filter="setlist">Setlist</button><button data-gx-filter="recent">Recentes</button><button id="gx-add-song">+</button></div><div id="gx-songs" class="gx-song-list"></div></aside>',
  '<section class="gx-rep-view"><div class="gx-rep-tabs"><button class="on" data-gx-rep="cifra">Cifra integrada</button><button data-gx-rep="letter">Letra</button><button data-gx-rep="notes">Anotações</button><button data-gx-rep="setlist">Setlist</button></div>',
@@ -111,7 +111,7 @@
  tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');
  const openLegacy=tab=>{document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
- const arm=()=>callOld('liveArm');
+ const arm=()=>{}; // connection owns MIDI send/receive readiness
  const connect=()=>callOld('connect');
  $x('gx-unified-usb').onclick=()=>{if(!usbConnected)connect();else notify('USB-MIDI já conectado. A leitura é automática; a ausência de SysEx pode indicar modo MIDI ou Device ID diferente.');};
  const openCifra=()=>{switchTab('repertoire');callOld('liveCifra');};
@@ -495,13 +495,12 @@
   for(let i=partPage*8;i<partPage*8+8;i++){
    const p=hw['part:'+i],col=document.createElement('div');col.className='gx-channel';
    const num=document.createElement('b');num.textContent=i+1;const name=document.createElement('span');name.textContent=p?'CH '+(p[0]+1):'Sem leitura';
-   const slider=document.createElement('input');slider.type='range';slider.min=0;slider.max=127;slider.value=p?String(p[7]):'0';slider.disabled=!p;
+   const slider=document.createElement('input');slider.id='gx-part-slider-'+i;slider.type='range';slider.min=0;slider.max=127;slider.value=p?String(p[7]):'0';slider.disabled=!p;
    slider.setAttribute('aria-label','Volume da parte '+(i+1));
-   const out=document.createElement('strong');out.textContent=p?p[7]:'—';
+   const out=document.createElement('strong');out.id='gx-part-value-'+i;out.textContent=p?p[7]:'—';
    slider.oninput=()=>out.textContent=slider.value;
    slider.onchange=()=>{
     if(!p)return;
-    if(!$x('arm').checked){notify('Ative o envio MIDI antes de modificar volume.');renderMixer();return;}
     if(!hw['setup:0']||hw['setup:0'][0]!==1){notify('Leia uma Performance válida do XPS-10 antes de editar o volume.');renderMixer();return;}
     if(!window.Native||!window.Native.editHardware){notify('Conecte o XPS-10 pelo USB e atualize a leitura.');return;}
     const level=Number(slider.value);
@@ -558,9 +557,30 @@
   if(kind==='hardwareReset')hw={};
   if(kind==='mic')recording=!!data;
   if(kind==='audio'){lastAudio=data;if(Number.isInteger(data.midi)&&data.midi>=0){const n=friendlyNote(data.midi);if(notesHistory.at(-1)!==n)notesHistory=[...notesHistory,n].slice(-9);}}
-  if(kind==='midi'){lastCh=$x('chord').textContent;}
+  if(kind==='midi'){
+    lastCh=$x('chord').textContent;
+    const [status,cc,value]=Array.isArray(data)?data:[];
+    if((status&240)===176&&Number.isInteger(cc)&&Number.isInteger(value)&&value>=0&&value<=127){
+      const ch=status&15;
+      const legacy=$x('cc'+cc),output=$x('value'+cc);
+      if(legacy&&!legacy.matches(':active')){legacy.value=String(value);if(output)output.textContent=String(value);}
+      if(cc===7)for(let part=0;part<16;part++){
+        const p=hw['part:'+part];
+        if(!p||p[0]!==ch)continue;
+        p[7]=value;
+        const slider=$x('gx-part-slider-'+part),label=$x('gx-part-value-'+part);
+        if(slider&&!slider.matches(':active'))slider.value=String(value);
+        if(label)label.textContent=String(value);
+      }
+    }
+  }
   if(kind==='clear')lastCh='—';
   if(kind==='audio'||kind==='midi'||kind==='mic'||kind==='clear'){renderCoach();return;}
+  if(kind==='hardwarePhysical'){
+    hw={...hw,...(data||{})};
+    renderMixer();
+    return;
+  }
   if(kind==='hardware'||kind==='hardwareReset'){renderMixer();renderFavorites();syncStage();return;}
   if(kind==='armed'){syncStage();return;}
   if(kind==='backups'){backupRows=Array.isArray(data)?data:[];renderBackups();}
