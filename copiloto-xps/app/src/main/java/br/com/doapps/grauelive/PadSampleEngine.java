@@ -20,14 +20,19 @@ import java.util.zip.ZipInputStream;
 /** Independent audio pad libraries. Built-in samples are original synthesized WAV files.
  * User audio stays private to this Android app, never transferred over USB-MIDI. */
 public final class PadSampleEngine {
- public static final int BANKS=5, PADS=8;
- private static final String[] NAMES={"Drum Kit 1 (Grauê)","EFX 1 (Grauê)","Worship Drums (Grauê)","Worship EFX (Grauê)","Meus Samples"};
+ public static final int BANKS=8, PADS=8;
+ // Real one-shot samples in banks 5–7 are CC0 from Boochi44/free-drum-samples.
+ // Imported files are owned by the user and never uploaded or sent to the keyboard.
+ private static final String[] NAMES={"Drum Kit 1 (Grauê)","EFX 1 (Grauê)","Worship Drums (Grauê)","Worship EFX (Grauê)","Meus Samples","Worship Groove • Soulful CC0","Pop Groove • Bounce CC0","Modern Hits • Trap CC0"};
  private static final String[][] LABELS={
   {"Kick 1","Snare 1","Hi-Hat","Clap","Tom Low","Tom High","Crash","Ride"},
   {"Impact","Sweep Up","Sweep Down","Pulse","Spark","Hit","Riser","Sub Drop"},
   {"Worship Kick","Worship Snare","Worship Hat","Soft Clap","Worship Tom","Shaker","Soft Crash","Tambourine"},
   {"Cinematic Hit","Ambient Sweep","Reverse Sweep","Soft Pulse","Sparkle","Transition","Worship Riser","Deep Boom"},
-  {"Sample 1","Sample 2","Sample 3","Sample 4","Sample 5","Sample 6","Sample 7","Sample 8"}
+  {"Sample 1","Sample 2","Sample 3","Sample 4","Sample 5","Sample 6","Sample 7","Sample 8"},
+  {"Vintage Kick","Vintage Snare","Lo-Fi Hat","Vintage Clap","Tom grave","Tom agudo","Prato vintage","Open Hat"},
+  {"Pop Kick","Pop Snare","Closed Hat","Clap","Tom grave","Tom agudo","Crash","Open Hat"},
+  {"Hard Kick","Hard Snare","Closed Hat","Clap","Tom grave","Cowbell","Crash","Open Hat"}
  };
  private final Context ctx;
  private final SharedPreferences prefs;
@@ -54,6 +59,15 @@ public final class PadSampleEngine {
  public synchronized void prepare()throws Exception {
   for(int b=0;b<BANKS;b++)for(int p=0;p<PADS;p++){
    File file=soundFile(b,p);
+   if(file==null&&b>=5&&b<8){
+    File embedded=new File(root,"cc0_"+b+"_"+p+".wav");
+    if(!embedded.isFile()||embedded.length()<44){
+     try(InputStream in=ctx.getAssets().open("drumkits/cc0_"+b+"_"+p+".wav");OutputStream out=new BufferedOutputStream(new FileOutputStream(embedded))){
+      byte[] bytes=new byte[16384];int n;while((n=in.read(bytes))!=-1)out.write(bytes,0,n);
+     }catch(IOException unavailable){embedded.delete();}
+    }
+    if(embedded.isFile()&&embedded.length()>44)file=embedded;
+   }
    if(file==null&&b<4){
     file=new File(root,"graue_"+b+"_"+p+".wav");
     if(!file.isFile()||file.length()<44)createWave(file,b,p);
@@ -64,7 +78,7 @@ public final class PadSampleEngine {
  }
  private File soundFile(int bank,int pad){
   String name=prefs.getString("slot_"+bank+"_"+pad,"");
-  if(!name.matches("pad_[0-4]_[0-7]\\.(?:wav|mp3|ogg)"))return null;
+  if(!name.matches("pad_[0-7]_[0-7]\\.(?:wav|mp3|ogg)"))return null;
   File f=new File(root,name);
   return f.isFile()?f:null;
  }
@@ -89,10 +103,11 @@ public final class PadSampleEngine {
    JSONArray pads=new JSONArray();
    for(int p=0;p<PADS;p++){
     boolean custom=soundFile(b,p)!=null;
+    boolean bundled=b>=5&&b<8&&new File(root,"cc0_"+b+"_"+p+".wav").isFile();
     String display=custom?prefs.getString("label_"+b+"_"+p,"Sample personalizado"):LABELS[b][p];
     pads.put(new JSONObject().put("index",p).put("label",display)
-       .put("source",custom?"importado":b<4?"original Graue":"vazio")
-       .put("available",custom||b<4).put("loaded",loaded[b][p]));
+       .put("source",custom?"importado":bundled?"CC0":b<4?"original Graue":"vazio")
+       .put("available",custom||b<4||bundled).put("loaded",loaded[b][p]));
    }
    bank.put("pads",pads);banks.put(bank);
   }
@@ -220,7 +235,7 @@ public final class PadSampleEngine {
     if(!prefs.edit().putString("slot_"+bank+"_"+i,name).putString("label_"+bank+"_"+i,titles.get(i)).commit())
      throw new IOException("Falha ao guardar a atribuição do pad "+(i+1));
     load(bank,i,dest);
-    if(!previous.isEmpty()&&!previous.equals(name)&&previous.matches("pad_[0-4]_[0-7]\\.(wav|mp3|ogg)"))
+    if(!previous.isEmpty()&&!previous.equals(name)&&previous.matches("pad_[0-7]_[0-7]\\.(wav|mp3|ogg)"))
      new File(root,previous).delete();
    }
    return staged.size();
