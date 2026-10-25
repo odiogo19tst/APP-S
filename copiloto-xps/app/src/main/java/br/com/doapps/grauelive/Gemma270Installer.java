@@ -15,7 +15,7 @@ public final class Gemma270Installer {
  public static final String MODEL_URL="https://huggingface.co/72fstudio/gemma-3-270m-it/resolve/main/gemma3-270m-it-q8.task";
  public static final String TERMS_URL="https://ai.google.dev/gemma/terms";
  public static final String SHA256="0f7147f1c22eaf758b819bbf7841793e4c90096c9352cde7fbe5c631f2265ef5";
- public static final long EXPECTED_BYTES=318767104L;
+ public static final long EXPECTED_BYTES=303950933L; // Exact LFS size from the pinned Hugging Face SHA-256
  private static final long HARD_LIMIT=380L*1024*1024;
  public interface Progress {void update(int percent,String message);}
  public interface Validator {void validate(File candidate)throws Exception;}
@@ -36,7 +36,7 @@ public final class Gemma270Installer {
   if(isVerified(installed)){progress.update(100,"Gemma já está instalada e verificada.");return;}
   File downloading=new File(folder,"gemma-270m-download.task");
   long offset=downloading.exists()?downloading.length():0;
-  if(offset<0||offset>HARD_LIMIT){downloading.delete();offset=0;}
+  if(offset<0||offset>EXPECTED_BYTES){downloading.delete();offset=0;}
   if(folder.getUsableSpace()<Math.max(80L*1024*1024,EXPECTED_BYTES-offset+80L*1024*1024))
     throw new IOException("Sem espaço para a IA: libere cerca de 420 MB no armazenamento do celular.");
   if(offset<EXPECTED_BYTES){
@@ -74,7 +74,7 @@ public final class Gemma270Installer {
    }finally{connection.disconnect();}
   }
   if(cancelled.get())throw new InterruptedIOException("Download pausado.");
-  if(downloading.length()!=EXPECTED_BYTES)throw new IOException("Download incompleto. Toque novamente para continuar.");
+  if(downloading.length()!=EXPECTED_BYTES)throw new IOException("Arquivo ainda incompleto ("+downloading.length()+" / "+EXPECTED_BYTES+" bytes). Toque novamente para retomar.");
   progress.update(99,"Verificando integridade SHA-256...");
   if(!SHA256.equals(digest(downloading))){downloading.delete();throw new IOException("Hash inválido: arquivo descartado. Nenhuma IA foi substituída.");}
   ModelImport.checkBundle(downloading);

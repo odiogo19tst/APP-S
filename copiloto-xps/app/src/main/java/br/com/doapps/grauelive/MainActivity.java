@@ -53,13 +53,18 @@ public class MainActivity extends Activity {
   }
  }});
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
- stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
- emit("status",t);emit("clear","");armed=false;emit("armed",false);
- if(t!=null&&t.startsWith("USB conectado")){
-  autoUserRead=!hasCachedUsers();emit("xpsConnection",true);
-  emitCachedUsers(); // user names are cached, not re-scanned at every opening
-  new Handler(Looper.getMainLooper()).postDelayed(()->xps.read(),250);
- }else{autoUserRead=false;emit("xpsConnection",false);}
+ emit("status",t);
+ if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
+  stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
+  armed=true;emit("armed",true);emit("xpsConnection",true);
+  autoUserRead=!hasCachedUsers();
+  emitCachedUsers();
+  new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.read();},300);
+ }else if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){
+  stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
+  armed=false;autoUserRead=false;
+  emit("armed",false);emit("xpsConnection",false);emit("clear","");
+ }
 }public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}});
   sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
@@ -153,6 +158,21 @@ public class MainActivity extends Activity {
     else emit("status","Para testar volume e timbre juntos, primeiro leia uma Performance válida. Não alterei a configuração.");
    });
   }
+  @JavascriptInterface public void selectPerformance(int number,boolean user){
+    runOnUiThread(()->{
+      if(number<1||number>(user?128:16)){emit("status","Número de Performance fora da faixa.");return;}
+      if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado para selecionar a Performance.");return;}
+      // Roland XPS-10 MIDI Implementation: USER MSB 85 / LSB 0, preset MSB 85 / LSB 64.
+      boolean sent=midi.send(0xb0,0,85);
+      if(sent)sent=midi.send(0xb0,32,user?0:64);
+      if(sent)sent=midi.sendProgram(1,number-1);
+      if(sent){
+        try{emit("performanceSelected",new JSONObject().put("index",number).put("user",user));}catch(Exception ignored){}
+        emit("status","Performance "+(user?"USER ":"Preset ")+number+" solicitada no canal MIDI 1.");
+        new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi.isConnected())xps.read();},650);
+      }else emit("status","Não foi possível transmitir a seleção de Performance ao XPS-10.");
+    });
+  }
   @JavascriptInterface public void selectTone(int msb,int lsb,int program,int part){
    runOnUiThread(()->{
     if(msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>=16){
@@ -175,7 +195,10 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
   @JavascriptInterface public void connect(){runOnUiThread(()->{MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
   @JavascriptInterface public void microphone(boolean on){runOnUiThread(()->{if(!on){audio.stop();emit("mic",false);}else if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},1);else{audio.start();emit("mic",audio.isRunning());}});}
-  @JavascriptInterface public void arm(boolean value){runOnUiThread(()->{armed=value;if(!armed){sequencer.stop();stopPadNotes();xps.cancelWrites();}emit("armed",armed);});}
+  @JavascriptInterface public void arm(boolean value){runOnUiThread(()->{
+  // Compatibility: connection is the only switch; no separate MIDI activation.
+  armed=midi!=null&&midi.isConnected();emit("armed",armed);
+ });}
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Ative o envio MIDI antes de aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
   @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
   @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}

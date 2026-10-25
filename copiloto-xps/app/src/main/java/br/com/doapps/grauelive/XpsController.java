@@ -36,7 +36,26 @@ public final class XpsController {
   }catch(JSONException e){io.emit("status","Não foi possível selecionar o timbre: "+e.getMessage());}
  }
  public void reset(){generation++;state.clear();undo.clear();expected.clear();busy=false;io.emit("hardwareReset",true);}
- public void accept(byte[] packet){XpsProtocol.Data d=XpsProtocol.decode(packet);if(d==null)return;for(int i=0;i<d.values.length;i++){int address=d.start+i;for(XpsProtocol.Block b:readable)if(address>=b.start&&address<b.start+b.size){state.put(address,d.values[i]);break;}}}
+ public void accept(byte[] packet){
+  XpsProtocol.Data d=XpsProtocol.decode(packet);if(d==null)return;
+  java.util.Set<String> changed=new java.util.LinkedHashSet<>();
+  for(int i=0;i<d.values.length;i++){
+   int address=d.start+i;
+   for(XpsProtocol.Block block:readable){
+    if(address>=block.start&&address<block.start+block.size){
+     Integer before=state.put(address,d.values[i]);
+     if(!busy&&(before==null||before!=d.values[i]))changed.add(block.section+":"+block.index);
+     break;
+    }
+   }
+  }
+  // On the actual XPS-10, MIDI Tx Edit Data can forward physical slider/edit changes as SysEx.
+  // Merge observed packets with cached blocks; never invent values for missing bytes.
+  if(!busy&&!changed.isEmpty()){
+   JSONObject updated=snapshot();
+   io.emit("hardwarePhysical",updated);
+  }
+ }
  private JSONObject snapshot(){JSONObject result=new JSONObject();try{for(XpsProtocol.Block b:performanceBlocks()){JSONArray values=new JSONArray();boolean complete=true;for(int i=0;i<b.size;i++){Integer v=state.get(b.start+i);if(v==null){complete=false;break;}values.put(v);}if(complete)result.put(b.section+":"+b.index,values);}result.put("readAt",System.currentTimeMillis());}catch(JSONException ignored){}return result;}
  public void read(){if(busy){io.emit("status","Aguarde a operação MIDI em andamento.");return;}expected.clear();readNow();}
  private void readNow(){readBlocks(performanceBlocks(),true);}
