@@ -11,7 +11,7 @@ assert(gemma.includes('EXPECTED_BYTES=303950933L'),'Gemma SHA-pinned artifact ex
 assert(gemma.includes('0f7147f1c22eaf758b819bbf7841793e4c90096c9352cde7fbe5c631f2265ef5'),'Gemma hash guard missing');
 assert(native.includes('armed=true;emit("armed",true);emit("xpsConnection",true)'),'MIDI must auto-enable with USB');
 assert(native.includes('armed=false;autoUserRead=false'),'MIDI must disable when disconnected');
-assert(native.includes('new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.read();},300)'),'Automatic read on connect missing');
+assert(native.includes('new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.initialSync();},300)'),'Automatic verified SysEx probe on connect missing');
 assert(native.includes('selectPerformance(int number,boolean user)'),'Documented XPS-10 performance bank select missing');
 assert(native.includes('midi.send(0xb0,0,85)')&&native.includes('midi.send(0xb0,32,user?0:64)'),'Roland performance MSB/LSB wrong');
 assert(midi.includes('io.emit("hardwarePhysical",updated)'),'Incoming physical SysEx should update screen');
