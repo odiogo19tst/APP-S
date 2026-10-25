@@ -14,13 +14,6 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInference;
 
 public class MainActivity extends Activity {
  private android.widget.LinearLayout rootLayout; private CifraPanel cifraPanel; private DrumSequencer sequencer;
- // MIDI note audition for the on-screen piano; independent of pads and accompaniment.
- private final java.util.Map<Integer,Integer> keyboardHeld=new java.util.HashMap<>();
- private int keyboardNoteSerial=0;
- private void releaseKeyboard(){
-  if(midi!=null)for(Integer key:keyboardHeld.keySet())midi.send(0x80+key/128,key%128,0);
-  keyboardHeld.clear();
- }
  private boolean autoUserRead=false;
  private int midiSession=0;
  private final java.util.Map<Integer,Integer> assistNotes=new java.util.HashMap<>();
@@ -77,7 +70,7 @@ public class MainActivity extends Activity {
  // MIDI permissions and data transport are distinct from Roland SysEx readback.
  // Automatically enable sending ONLY when the OS confirms both MIDI ports are open.
  final boolean ready=t!=null&&t.startsWith("USB conectado")&&midi!=null&&midi.isConnected();
- releaseKeyboard();stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
+ stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
  armed=ready;
  emit("armed",armed);
  emit("status",ready?"USB-MIDI pronto: envio habilitado automaticamente. Lendo XPS-10 uma vez…":t);
@@ -154,7 +147,7 @@ public class MainActivity extends Activity {
    throw new IllegalStateException("MediaPipe rejeitou o .task com backend padrão e CPU. Padrão: "+original+"; CPU: "+retry.getMessage(),retry);
   }
  }
- private void stopPadNotes(){releaseKeyboard();stopAssist();for(int key:padTokens.keySet())midi.send(0x80+(key/128),key%128,0);padTokens.clear();}
+ private void stopPadNotes(){stopAssist();for(int key:padTokens.keySet())midi.send(0x80+(key/128),key%128,0);padTokens.clear();}
  public class Bridge {
   @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Ative envio MIDI antes de iniciar a batida.");return;}try{sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void stopSequence(){runOnUiThread(()->{sequencer.stop();stopPadNotes();});}
@@ -188,38 +181,6 @@ public class MainActivity extends Activity {
    });
   }
   @JavascriptInterface public void stopAssistChord(){runOnUiThread(()->stopAssist());}
-  /** Virtual piano: note-on/off while pressed. Only sends after the shared USB connection is ready. */
-  @JavascriptInterface public void keyboardNoteOn(int channel,int note,int velocity){
-   runOnUiThread(()->{
-    if(channel<1||channel>16||note<36||note>96||velocity<1||velocity>127)return;
-    if(!armed||midi==null||!midi.isConnected()){
-     emit("status","Teclado virtual: conecte o XPS-10 pelo USB-MIDI.");return;
-    }
-    int key=(channel-1)*128+note;
-    if(keyboardHeld.containsKey(key))return;
-    if(!midi.send(0x90+channel-1,note,velocity)){
-     emit("status","Falha ao enviar Note On. Confira a conexão USB-MIDI.");return;
-    }
-    int token=++keyboardNoteSerial;keyboardHeld.put(key,token);
-    // Hard deadline prevents sustained notes after lost pointer-up.
-    padHandler.postDelayed(()->{
-     if(Integer.valueOf(token).equals(keyboardHeld.get(key))){
-      midi.send(0x80+channel-1,note,0);keyboardHeld.remove(key);
-      emit("keyboardRelease",new int[]{channel,note});
-     }
-    },12000);
-   });
-  }
-  @JavascriptInterface public void keyboardNoteOff(int channel,int note){
-   runOnUiThread(()->{
-    if(channel<1||channel>16||note<36||note>96)return;
-    int key=(channel-1)*128+note;
-    if(keyboardHeld.remove(key)!=null&&midi!=null)midi.send(0x80+channel-1,note,0);
-   });
-  }
-  @JavascriptInterface public void keyboardAllNotesOff(){
-   runOnUiThread(()->{releaseKeyboard();emit("keyboardRelease","all");});
-  }
   @JavascriptInterface public void padHit(int channel,int note,int velocity){runOnUiThread(()->{if(!armed){emit("status","Ative envio MIDI para tocar os pads.");return;}if(channel<1||channel>16||note<0||note>127||velocity<1||velocity>127)return;int key=(channel-1)*128+note,token=++padSerial;if(!midi.send(0x90+channel-1,note,velocity)){sequencer.stop();emit("status","Sem saída MIDI conectada.");return;}padTokens.put(key,token);padHandler.postDelayed(()->{if(Integer.valueOf(token).equals(padTokens.get(key))){midi.send(0x80+channel-1,note,0);padTokens.remove(key);}},120);});}
   @JavascriptInterface public void stopPads(){runOnUiThread(()->stopPadNotes());}
 
