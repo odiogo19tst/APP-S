@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 22
-        versionName '1.9.0-favoritos-roland-diagnostico'
+        versionCode 23
+        versionName '1.10.0-gemma-palco-quota'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }

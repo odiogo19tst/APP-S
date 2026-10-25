@@ -79,7 +79,7 @@
   if(key!==silentMusicKey){silentMusicKey=key;silentToneIndex=0;silentPending=false;$x('gx-silent-ai-text').textContent='';}
   const hidden=silentDismissedKey===key;
   $x('gx-silent-advisor').classList.toggle('gx-silent-muted',hidden);
-  const current=Array.isArray(song?.chords)?song.chords:[];
+  const current=songs.some(m=>m?.title===song?.title)&&Array.isArray(song?.chords)?song.chords:[];
   const next=current.length?current[(idx+1)%current.length]:null;
   $x('gx-silent-next').textContent=hidden?'Sugestão ignorada':(next||'Sem cifra');
   $x('gx-silent-detail').textContent=hidden?'Toque em Mostrar para reabrir.':(next?'Próximo acorde registrado na cifra, após '+S(current[idx]||'—')+'.':'Selecione uma música com acordes.');
@@ -576,15 +576,16 @@
   $x('gx-device-state').textContent=hw['setup:0']?'● Performance respondendo por MIDI':'● XPS-10 • aguardando leitura';
  }
  function syncStage(){
-  $x('gx-song-name').textContent=song.title||'Selecione uma música';
+  const hasRealSong=songs.some(m=>m&&m.title===song.title);
+  $x('gx-song-name').textContent=hasRealSong?song.title:'Selecione uma música do repertório';
   $x('gx-song-cat').textContent=song.category||'Repertório local';
-  $x('gx-key').textContent=M.names[root];$x('gx-scale').textContent=minor?'Menor':'Maior';
+  $x('gx-key').textContent=hasRealSong?M.names[root]:'—';$x('gx-scale').textContent=hasRealSong?(minor?'Menor':'Maior'):'Nenhuma música selecionada';
   $x('gx-bpm').textContent=$x('tempo')?.value||'72';
-  $x('gx-next-chord').textContent=song.chords?.[(idx+1)%song.chords.length]||'—';
-  $x('gx-section').textContent='Acorde '+String(idx+1);
+  $x('gx-next-chord').textContent=hasRealSong?(song.chords?.[(idx+1)%song.chords.length]||'—'):'—';
+  $x('gx-section').textContent=hasRealSong?'Acorde '+String(idx+1):'Aguardando cifra';
   $x('gx-progress-bar').style.width=((idx+1)/Math.max(1,song.chords.length)*100)+'%';
-  $x('gx-next-line').textContent=song.chords?.[idx]||'Sem acorde';
-  $x('gx-assist-chord').textContent=song.chords?.[idx]||'—';
+  $x('gx-next-line').textContent=hasRealSong?(song.chords?.[idx]||'Sem acorde'):'Selecione uma música';
+  $x('gx-assist-chord').textContent=hasRealSong?(song.chords?.[idx]||'—'):'—';
   renderSilentAdvisor();
   $x('gx-transpose').textContent=(transposeSteps>0?'+':'')+transposeSteps;
   $x('gx-arm').textContent=$x('arm')?.checked?'Desabilitar envio MIDI':'Habilitar envio MIDI';

@@ -77,8 +77,10 @@ public final class Gemma270Installer {
   if(downloading.length()!=EXPECTED_BYTES)throw new IOException("Arquivo ainda incompleto ("+downloading.length()+" / "+EXPECTED_BYTES+" bytes). Toque novamente para retomar.");
   progress.update(99,"Verificando integridade SHA-256...");
   if(!SHA256.equals(digest(downloading))){downloading.delete();throw new IOException("Hash inválido: arquivo descartado. Nenhuma IA foi substituída.");}
-  ModelImport.checkBundle(downloading);
-  progress.update(99,"Testando se a Gemma carrega neste aparelho...");
+  // A MediaPipe/LiteRT .task package is not guaranteed to be a ZIP.
+  // SHA-256 + exact length establish the downloaded artifact; only LlmInference
+  // itself may decide runtime compatibility. ZIP-only screening rejected valid models.
+  progress.update(99,"Arquivo íntegro. Testando compatibilidade real da Gemma no aparelho...");
   validator.validate(downloading);
   // Keep user's previous custom model safe until the full new model is validated.
   Path destination=installed.toPath();
