@@ -8,7 +8,7 @@ const xps=fs.readFileSync(path.join(root,'src/main/java/br/com/doapps/grauelive/
 const lib=fs.readFileSync(path.join(root,'src/main/assets/tones.js'),'utf8');
 for(const id of ['gx-one-touch','gx-tone-categories','gx-tone-list','gx-bank-tabs','gx-bank-slots','gx-live-bank-tabs','gx-live-bank-slots','gx-tone-dialog','gx-edit-save','gx-edit-test','gx-edit-yes','gx-edit-no','gx-edit-suggest'])assert(ui.includes('id="'+id+'"'),'Missing GUI '+id);
 assert(ui.includes('window.Native.selectTone(t.msb,t.lsb,t.program'),'Single tap must trigger native MIDI command');
-assert(ui.includes('setTimeout(()=>{opened=true;openToneEditor(t);},3000)'),'Long press must open editor at 3s');
+assert(ui.includes('setTimeout(()=>{timer=null;suppressClick=true;openToneEditor(t);},3000)')&&ui.includes("if(e.pointerType==='mouse'&&e.button===2)"),'Long press must open editor at 3s without accidental Android contextmenu');
 assert(ui.includes("['','Todas']")&&ui.includes("['Pf','Piano / E.Piano']")&&ui.includes("['USER','USER']"),'Roland categories incomplete');
 assert(ui.includes('toneVariants={')&&ui.includes('original:source')&&ui.includes('manual:')&&ui.includes('ai:null'),'Three editing variants missing');
 assert(ui.includes("saved.tonePresets[toneEditing.code]"),'Save on confirmation missing');
