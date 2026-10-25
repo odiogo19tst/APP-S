@@ -51,7 +51,8 @@ public class MainActivity extends Activity {
   if("hardware".equals(k)&&autoUserRead){
    autoUserRead=false;
    if(hasCachedUsers())emitCachedUsers();
-   else new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
+   else if(xps.hasValidSysex())new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
+   else emit("status","USB-MIDI conectado, mas sem resposta SysEx. Leitura de USER/Favorites não iniciada; verifique o teclado.");
   }
   if("userTones".equals(k)&&d instanceof JSONArray){
    JSONArray entries=(JSONArray)d;
@@ -200,7 +201,22 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void openReference(String name){runOnUiThread(()->{String url=null;if(name.equals("model"))url="https://huggingface.co/litert-community/Gemma3-1B-IT/tree/main";if(name.equals("gemmaTerms"))url="https://ai.google.dev/gemma/terms";if(name.equals("gemmaSource"))url="https://huggingface.co/72fstudio/gemma-3-270m-it";if(name.equals("effects"))url="https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf";if(name.equals("louve"))url="https://louveapp.com.br/";if(name.equals("cifra"))url="https://www.cifraclub.com.br/";if(url!=null)try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(Exception e){emit("status","Não foi possível abrir o navegador.");}});}
   @JavascriptInterface public void testModel(){ask("Responda em português: qual a diferença entre ataque e release de um pad? Use no máximo três frases.");}
 
-  @JavascriptInterface public void readUserTones(){runOnUiThread(()->{autoUserRead=false;xps.readUsers();});}
+  @JavascriptInterface public void readUserTones(){runOnUiThread(()->{
+    if(!xps.hasValidSysex()){emit("status","O XPS-10 ainda não confirmou SysEx. Conecte o MIDI e confirme resposta antes de ler USER.");return;}
+    autoUserRead=false;xps.readUsers();
+  });}
+  @JavascriptInterface public void getMidiDiagnostics(){
+   runOnUiThread(()->{
+    try{
+     emit("midiDiagnostics",new JSONObject()
+      .put("connected",midi!=null&&midi.isConnected())
+      .put("validSysexPackets",xps.validSysexCount())
+      .put("cachedUserTones",hasCachedUsers())
+      .put("readValidated",xps.hasValidSysex())
+      .put("source","Diagnóstico local sem chaves API e sem escrita no Roland"));
+    }catch(Exception ignored){}
+   });
+  }
   @JavascriptInterface public void restoreCachedTones(){runOnUiThread(()->emitCachedUsers());}
   @JavascriptInterface public void selectToneWithVolume(int msb,int lsb,int program,int part,int volume){
    runOnUiThread(()->{
