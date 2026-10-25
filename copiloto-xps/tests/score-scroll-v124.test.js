@@ -18,5 +18,5 @@ assert.equal(rates[3],3,'Default should be around 3 px/s');
 assert(rates[1]<=2,'Minimum needs to be very slow');
 assert(rates[10]<=25,'Maximum must not match old excessive speeds');
 for(let i=2;i<=10;i++)assert(rates[i]>rates[i-1],'Speed must increase monotonically');
-assert(gradle.includes('versionCode 39'),'New APK must install as upgrade');
+assert(/versionCode\s+(\d+)/.test(gradle)&&Number(gradle.match(/versionCode\s+(\d+)/)[1])>=39,'New APK must install as upgrade');
 console.log('Grauê 1.24: slow score scroll, adjustable/persistent speeds, safe pause and frame timing passed');
