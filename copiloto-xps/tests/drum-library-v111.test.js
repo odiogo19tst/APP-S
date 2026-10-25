@@ -19,6 +19,9 @@ assert(js.includes("audioMode==='samples'")&&js.includes("native('playPadSample'
 assert(js.includes("native('padHit',drumChannel"),'Roland mode must remain real MIDI');
 assert(js.includes("native('selectDrumKit',drumChannel,tone.msb,tone.lsb,tone.program)"),'Roland kits require exact bank/program mapping');
 assert(js.includes("native('importPadSample',sampleBank,selectedPad)"),'Sample picker must use chosen bank and pad');
+assert(js.includes("native('importPadKit',sampleBank)"),'Whole kit must be importable in one operation');
+assert(native.includes('@JavascriptInterface public void importPadKit')&&native.includes('if(req==8)'),'Native bulk kit picker missing');
+assert(native.includes('getClipData().getItemCount()>8'),'Import must cap sample count to 8');
 assert(js.includes("if(audioMode==='samples')"),'Looper must not transmit MIDI in samples mode');
 for(const method of ['getPadSampleLibrary','playPadSample','stopPadSamples','importPadSample','selectDrumKit'])
  assert(native.includes('@JavascriptInterface public void '+method),'Native method missing: '+method);
