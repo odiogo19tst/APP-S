@@ -28,6 +28,15 @@ public class MainActivity extends Activity {
   assistNotes.clear();assistSerial++;
  }
 
+ private void restoreConfirmedMidiCache(){
+  String snapshot=getPreferences(MODE_PRIVATE).getString("xpsVerifiedPerformanceCache","");
+  if(snapshot.isEmpty())return;
+  try{JSONObject saved=new JSONObject(snapshot);if(saved.optInt("completeBlocks")>0){
+    saved.put("source","midi-cache");
+    saved.put("fullStateVerified",false);
+    emit("hardwareCache",saved);
+  }}catch(Exception ignored){}
+ }
  private void emitCachedUsers(){
   String stored=getPreferences(MODE_PRIVATE).getString("xpsUserCache","");
   if(!stored.isEmpty())try{emit("userTones",new JSONArray(stored));emit("status","Timbres USER recuperados do cache local. Não é necessário ler novamente.");}
@@ -45,11 +54,17 @@ public class MainActivity extends Activity {
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
-  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();emitCachedUsers();}});
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();restoreConfirmedMidiCache();emitCachedUsers();}});
   web.addJavascriptInterface(new Bridge(),"Native");
   worker.execute(()->{try{padSamples.prepare();emit("padSampleState",padSamples.state());}catch(Exception e){emit("status","Áudio dos pads indisponível: "+e.getMessage());}});
   xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
   MainActivity.this.emit(k,d);
+  if("hardware".equals(k)&&d instanceof JSONObject){
+   JSONObject snap=(JSONObject)d;
+   if(snap.optInt("completeBlocks",0)>0&&snap.optInt("validSysexPackets",0)>0){
+    getPreferences(MODE_PRIVATE).edit().putString("xpsVerifiedPerformanceCache",snap.toString()).apply();
+   }
+  }
   if("hardware".equals(k)&&autoUserRead){
    autoUserRead=false;
    if(hasCachedUsers())emitCachedUsers();
