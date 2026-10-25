@@ -682,6 +682,11 @@
   if(kind==='status'&&/Sem resposta SysEx/.test(String(data||''))){
     $x('gx-device-state').textContent='● USB-MIDI presente · XPS-10 sem resposta SysEx';
   }
+  if(kind==='xpsSysex'){
+   const count=Number(data)||0;
+   if(count>0)$x('gx-device-state').textContent='● XPS-10 respondeu '+count+' pacote(s) SysEx';
+   else if(usbConnected)$x('gx-device-state').textContent='● USB conectado · ainda sem resposta SysEx';
+  }
   if(kind==='xpsConnection'){
    usbConnected=!!data;
    $x('gx-unified-usb').textContent=usbConnected?'USB conectado':'Conectar USB';
