@@ -25,7 +25,9 @@ assert(!ui.includes('window.Native.configureDirectApi("sk-'),'Never hardcode sec
 
 assert(native.includes('final boolean ready=t!=null&&t.startsWith("USB conectado")&&midi!=null&&midi.isConnected()'),'MIDI must arm only after both ports connect');
 assert(native.includes('armed=ready;')&&native.includes('emit("armed",armed)'),'Native must auto-arm and auto-disarm with USB lifecycle');
-assert(native.includes('if(midi!=null&&midi.isConnected()&&armed)xps.read();'),'Read should begin automatically after MIDI ready');
+assert(native.includes('if(session==midiSession&&midi!=null&&midi.isConnected()&&armed)xps.read();'),'Read must start automatically and never use a stale USB session');
+assert(native.includes('@Override protected void onResume()')&&native.includes('armed=true;emit("armed",true);emit("xpsConnection",true);'),'Resuming with USB must restore automatic MIDI sending');
+assert(native.includes('@JavascriptInterface public void arm(boolean unused)'),'Legacy MIDI switch must not disable USB auto-enable');
 assert(native.includes('emit("xpsConnection",midi!=null&&midi.isConnected())'),'Webview reload must recover real USB state');
 assert(!ui.includes('id="gx-arm"'),'No extra Enable MIDI button on stage');
 assert(!ui.includes("callOld('liveArm')"),'No staged enabling via legacy UI');
