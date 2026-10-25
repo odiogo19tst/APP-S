@@ -577,3 +577,17 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-yt-message{font-size:11px;color:#8edbcc;display:block;margin-top:8px}
 @media(max-width:790px){.gx-drums-columns{grid-template-columns:1fr}.gx-youtube-fields{grid-template-columns:1fr 1fr}.gx-youtube-fields label:first-child{grid-column:1/-1}.gx-drums-pads{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:480px){.gx-drums-settings{grid-template-columns:1fr 1fr}.gx-drums-settings label:nth-child(3){grid-column:1/-1}.gx-drums-pads{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-youtube-fields{grid-template-columns:1fr}.gx-youtube-fields label:first-child{grid-column:auto}.gx-drums-heading h2{font-size:17px}.gx-beats-toolbar{gap:5px}}
+
+
+/* Fidelity: original Roland favorites are not the app's empty local 10x10 library. */
+.gx-favorite-origin{font-size:12px;line-height:1.55;color:#d5e4e6;background:#102d3c;padding:12px;border:1px solid #2f6874;border-radius:9px;margin:7px 0!important}
+.gx-bank-import-actions{display:flex;flex-wrap:wrap;gap:7px}
+#gx-shell .gx-bank-import-actions button{min-height:48px;padding:10px 14px;flex:1;min-width:160px;font-size:12px}
+#gx-shell #gx-bank-import-backup{background:#0a977a;border-color:#35ceb6;font-weight:700}
+#gx-bank-import-status{display:block;margin:8px 0;font-size:11px;color:#a9d8d2;line-height:1.5}
+.gx-local-banks{border:1px solid #285063;border-radius:9px;padding:8px;margin:10px 0;background:#0b2230}
+.gx-local-banks>summary{cursor:pointer;min-height:42px;display:flex;align-items:center;color:#bde4e1;font-size:12px;font-weight:650}
+.gx-bank-empty .gx-live-bank-tabs,.gx-bank-empty .gx-live-bank-slots{display:none!important}
+#gx-shell .gx-tone-banks .gx-section-label{display:flex;justify-content:space-between;gap:6px;align-items:center;flex-wrap:wrap}
+#gx-shell .gx-tone-banks .gx-section-label small{font-weight:500;font-size:10px}
+@media(max-width:700px){.gx-bank-import-actions{flex-direction:column}#gx-shell .gx-bank-import-actions button{min-width:0;width:100%}}
