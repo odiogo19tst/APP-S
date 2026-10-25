@@ -132,7 +132,21 @@ public class MainActivity extends Activity {
    emit("gemmaState",d);
   }catch(Exception ignored){}
  }
- private LlmInference openModel(File f){return LlmInference.createFromOptions(MainActivity.this,LlmInference.LlmInferenceOptions.builder().setModelPath(f.getAbsolutePath()).setMaxTokens(1024).build());}
+ private LlmInference openModel(File f){
+  RuntimeException first=null;
+  try{
+   return LlmInference.createFromOptions(MainActivity.this,LlmInference.LlmInferenceOptions.builder()
+    .setModelPath(f.getAbsolutePath()).setMaxTokens(1024).build());
+  }catch(RuntimeException e){first=e;}
+  try{
+   return LlmInference.createFromOptions(MainActivity.this,LlmInference.LlmInferenceOptions.builder()
+    .setModelPath(f.getAbsolutePath()).setMaxTokens(512)
+    .setPreferredBackend(LlmInference.Backend.CPU).build());
+  }catch(RuntimeException retry){
+   String original=first==null?"":String.valueOf(first.getMessage());
+   throw new IllegalStateException("MediaPipe rejeitou o .task com backend padrão e CPU. Padrão: "+original+"; CPU: "+retry.getMessage(),retry);
+  }
+ }
  private void stopPadNotes(){stopAssist();for(int key:padTokens.keySet())midi.send(0x80+(key/128),key%128,0);padTokens.clear();}
  public class Bridge {
   @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Ative envio MIDI antes de iniciar a batida.");return;}try{sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
