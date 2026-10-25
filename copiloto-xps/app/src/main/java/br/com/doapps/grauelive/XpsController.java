@@ -62,7 +62,19 @@ public final class XpsController {
    io.emit("hardwarePhysical",updated);
   }
  }
- private JSONObject snapshot(){JSONObject result=new JSONObject();try{for(XpsProtocol.Block b:performanceBlocks()){JSONArray values=new JSONArray();boolean complete=true;for(int i=0;i<b.size;i++){Integer v=state.get(b.start+i);if(v==null){complete=false;break;}values.put(v);}if(complete)result.put(b.section+":"+b.index,values);}result.put("readAt",System.currentTimeMillis());}catch(JSONException ignored){}return result;}
+ private JSONObject snapshot(){JSONObject result=new JSONObject();try{for(XpsProtocol.Block b:performanceBlocks()){JSONArray values=new JSONArray();boolean complete=true;for(int i=0;i<b.size;i++){Integer v=state.get(b.start+i);if(v==null){complete=false;break;}values.put(v);}if(complete)result.put(b.section+":"+b.index,values);}int completeBlocks=0;for(XpsProtocol.Block block:performanceBlocks()){
+   boolean complete=true;
+   for(int i=0;i<block.size;i++)if(!state.containsKey(block.start+i)){complete=false;break;}
+   if(complete)completeBlocks++;
+  }
+  result.put("readAt",System.currentTimeMillis());
+  result.put("source","midi-live");
+  result.put("validSysexPackets",validSysexPackets);
+  result.put("completeBlocks",completeBlocks);
+  result.put("availableBlocks",performanceBlocks().size());
+  result.put("fullStateVerified",completeBlocks==performanceBlocks().size()&&validSysexPackets>0);
+  result.put("favoritesVerified",false);
+  result.put("notes","Memória FAVORITE 0–9 não confirmada por SysEx; requer backup válido.");}catch(JSONException ignored){}return result;}
  public void read(){if(busy){io.emit("status","Aguarde a operação MIDI em andamento.");return;}expected.clear();readNow();}
  private void readNow(){readBlocks(performanceBlocks(),true);}
  private void readBlocks(List<XpsProtocol.Block> requested,boolean full){busy=true;if(full)state.clear();else for(XpsProtocol.Block b:requested)for(int i=0;i<b.size;i++)state.remove(b.start+i);io.emit("hardwareBusy",true);io.emit("status","Lendo XPS-10… aguarde a resposta do teclado.");int token=++generation,delay=0;for(XpsProtocol.Block b:requested){h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Porta MIDI indisponível para leitura.");}},delay);delay+=100;}
