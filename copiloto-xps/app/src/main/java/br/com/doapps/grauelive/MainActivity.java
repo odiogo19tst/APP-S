@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
  private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
- private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1;
+ private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1; private String exportKitSettings="{}";
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
@@ -225,6 +225,22 @@ public class MainActivity extends Activity {
    });
   }
   @JavascriptInterface public void stopPadSamples(){runOnUiThread(()->padSamples.stop());}
+  /** Android Storage Access Framework lets the musician choose Google Drive as destination.
+    * No Google OAuth token, Drive API key or broad storage permission is needed.
+    */
+  @JavascriptInterface public void exportPadKitToDrive(int bank,String settings){
+   if(bank<0||bank>=PadSampleEngine.BANKS||settings==null||settings.length()>12000){
+    emit("status","Banco ou configurações de Drum Pad inválidos.");return;
+   }
+   runOnUiThread(()->{
+    exportKitBank=bank;exportKitSettings=settings;
+    Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT)
+       .addCategory(Intent.CATEGORY_OPENABLE)
+       .setType("application/zip")
+       .putExtra(Intent.EXTRA_TITLE,"Graue-DrumPad-Banco-"+(bank+1)+".zip");
+    startActivityForResult(save,10);
+   });
+  }
   @JavascriptInterface public void importPadZip(int bank){
    if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Biblioteca inválida.");return;}
    runOnUiThread(()->{
@@ -493,10 +509,23 @@ public class MainActivity extends Activity {
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
+ if(req==10){
+  int bank=exportKitBank;
+  if(bank<0||bank>=PadSampleEngine.BANKS)throw new IOException("Banco não definido");
+  int count=padSamples.exportZipKit(bank,data.getData(),exportKitSettings);
+  emit("padDriveExported",new JSONObject().put("bank",bank).put("samples",count));
+  emit("status","Kit Drum Pad salvo no destino escolhido ("+count+" samples e configurações). Se escolheu Google Drive, confirme a sincronização no Drive.");
+  return;
+ }
  if(req==9){
   int bank=importZipBank;
   if(bank<0||bank>=PadSampleEngine.BANKS)throw new IOException("Banco de destino inválido");
+  org.json.JSONObject metadata=padSamples.readZipManifest(data.getData());
   int count=padSamples.importZipKit(bank,data.getData());
+  if(metadata!=null){
+   padSamples.restoreZipLabels(bank,metadata);
+   emit("padKitRestored",metadata.optJSONObject("settings")==null?new JSONObject():metadata.getJSONObject("settings"));
+  }
   emit("padSampleState",padSamples.state());
   emit("status",count+" samples importados do ZIP para o banco "+(bank+1)+". Original preservado; toque para testar.");
   return;
