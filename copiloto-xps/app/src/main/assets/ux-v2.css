@@ -470,3 +470,48 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 body.gx-ready #liveArm,body.gx-ready label:has(#arm){display:none!important}
 #gx-shell .gx-stage-footer{align-items:center}
 @media(max-width:700px){.gx-midi-ready{font-size:11px;flex:1;min-width:180px}}
+
+
+/* Grauê XPS 1.7 — palco first: more action per pixel, minimal explanatory copy. */
+#gx-shell .gx-panel{padding:9px!important}
+#gx-shell .gx-section-label{font-size:11px;letter-spacing:.01em;margin:0 0 6px}
+#gx-shell .gx-stage-summary{gap:5px}
+#gx-shell .gx-stage-actions{gap:5px}
+#gx-shell .gx-stage-actions button{min-height:53px}
+#gx-shell .gx-stage-parts{gap:4px}
+#gx-shell .gx-stage-parts button{min-height:53px;padding:5px}
+#gx-shell .gx-sound-layout{gap:7px}
+#gx-shell .gx-sound-nav button{min-height:43px;padding:8px 9px;font-size:12px}
+#gx-shell .gx-sound-right{gap:6px}
+#gx-shell .gx-device small,#gx-shell .gx-tone-tip,#gx-shell .gx-mixer>p{display:none}
+#gx-shell .gx-keyboard{height:54px;overflow:hidden;padding:4px}
+#gx-shell .gx-fav-side{min-height:70px}
+#gx-shell #gx-advanced-mixer .gx-mixer-grid{gap:4px}
+#gx-shell .gx-tone-list{max-height:min(42vh,420px)}
+#gx-shell .gx-bank-slots button{min-height:47px!important}
+#gx-shell .gx-fav-grid button{min-height:56px}
+#gx-shell .gx-tone-line button{min-height:46px}
+#gx-shell #gx-silent-ai-text:empty{display:none}
+.gx-perf-source{color:#6de6c0;font-size:11px;flex-shrink:0}
+#gx-shell #gx-perf-local-save{min-height:43px;padding:7px 10px;background:#145046;font-size:11px}
+.gx-perf-recent{display:flex;gap:5px;overflow-x:auto;max-width:100%;padding-top:4px}
+#gx-shell .gx-perf-chip{font-size:11px;white-space:nowrap;min-height:34px;padding:5px 10px;flex-shrink:0}
+.gx-cc-live{background:linear-gradient(110deg,#122b3c,#102c35)}
+.gx-cc-grid{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:5px}
+.gx-cc-item{border:1px solid #2a5461;background:#102333;border-radius:8px;display:flex;align-items:center;flex-direction:column;gap:5px;padding:7px 2px;min-width:0}
+.gx-cc-item label{font-size:10px;font-weight:650;color:#badbe2;text-align:center;overflow-wrap:anywhere}
+.gx-cc-item strong{font-size:13px;color:#7cf0cd;min-height:20px}
+#gx-shell .gx-cc-item input[type=range]{appearance:slider-vertical;width:22px;height:108px;min-height:108px;accent-color:#36cfbb;cursor:pointer}
+#gx-cc-status{font-weight:400;color:#84b0bc}
+@media(max-width:700px){
+ .gx-cc-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+ #gx-shell .gx-cc-item input[type=range]{height:78px;min-height:78px}
+ #gx-shell .gx-stage-actions button{min-height:56px}
+ #gx-shell .gx-perf-row{gap:5px}
+ #gx-shell #gx-perf-local-save{order:5}
+}
+@media(max-height:630px) and (orientation:landscape){
+ .gx-cc-grid{grid-template-columns:repeat(9,minmax(0,1fr))}
+ #gx-shell .gx-cc-item input[type=range]{height:65px;min-height:65px}
+ #gx-shell .gx-tone-list{max-height:36vh}
+}
