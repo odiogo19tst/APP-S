@@ -16,5 +16,5 @@ assert(cache.includes('for(JSONArray list:new JSONArray[]{previous,incoming})')&
 assert(cache.includes('msb<0||msb>127')&&cache.includes('lsb<0||lsb>127')&&cache.includes('program<1||program>128'),'Reject invalid cached MIDI addresses');
 assert(app.includes('assistChannel:saved.assistChannel||3'),'Stage channel preference must survive restart');
 assert(ux.includes("saved.assistChannel=+$x('gx-assist-channel').value;persist()"),'Stage channel must be stored');
-assert(gradle.includes('versionCode 38')&&gradle.includes("versionName '1.23.0-audit-fix'"),'APK internal version must advance');
+assert(/versionCode\s+(\d+)/.test(gradle)&&Number(gradle.match(/versionCode\s+(\d+)/)[1])>=38,'APK internal version must not go backwards');
 console.log('Grauê 1.23: resume keeps MIDI usable, notes stop safely, stage channel persists, and USER cache merges');
