@@ -11,7 +11,7 @@ assert(native.includes('xps.initialSync()'),'MIDI sync must start at connection'
 assert(native.includes('xpsVerifiedPerformanceCache')&&native.includes('hardwareCache'),'Save only confirmed MIDI snapshot across launches');
 assert(native.includes('RolandBackupInspector.inspect')&&native.includes('inspectRolandBackup'),'Backup diagnostic not wired');
 assert(inspector.includes('readOnly')&&inspector.includes('favoritesDecoded",false'),'Never invent decoded favorites');
-assert(inspector.includes('ZipInputStream')&&inspector.includes('headerHex'),'Inspect original backup contents without modifying');
+assert(inspector.includes('ZipFile')&&inspector.includes('headerHex'),'Inspect original backup contents without modifying');
 assert(ux.includes("function renderPerformanceBanks(){")&&!ux.includes("for(let i=perfPage*16;i<Math.min(total,(perfPage+1)*16);i++)"),'No fake 144 performance slots allowed');
 assert(ux.includes("gx-physical-favorites-mode")&&ux.includes("toneOnlyFavs=false;toneCategory=''"),'Roland favorites must not use phone favorites');
 assert(ux.includes('Identificar arquivo')&&ux.includes("kind==='backupInspection'"),'Backup diagnostic UI missing');
