@@ -27,6 +27,8 @@ public final class UsbMidi implements AutoCloseable {
   listener.status("USB conectado • entrada/saída MIDI disponíveis. Verificando SysEx…");
  },handler);}
  public boolean send(byte[] bytes){if(sendPort==null)return false;try{sendPort.send(bytes,0,bytes.length);return true;}catch(IOException e){return false;}}
+ /** Active USB device ID, for restoring the same MIDI input/output pair on refresh. */
+ public int connectedDeviceId(){return device!=null&&isConnected()?device.getInfo().getId():-1;}
  public boolean isConnected(){return sendPort!=null&&port!=null;}
  public boolean sendProgram(int channel,int program){
   if(sendPort==null||channel<1||channel>16||program<0||program>127)return false;

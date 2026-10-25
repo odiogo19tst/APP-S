@@ -6,7 +6,7 @@
  const callOld=(id)=>{let el=$x(id);if(el)el.click();};
  const shell=document.createElement('div');shell.id='gx-shell';
  shell.innerHTML=[
- '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não conectado</small></span><button id="gx-unified-usb" class="gx-usb-main">Conectar USB</button><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
+ '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não conectado</small></span><button id="gx-unified-usb" class="gx-usb-main">Conectar USB</button><button id="gx-midi-refresh" class="gx-midi-refresh" aria-label="Atualizar entradas e saídas MIDI" title="Atualizar entrada e saída MIDI">↻ <span>Atualizar MIDI</span></button><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
  '<nav class="gx-nav" aria-label="Áreas do aplicativo"><button data-gx-tab="stage" class="on">Palco</button><button data-gx-tab="repertoire">Repertório</button><button data-gx-tab="sound">Sons</button><button data-gx-tab="drums">DrumPads</button><button data-gx-tab="coach">Copiloto</button><button data-gx-tab="backups">Backups</button><button data-gx-tab="settings">Ajustes</button></nav>',
  '<div class="gx-screen on" data-gx-screen="stage">',
  '<div class="gx-stage-summary"><section class="gx-current gx-panel"><small>● TOCANDO AGORA</small><strong id="gx-song-name">Selecione uma música</strong><span id="gx-song-cat">Seu repertório</span><div class="gx-progress"><i id="gx-progress-bar"></i></div></section>',
@@ -115,6 +115,11 @@
  const arm=()=>{}; // connection owns MIDI send/receive readiness
  const connect=()=>callOld('connect');
  $x('gx-unified-usb').onclick=()=>{if(!usbConnected)connect();else notify('USB-MIDI já conectado. A leitura é automática; a ausência de SysEx pode indicar modo MIDI ou Device ID diferente.');};
+ $x('gx-midi-refresh').onclick=()=>{
+  if(!window.Native?.refreshMidiPorts){notify('Atualização MIDI requer a nova versão do APK.');return;}
+  notify('Procurando entradas e saídas USB-MIDI…');
+  window.Native.refreshMidiPorts();
+ };
  const openCifra=()=>{switchTab('repertoire');callOld('liveCifra');};
  const stageParts=[['▥','Lower','Parte 1'],['▥','Upper','Parte 2'],['▣','Split','Divisão'],['▤','Layer','Camadas'],['♩','Piano','Timbres'],['♫','E.Piano','Timbres'],['♬','Órgão','Timbres'],['♮','Strings','Timbres'],['♧','Brass','Timbres'],['♬','Synth','Timbres'],['▦','Pads','Bateria'],['✧','FX','Efeitos']];
  stageParts.forEach(([glyph,title,desc],i)=>{
@@ -791,6 +796,10 @@
   if(kind==='userTones'){renderToneList();renderBanks();renderFavorites();}
   if(kind==='status'&&/Sem resposta SysEx|não respondeu SysEx/i.test(String(data||''))){
     $x('gx-device-state').textContent='● USB-MIDI presente · XPS-10 sem resposta SysEx';
+  }
+  if(kind==='midiPorts'){
+    const count=Number(data?.devices)||0,input=Number(data?.inputPorts)||0,output=Number(data?.outputPorts)||0;
+    notify(count?('MIDI: '+count+' dispositivo(s) · '+input+' entrada(s) e '+output+' saída(s) disponíveis. Reabrindo conexão…'):'MIDI: nenhuma entrada ou saída USB encontrada. Verifique o cabo.');
   }
   if(kind==='xpsConnection'){
    usbConnected=!!data;
