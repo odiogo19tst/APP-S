@@ -15,6 +15,7 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInference;
 public class MainActivity extends Activity {
  private android.widget.LinearLayout rootLayout; private CifraPanel cifraPanel; private DrumSequencer sequencer;
  private boolean autoUserRead=false;
+ private int midiSession=0;
  private final java.util.Map<Integer,Integer> assistNotes=new java.util.HashMap<>();
  private int assistSerial=0;
  private void stopAssist(){
@@ -67,10 +68,11 @@ public class MainActivity extends Activity {
  if(ready){
   autoUserRead=!hasCachedUsers();
   emitCachedUsers(); // USER names survive app restarts; never scan on every screen
+  final int session=++midiSession;
   new Handler(Looper.getMainLooper()).postDelayed(()->{
-   if(midi!=null&&midi.isConnected()&&armed)xps.read();
-  },250);
- }else autoUserRead=false;
+   if(session==midiSession&&midi!=null&&midi.isConnected()&&armed)xps.read();
+  },350);
+ }else{midiSession++;autoUserRead=false;}
 }public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}});
   sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
@@ -92,7 +94,12 @@ public class MainActivity extends Activity {
  private void layoutPanels(){boolean wide=getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;rootLayout.setOrientation(wide?android.widget.LinearLayout.HORIZONTAL:android.widget.LinearLayout.VERTICAL);web.setLayoutParams(new android.widget.LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,1));if(cifraPanel!=null)cifraPanel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,wide?1.15f:1));}
  private void showCifra(){if(cifraPanel==null){cifraPanel=new CifraPanel(this,(title,text)->{try{JSONObject data=new JSONObject();data.put("title",title);data.put("text",text);emit("webCifra",data);}catch(JSONException ignored){}},()->{rootLayout.removeView(cifraPanel);cifraPanel.destroy();cifraPanel=null;layoutPanels();});rootLayout.addView(cifraPanel);}layoutPanels();}
  @Override public void onConfigurationChanged(android.content.res.Configuration config){super.onConfigurationChanged(config);layoutPanels();web.invalidate();}
- @Override protected void onResume(){super.onResume();if(cifraPanel!=null)cifraPanel.resume();}
+ @Override protected void onResume(){
+  super.onResume();if(cifraPanel!=null)cifraPanel.resume();
+  if(midi!=null&&midi.isConnected()){
+   armed=true;emit("armed",true);emit("xpsConnection",true);
+  }else if(midi!=null)autoConnectUsb();
+ }
  private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+(new JSONArray().put(data).toString()+"[0]")+")",null);}catch(Exception ignored){} });}
  private void captureShare(Intent intent){if(Intent.ACTION_SEND.equals(intent.getAction())&&"text/plain".equals(intent.getType())){String text=intent.getStringExtra(Intent.EXTRA_TEXT);if(text!=null)pendingShare=text.substring(0,Math.min(text.length(),200000));}}
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);captureShare(intent);if(pageReady&&!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}}
@@ -127,7 +134,7 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void playAssistChord(String json){
    if(json==null||json.length()>200)return;
    runOnUiThread(()->{
-    if(!armed){emit("status","Ative o envio MIDI para tocar o acorde de apoio.");return;}
+    if(!armed){emit("status","Conecte o XPS-10 para tocar o acorde de apoio.");return;}
     if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado via USB-MIDI.");return;}
     try{
      JSONObject v=new JSONObject(json);
@@ -186,13 +193,13 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
   @JavascriptInterface public void connect(){runOnUiThread(()->{MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
   @JavascriptInterface public void microphone(boolean on){runOnUiThread(()->{if(!on){audio.stop();emit("mic",false);}else if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},1);else{audio.start();emit("mic",audio.isRunning());}});}
-  @JavascriptInterface public void arm(boolean value){runOnUiThread(()->{
-   // Legacy control remains for compatibility; never arm without an actual USB output.
-   armed=value&&midi!=null&&midi.isConnected();
-   if(!armed){sequencer.stop();stopPadNotes();xps.cancelWrites();}
+  @JavascriptInterface public void arm(boolean unused){runOnUiThread(()->{
+   // Legacy calls cannot desynchronize the automatic MIDI connection.
+   armed=midi!=null&&midi.isConnected();
    emit("armed",armed);
+   if(!armed)emit("status","Conecte o XPS-10: MIDI será habilitado automaticamente.");
   });}
-  @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Ative o envio MIDI antes de aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
+  @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 para controlar via MIDI.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
   @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
   @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
   @JavascriptInterface public void listBackups(){worker.execute(()->{try{emit("backups",backupArchive.list());}catch(Exception e){emit("status","Biblioteca: "+e.getMessage());}});}
