@@ -99,6 +99,12 @@ public final class XpsController {
    readNow();
   },1450);
  }
+ /** Read the Performance selected by the musician after the pending initial USB sync settles. */
+ public void readWhenIdle(int attempts){
+  if(attempts<=0){io.emit("status","Não foi possível reler a Performance: MIDI ocupado. Tente novamente.");return;}
+  if(busy){h.postDelayed(()->readWhenIdle(attempts-1),400);return;}
+  expected.clear();readNow();
+ }
  public void read(){if(busy){io.emit("status","Aguarde a operação MIDI em andamento.");return;}expected.clear();readNow();}
  private void readNow(){readBlocks(performanceBlocks(),true);}
  private void readBlocks(List<XpsProtocol.Block> requested,boolean full){busy=true;if(full)state.clear();else for(XpsProtocol.Block b:requested)for(int i=0;i<b.size;i++)state.remove(b.start+i);io.emit("hardwareBusy",true);io.emit("status","Lendo XPS-10… aguarde a resposta do teclado.");int token=++generation,delay=0;for(XpsProtocol.Block b:requested){h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Porta MIDI indisponível para leitura.");}},delay);delay+=100;}
