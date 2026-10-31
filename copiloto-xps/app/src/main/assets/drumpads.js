@@ -27,6 +27,7 @@
  channels();
  const setup=document.createElement('div');setup.className='gx-drum-library';
  setup.innerHTML='<div class="gx-section-label">BIBLIOTECA DE DRUM PADS <small>Escolha onde o som será produzido</small></div>'+
+ '<div class="gx-kit-picker-entry"><button id="gx-open-kit-picker" type="button">♫ Escolher biblioteca de sons <span>▾</span></button><small id="gx-active-kit-label">Carregando bibliotecas…</small></div>'+ 
  '<div class="gx-pad-library-source"><label>Fonte do som<select id="gx-pad-source"><option value="midi">Roland XPS-10 · MIDI</option><option value="samples">Celular · Samples de áudio</option></select></label>'+
  '<label id="gx-pad-roland-wrapper">Kit interno do XPS-10<select id="gx-pad-roland-kit"></select></label>'+
  '<label id="gx-pad-local-wrapper">Biblioteca de áudio<select id="gx-pad-local-kit"><option value="0">Drum Kit 1 · Grauê original</option><option value="1">EFX 1 · Grauê original</option><option value="2">Worship Drums · Grauê original</option><option value="3">Worship EFX · Grauê original</option><option value="4">Meus Samples · importar do celular / Drive</option><option value="5">Worship Groove · Vintage CC0</option><option value="6">Pop Groove · Bounce CC0</option><option value="7">Modern Hits · Trap CC0</option></select></label></div>'+
@@ -36,6 +37,76 @@
  '<small class="gx-pad-library-help">As bibliotecas CC0 vêm do projeto livre Boochi44/free-drum-samples (WAV reais). Não são sons proprietários do app mostrado nas imagens nem samples oficiais do Roland. A saída USB do Roland transporta MIDI, não áudio. Para usar samples do celular na igreja, conecte a saída de áudio do telefone à mesa de som.</small>';
  const drumSection=el('gx-drums-pads').closest('.gx-drums-kit');
  if(drumSection)drumSection.insertBefore(setup,drumSection.querySelector('.gx-drums-settings'));
+ // Native-looking bottom sheet. List reflects real Android sample availability,
+ // and distinguishes local audio from the Roland's factory MIDI kit numbers.
+ const libraryDialog=document.createElement('dialog');
+ libraryDialog.id='gx-kit-picker';
+ libraryDialog.className='gx-kit-picker';
+ libraryDialog.innerHTML='<div class="gx-kit-picker-head"><div><small>GRAUÊ DRUM PADS</small><h3>Bibliotecas de sons</h3></div><button id="gx-kit-close" type="button" aria-label="Fechar bibliotecas">✕</button></div>'+
+  '<p class="gx-kit-explain">Escolha uma biblioteca do celular ou um kit MIDI do Roland. São fontes diferentes.</p>'+
+  '<div class="gx-kit-switch"><button id="gx-kit-tab-samples" type="button">Samples do celular</button><button id="gx-kit-tab-roland" type="button">Kits do XPS-10</button></div>'+
+  '<div id="gx-kit-picker-list" class="gx-kit-picker-list" role="list"></div>'+
+  '<p id="gx-kit-picker-help" class="gx-kit-picker-help"></p>';
+ document.body.append(libraryDialog);
+ let kitSheetMode='samples';
+ const sampleNames=[
+  'Drum Kit 1','EFX 1','Worship Drums','Worship EFX',
+  'Meus Samples','Worship Groove · CC0','Pop Groove · CC0','Modern Hits · CC0'];
+ const libraryPickerLabel=()=>{
+  const bank=padLibrary?.banks?.[sampleBank];
+  const tone=xpsDrumKits.find(t=>t.code===selectedRoland);
+  el('gx-active-kit-label').textContent=audioMode==='samples'
+   ?'Celular · '+(bank?.name||sampleNames[sampleBank]||'Biblioteca')
+   :'Roland XPS-10 · '+(tone?.name||selectedRoland);
+ };
+ function refreshKitPicker(){
+  libraryPickerLabel();
+  const host=el('gx-kit-picker-list');host.replaceChildren();
+  for(const [id,mode] of [['gx-kit-tab-samples','samples'],['gx-kit-tab-roland','midi']]){
+   const btn=el(id);btn.classList.toggle('on',kitSheetMode===mode);btn.setAttribute('aria-pressed',String(kitSheetMode===mode));
+  }
+  const list=kitSheetMode==='samples'
+   ?sampleNames.map((name,i)=>({id:i,name,kind:'samples'}))
+   :xpsDrumKits.map(t=>({id:t.code,name:t.code+' · '+t.name,kind:'midi'}));
+  if(!list.length){const p=document.createElement('p');p.textContent='Nenhum kit Roland disponível na lista MIDI do aplicativo.';host.append(p);}
+  list.forEach(item=>{
+   const selected=item.kind==='samples'?audioMode==='samples'&&sampleBank===item.id:audioMode==='midi'&&selectedRoland===item.id;
+   const button=document.createElement('button');button.type='button';button.className='gx-kit-choice';
+   button.setAttribute('aria-pressed',String(selected));
+   const icon=document.createElement('span');icon.className='gx-kit-choice-icon';icon.textContent=item.kind==='samples'?'♫':'▤';
+   const title=document.createElement('span');title.className='gx-kit-choice-title';title.textContent=item.name;
+   const desc=document.createElement('small');desc.className='gx-kit-choice-detail';
+   if(item.kind==='samples'){
+    const lib=padLibrary?.banks?.[item.id];const slots=lib?.pads||[];
+    const count=slots.filter(x=>x?.available).length;
+    desc.textContent=lib?count+' de 8 pads disponíveis · áudio pelo celular':item.id===4?'Importe seus samples · áudio pelo celular':'Áudio no celular · carregando…';
+   }else desc.textContent='Timbres internos · o XPS-10 produz o áudio via MIDI';
+   const flag=document.createElement('span');flag.className='gx-kit-choice-check';flag.textContent=selected?'✓':'';
+   const left=document.createElement('span');left.className='gx-kit-choice-text';left.append(title,desc);
+   button.append(icon,left,flag);
+   button.onclick=()=>{
+    native('stopSequence');native('stopPadSamples');
+    if(item.kind==='samples'){
+     sampleBank=item.id;audioMode='samples';
+     el('gx-pad-local-kit').value=String(sampleBank);
+    }else{
+     selectedRoland=item.id;audioMode='midi';
+     el('gx-pad-roland-kit').value=selectedRoland;
+    }
+    el('gx-pad-source').value=audioMode;
+    save();renderAudioSource();refreshKitPicker();libraryDialog.close();
+   };
+   host.append(button);
+  });
+  el('gx-kit-picker-help').textContent=kitSheetMode==='samples'
+   ?'Estas são bibliotecas do Grauê, não arquivos do app usado como referência. Para levar samples aos Audio Pads do Roland use o pendrive, não USB-MIDI.'
+   :'Ao selecionar um kit, toque em “Usar este kit no Roland” para enviar o comando MIDI. O teclado precisa receber Program Change.';
+ }
+ el('gx-open-kit-picker').onclick=()=>{kitSheetMode=audioMode;refreshKitPicker();libraryDialog.showModal();};
+ el('gx-kit-close').onclick=()=>libraryDialog.close();
+ libraryDialog.onclick=e=>{if(e.target===libraryDialog)libraryDialog.close();};
+ el('gx-kit-tab-samples').onclick=()=>{kitSheetMode='samples';refreshKitPicker();};
+ el('gx-kit-tab-roland').onclick=()=>{kitSheetMode='midi';refreshKitPicker();};
  const kits=el('gx-pad-roland-kit');
  xpsDrumKits.forEach(t=>{const o=document.createElement('option');o.value=t.code;o.textContent=t.code+' · '+t.name;kits.append(o);});
  kits.value=xpsDrumKits.some(t=>t.code===selectedRoland)?selectedRoland:'Dr001';
@@ -68,6 +139,7 @@
   const loaded=names.filter(x=>x?.loaded).length;
   const selectedName=selectedLibrary?.name||el('gx-pad-local-kit').selectedOptions[0]?.textContent||'Biblioteca';
   el('gx-pad-library-status').textContent=sample?selectedName+' — '+usable+'/8 sons disponíveis'+(padLibrary?' ('+loaded+' preparados)':' · carregando biblioteca')+'. Toque para ouvir no CELULAR. Personalize com arquivos WAV/MP3/OGG ou ZIP, inclusive do Google Drive.':'Fonte ROLAND: MIDI no canal '+drumChannel+'. Escolha um kit interno e confirme a parte de bateria habilitada no XPS-10.';
+  libraryPickerLabel();
   el('gx-beats-start').disabled=sample;
   el('gx-beats-status').textContent=sample?'Pads CC0 prontos no celular. O loop de 16 passos ainda usa MIDI; os samples podem ser disparados individualmente.':'Looper MIDI pronto. A saída de som depende do kit configurado no Roland.';
  }
@@ -208,6 +280,7 @@
   if(type==='padSampleState'){
    padLibrary=payload&&Array.isArray(payload.banks)?payload:null;
    renderAudioSource();
+   if(libraryDialog.open)refreshKitPicker();
   }
   if(type==='padDriveExported'){
    el('gx-pad-library-status').textContent='Kit exportado no destino escolhido: '+(Number(payload?.samples)||0)+' samples e configurações. Se salvou no Drive, confira a sincronização.';
