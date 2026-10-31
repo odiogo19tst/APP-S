@@ -12,6 +12,6 @@ assert(engine.includes('public synchronized int exportRolandAudioPads')&&engine.
 assert(native.includes('@JavascriptInterface public void exportRolandAudioPads(int bank)')&&native.includes('if(req==11)'),'Android native export missing');
 assert(exporter.includes('SONG LIST/%s/%02d.%s')&&exporter.includes('RATE=44100'),'XPS-10 folder/sample format mismatch');
 assert(exporter.includes('i<6?"GRAUE1":"GRAUE2"'),'XPS-10 has six AUDIO PAD buttons, not eight');
-assert(gradle.includes('versionCode 40'),'Upgrade version must be incremented');
+const currentCode=Number(gradle.match(/versionCode\s+(\d+)/)?.[1]||0);assert(currentCode>=40,'Roland Audio Pad export requires app version >= 40');
 assert(ui.includes("native('playPadSample',sampleBank")&&ui.includes("native('padHit'"),'Existing audio and MIDI paths must remain functional');
 console.log('Grauê 1.25: portable Roland Audio Pad package wiring OK');

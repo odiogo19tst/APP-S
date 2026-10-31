@@ -778,3 +778,30 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 /* Current lyrics autoscroll speed, legible during performances. */
 #gx-shell #gx-scroll-speed-value{font-size:13px;font-weight:700;color:#10496e}
 #gx-shell .gx-scroll-controls small{color:#506c7e;line-height:1.35}
+
+
+/* Grauê DrumPads 1.26 — library sheet, independent sources and big one-touch targets. */
+.gx-kit-picker-entry{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 13px}
+#gx-shell #gx-open-kit-picker{display:flex;align-items:center;justify-content:space-between;min-height:54px;gap:12px;background:linear-gradient(135deg,#0c8979,#13687e);border:1px solid #35c5b2;color:#fff;border-radius:12px;padding:10px 16px;font-weight:700;font-size:14px}
+.gx-kit-picker-entry>small{font-size:12px;color:#9de4de;line-height:1.3;overflow-wrap:break-word}
+.gx-kit-picker{position:fixed;box-sizing:border-box;width:min(650px,calc(100vw - 20px));max-height:min(80dvh,800px);margin:auto auto 10px;border:1px solid #386978;border-radius:23px 23px 14px 14px;padding:15px;background:#0e1b29;color:#f1faff;overflow-y:auto;box-shadow:0 20px 70px #000c}
+.gx-kit-picker::backdrop{background:#000b}
+.gx-kit-picker-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.gx-kit-picker-head h3{margin:4px 0 0;font-size:24px;line-height:1.2}
+.gx-kit-picker-head small{font-size:10px;color:#78dddb;letter-spacing:.09em}
+#gx-kit-close{min-height:44px;min-width:44px;border:1px solid #467080;background:#1f3746;color:#fff;border-radius:11px;font-size:22px}
+.gx-kit-explain{margin:8px 0 13px;font-size:12px;color:#b6d2db;line-height:1.5}
+.gx-kit-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.gx-kit-switch button{min-height:46px;background:#172c3c;border:1px solid #416474;color:#cee3ec;border-radius:9px;font-size:13px}
+.gx-kit-switch button.on{color:#0c2528;background:#69ddc9;border-color:#b2ffef;font-weight:750}
+.gx-kit-picker-list{display:grid;gap:6px;max-height:43dvh;overflow-y:auto;scrollbar-width:thin}
+.gx-kit-choice{display:flex;align-items:center;gap:12px;width:100%;min-height:65px;border:1px solid #334e62;border-radius:10px;padding:9px 12px;background:#162a3b;color:#f3faff;text-align:left;font-size:14px}
+.gx-kit-choice[aria-pressed="true"]{border-color:#46e3cb;background:#173f47}
+.gx-kit-choice-icon{display:grid;place-items:center;width:36px;height:36px;background:#253f50;border-radius:11px;flex-shrink:0;font-size:21px}
+.gx-kit-choice-text{display:flex;flex-direction:column;flex:1;min-width:0;gap:3px}
+.gx-kit-choice-title{font-weight:650;font-size:14px;overflow-wrap:break-word}
+.gx-kit-choice-detail{font-size:11px;color:#adcad7;line-height:1.3}
+.gx-kit-choice-check{font-size:22px;color:#5af1d0;min-width:22px}
+.gx-kit-picker-help{font-size:11px;color:#b1c8d2;line-height:1.5;margin:13px 0 0}
+@media(orientation:landscape) and (max-height:550px){.gx-kit-picker{max-height:calc(100dvh - 14px);padding:10px}.gx-kit-picker-head h3{font-size:19px}.gx-kit-picker-list{max-height:42dvh}}
+@media(max-width:460px){.gx-kit-picker{width:calc(100vw - 16px);margin-bottom:8px}.gx-kit-picker-head h3{font-size:21px}.gx-kit-choice-title{font-size:13px}}
