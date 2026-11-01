@@ -23,36 +23,39 @@ let notes=Array.isArray(saved.padNotes)&&saved.padNotes.length===8?saved.padNote
 defaults.forEach(([label],i)=>{let b=document.createElement('button');b.textContent=label;b.onpointerdown=e=>{e.preventDefault();native('padHit',+f('drumChannel').value,notes[i],+f('drumVelocity').value);};f('drumPads').append(b);let l=document.createElement('label');l.textContent=label+' • nota MIDI';let input=document.createElement('input');input.type='number';input.min=0;input.max=127;input.value=notes[i];input.onchange=()=>{let n=+input.value;if(!Number.isInteger(n)||n<0||n>127){input.value=notes[i];return;}notes[i]=n;saved.padNotes=notes;persist();};l.append(input);f('padNotes').append(l);});
 f('stopPads').onclick=()=>native('stopPads');
 
+// FAVORITE banks are not the sixteen parts of the current Performance.
+const stageFavoritePanels=[];
+let stageFavoriteBank=Number.isInteger(saved.stageFavoriteBank)&&saved.stageFavoriteBank>=0&&saved.stageFavoriteBank<=9?saved.stageFavoriteBank:0;
+window.mountStageFavorites=container=>{
+ if(!container)return;
+ if(!stageFavoritePanels.includes(container))stageFavoritePanels.push(container);
+ refreshPerformanceQuick();
+};
 function refreshPerformanceQuick(){
- const parts=f('livePartsGrid'),box=f('liveQuickFavorites');
- if(!parts||!box)return;
- parts.replaceChildren();
- const selected=+f('livePart').value,ready=!!hw['setup:0'];
- f('liveConnection').textContent=ready?'Performance lida':'Aguardando leitura MIDI';
- for(let i=0;i<16;i++){
-  const p=hw['part:'+i],b=document.createElement('button');
-  const n=document.createElement('strong');n.textContent=String(i+1).padStart(2,'0');
-  const label=document.createElement('small');
-  const tone=p?lib.list().find(x=>x.msb===p[4]&&x.lsb===p[5]&&x.program===p[6]+1):null;
-  label.textContent=p?(tone?tone.name:'Canal '+(p[0]+1)):'Sem leitura';
-  b.append(n,label);b.setAttribute('aria-label','Selecionar parte '+(i+1));b.setAttribute('aria-pressed',String(i===selected));
-  b.onclick=()=>{f('livePart').value=String(i);f('livePart').onchange();};
-  parts.append(b);
+ const ready=!!hw['setup:0'];
+ f('liveConnection').textContent=ready?'MIDI lido · favoritos pendentes':'Favoritos ainda não lidos';
+ for(const container of stageFavoritePanels){
+  container.replaceChildren();
+  const heading=document.createElement('div');heading.className='stage-favorite-heading';
+  const label=document.createElement('label');label.textContent='Banco de favoritos';
+  const bank=document.createElement('select');bank.className='stage-favorite-bank';bank.setAttribute('aria-label','Selecionar banco de favoritos de 0 a 9');
+  for(let i=0;i<=9;i++){const option=document.createElement('option');option.value=String(i);option.textContent='Banco '+i;bank.append(option);}
+  bank.value=String(stageFavoriteBank);
+  bank.onchange=()=>{const value=Number(bank.value);if(!Number.isInteger(value)||value<0||value>9)return;stageFavoriteBank=value;saved.stageFavoriteBank=value;persist();refreshPerformanceQuick();};
+  label.append(bank);heading.append(label);
+  const current=document.createElement('span');current.className='stage-favorite-current';current.textContent='Em uso no XPS: não confirmado';heading.append(current);container.append(heading);
+  const grid=document.createElement('div');grid.className='stage-favorite-grid';grid.setAttribute('role','group');grid.setAttribute('aria-label','Nove favoritos do banco '+stageFavoriteBank);
+  for(let i=1;i<=9;i++){
+   const button=document.createElement('button');button.className='stage-favorite-slot';button.disabled=true;
+   const number=document.createElement('strong');number.textContent=String(i).padStart(2,'0');
+   const name=document.createElement('small');name.textContent='Ainda não lido';
+   button.append(number,name);button.setAttribute('aria-label','Favorito '+i+' do banco '+stageFavoriteBank+' ainda não lido');grid.append(button);
+  }
+  container.append(grid);
+  const hint=document.createElement('p');hint.className='muted stage-favorite-hint';hint.textContent='Aguardando a importação dos favoritos físicos do XPS-10. A seleção do banco organiza o painel; nenhum favorito foi acionado no teclado.';container.append(hint);
  }
- box.replaceChildren();
- const favorites=lib.list().filter(x=>lib.favorites().has(x.code)).slice(0,12);
- if(!favorites.length){const p=document.createElement('p');p.className='muted';p.textContent='Favoritos marcados em Sons aparecem aqui.';box.append(p);return;}
- favorites.forEach(t=>{
-  const b=document.createElement('button');b.textContent='★ '+t.name;
-  b.onclick=()=>{
-   const i=+f('livePart').value;
-   if(!window.Native?.selectTone){f('status').textContent='Conecte o XPS-10 via USB-MIDI.';return;}
-   window.Native.selectTone(t.msb,t.lsb,t.program,i);
-   f('status').textContent='Timbre solicitado: '+t.name+'. Aguarde confirmação pela leitura MIDI.';
-  };
-  box.append(b);
- });
 }
+window.mountStageFavorites(f('liveQuickFavorites'));
 window.refreshPerformanceQuick=refreshPerformanceQuick;
 const previousPartChange=f('livePart').onchange;
 f('livePart').onchange=()=>{previousPartChange();refreshPerformanceQuick();};

@@ -1,6 +1,8 @@
 # Grauê XPS — referência de continuidade
 
-Versão 1.28.0-consolidado, versionCode 43.
+Versão 1.29.0-palco-favoritos, versionCode 44.
+
+Palco: seletor de bancos 0–9 e nove botões 1–9 substituem a grade de 16 partes. Sem leitura física dos FAVORITE, os botões permanecem sem nomes inventados e desabilitados. Edição de partes continua em Sons.
 
 Base: feat/copiloto-xps 1.27, commit c080afd8891e49cfa2f2e9a69fa81c3dc2f5f63c.
 Integra as alterações do PR #44 sem remover os DrumPads cromáticos do PR #45.
