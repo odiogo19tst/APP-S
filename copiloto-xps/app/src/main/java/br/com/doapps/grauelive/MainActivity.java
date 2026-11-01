@@ -65,7 +65,9 @@ public class MainActivity extends Activity {
   if(merged.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",merged.toString()).apply();
  }
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
- private final ExecutorService worker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
+ private final ExecutorService worker=Executors.newSingleThreadExecutor();
+ // Download e validação do modelo não bloqueiam as respostas do GPT.
+ private final ExecutorService modelInstallerWorker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
  private PadSampleEngine padSamples; private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1,exportRolandBank=-1; private String exportKitSettings="{}";
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
@@ -358,7 +360,21 @@ public class MainActivity extends Activity {
 
 
   @JavascriptInterface public void openReference(String name){runOnUiThread(()->{String url=null;if(name.equals("model"))url="https://huggingface.co/litert-community/Gemma3-1B-IT/tree/main";if(name.equals("gemmaTerms"))url="https://ai.google.dev/gemma/terms";if(name.equals("gemmaSource"))url="https://huggingface.co/72fstudio/gemma-3-270m-it";if(name.equals("effects"))url="https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf";if(name.equals("louve"))url="https://louveapp.com.br/";if(name.equals("cifra"))url="https://www.cifraclub.com.br/";if(url!=null)try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(Exception e){emit("status","Não foi possível abrir o navegador.");}});}
-  @JavascriptInterface public void testModel(){ask("Responda em português: qual a diferença entre ataque e release de um pad? Use no máximo três frases.");}
+  @JavascriptInterface public void testModel(){
+    // Verifica explicitamente a Gemma local, sem roteamento para OpenAI.
+    worker.execute(()->{
+     try{
+      File file=new File(getFilesDir(),"model.task");
+      if(!file.isFile()){emit("answer","Gemma não instalada. Abra Ajustes e instale ou importe um modelo compatível.");return;}
+      if(llm==null)llm=openModel(file);
+      String sample=JarvisMusicalProfile.buildPrompt("Qual é a diferença entre ataque e release de um pad? Responda em duas frases.",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));
+      String result=llm.generateResponse(sample);
+      if(result==null||result.isBlank())throw new IOException("O modelo não produziu texto.");
+      emit("aiSource","Gemma · Offline (teste real)");
+      emit("answer",result);
+     }catch(Exception e){emit("answer","Teste da Gemma offline falhou: "+e.getMessage());}
+    });
+  }
 
   @JavascriptInterface public void readUserTones(){runOnUiThread(()->{
     if(!xps.hasValidSysex()){emit("status","O XPS-10 ainda não confirmou SysEx. Conecte o MIDI e confirme resposta antes de ler USER.");return;}
@@ -496,13 +512,14 @@ public class MainActivity extends Activity {
    if(!accepted){emit("status","Leia e aceite os Termos Gemma antes de instalar.");return;}
    if(!gemmaBusy.compareAndSet(false,true)){emit("status","Instalação da Gemma em andamento.");return;}
    gemmaCancel.set(false);
-   worker.execute(()->{
+   modelInstallerWorker.execute(()->{
     try{
      Gemma270Installer.install(getFilesDir(),gemmaCancel,(percent,message)->{
       try{emit("gemmaProgress",new org.json.JSONObject().put("progress",percent).put("message",message).put("busy",true));}
       catch(Exception ignored){}
      },candidate->{try(LlmInference check=openModel(candidate)){}});
-     if(llm!=null){llm.close();llm=null;}
+     // Aguarda inferências anteriores terminarem antes de fechar o modelo carregado.
+     worker.execute(()->{if(llm!=null){llm.close();llm=null;}});
      getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",true).apply();
      modelInfo();
      emit("status","Gemma instalada. Abra o Copiloto e teste uma pergunta offline.");
@@ -680,5 +697,5 @@ public class MainActivity extends Activity {
  if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
  if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>1000000)throw new IOException("Arquivo maior que 1 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
  @Override protected void onStop(){super.onStop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
- @Override protected void onDestroy(){if(cifraPanel!=null)cifraPanel.destroy();stopPadNotes();padSamples.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
+ @Override protected void onDestroy(){if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
 }
