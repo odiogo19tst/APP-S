@@ -9,7 +9,7 @@ f('liveSong').onchange=()=>{if(f('liveSong').value!=='')select(songs[+f('liveSon
 f('liveFocus').onclick=()=>{document.body.classList.toggle('live-focus');f('liveFocus').textContent=document.body.classList.contains('live-focus')?'Sair do show':'Modo show ↔';native('showMode',document.body.classList.contains('live-focus'));};
 f('liveCifra').onclick=()=>native('openCifra');f('liveUndo').onclick=()=>native('undoHardware');f('livePanic').onclick=()=>native('panic');
 f('liveEffects').onclick=()=>f('effectsDrawer').showModal();f('closeEffects').onclick=()=>f('effectsDrawer').close();f('liveSendCC').onclick=()=>{let p=hw['part:'+f('livePart').value];if(!p)return f('status').textContent='Leia o teclado antes de aplicar efeitos nesta parte.';native('cc',p[0]+1,+f('liveCC').value,+f('liveCCValue').value);};
-f('liveRead').onclick=()=>native('readHardware');f('liveArm').onclick=()=>native('arm',!f('arm').checked);
+f('liveRead').onclick=()=>native('readHardware');f('liveArm').hidden=true;f('liveArm').disabled=true;f('liveArm').onclick=null;
 function part(){let i=+f('livePart').value;f('hardwarePart').value=i;f('hardwarePart').onchange();return i;}
 f('livePart').onchange=()=>{part();prepared=null;f('livePrepared').textContent='Escolha um timbre para esta parte.';};
 f('liveApplyVolume').onclick=()=>{let p=hw['part:'+f('livePart').value];if(!p)return f('status').textContent='Leia o teclado para conhecer o canal desta parte.';native('cc',p[0]+1,7,+f('liveVolume').value);};
@@ -58,5 +58,5 @@ const previousPartChange=f('livePart').onchange;
 f('livePart').onchange=()=>{previousPartChange();refreshPerformanceQuick();};
 refreshPerformanceQuick();
 
-const prev=window.receive;window.receive=(k,d)=>{prev(k,d);if(k==='hardware')hw=d;if(k==='hardwareReset')hw={};if(k==='armed')f('liveArm').textContent=d?'Envio MIDI ligado':'Ativar envio MIDI';if(k==='hardware'||k==='hardwareReset')refreshPerformanceQuick();};
+const prev=window.receive;window.receive=(k,d)=>{prev(k,d);if(k==='hardware')hw=d;if(k==='hardwareReset')hw={};if(k==='armed'){f('liveArm').hidden=true;f('liveArm').disabled=true;}if(k==='hardware'||k==='hardwareReset')refreshPerformanceQuick();};
 })();
