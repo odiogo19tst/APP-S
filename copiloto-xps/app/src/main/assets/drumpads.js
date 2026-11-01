@@ -37,6 +37,47 @@
  '<small class="gx-pad-library-help">As bibliotecas CC0 vêm do projeto livre Boochi44/free-drum-samples (WAV reais). Não são sons proprietários do app mostrado nas imagens nem samples oficiais do Roland. A saída USB do Roland transporta MIDI, não áudio. Para usar samples do celular na igreja, conecte a saída de áudio do telefone à mesa de som.</small>';
  const drumSection=el('gx-drums-pads').closest('.gx-drums-kit');
  if(drumSection)drumSection.insertBefore(setup,drumSection.querySelector('.gx-drums-settings'));
+ // A chromatic row like the requested reference: these twelve notes are real.
+ // In sample mode a self-generated, original organ/pad plays on Android;
+ // in MIDI mode the same notes trigger the chosen Roland synth part.
+ const chromaticSection=document.createElement('section');
+ chromaticSection.className='gx-chromatic-section';
+ chromaticSection.innerHTML='<div class="gx-section-label">TECLAS MUSICAIS <small>12 notas para tocar ao vivo</small></div>'+
+  '<p id="gx-chromatic-route">Celular: timbre harmônico original. As bibliotecas de bateria abaixo continuam independentes.</p>'+
+  '<label class="gx-chromatic-channel">Parte MIDI do teclado <select id="gx-chromatic-channel"></select></label>'+
+  '<div class="gx-chromatic-grid" id="gx-chromatic-grid"></div>'+
+  '<small id="gx-chromatic-info">As 12 notas são um instrumento auxiliar; os oito botões de bateria usam a biblioteca escolhida.</small>';
+ if(drumSection)drumSection.insertBefore(chromaticSection,el('gx-drums-pads'));
+ const chromaticNames=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+ const chromaticChannel=chromaticSection.querySelector('#gx-chromatic-channel');
+ for(let ch=1;ch<=16;ch++){
+  const option=document.createElement('option');option.value=String(ch);option.textContent='Canal '+ch;chromaticChannel.append(option);
+ }
+ chromaticChannel.value=String(droneChannel);
+ chromaticChannel.onchange=()=>{droneChannel=+chromaticChannel.value;el('gx-drone-channel').value=String(droneChannel);save();};
+ for(let i=0;i<12;i++){
+  const button=document.createElement('button');button.type='button';button.className='gx-chromatic-key';
+  button.textContent=chromaticNames[i];button.setAttribute('aria-label','Tocar nota '+chromaticNames[i]);
+  let held=false,lastSource=true,lastChannel=3;
+  const stop=()=>{
+   if(!held)return;held=false;button.classList.remove('playing');
+   native('chromaticNoteOff',60+i,lastSource,lastChannel);
+  };
+  button.onpointerdown=e=>{
+   if(e.button!==0||held)return;
+   e.preventDefault();
+   held=true;lastSource=audioMode==='samples';lastChannel=+chromaticChannel.value;
+   button.classList.add('playing');
+   if(button.setPointerCapture)button.setPointerCapture(e.pointerId);
+   native('chromaticNoteOn',60+i,+el('gx-drums-velocity').value,lastSource,lastChannel);
+  };
+  button.onpointerup=stop;
+  button.onpointercancel=stop;
+  button.onlostpointercapture=stop;
+  button.oncontextmenu=e=>e.preventDefault();
+  chromaticSection.querySelector('#gx-chromatic-grid').append(button);
+ }
+
  // Native-looking bottom sheet. List reflects real Android sample availability,
  // and distinguishes local audio from the Roland's factory MIDI kit numbers.
  const libraryDialog=document.createElement('dialog');
@@ -120,6 +161,8 @@
   const routingText=el('gx-drums-device-state')?.nextElementSibling;
   if(deviceLabel)deviceLabel.textContent=sample?'● Samples do celular · USB não necessário':usbAttached?'● USB-MIDI conectado · kit de bateria a confirmar':'● Conecte o XPS-10 via USB-MIDI';
   if(routingText)routingText.textContent=sample?'Áudio gerado pelo celular: para ouvir no PA, envie a saída de áudio do celular à mesa. Não sai pelo USB-MIDI do XPS-10.':'Comandos MIDI enviados ao Roland; o som sai pelas saídas do teclado, usando o Drum Kit selecionado.';
+  el('gx-chromatic-route').textContent=sample?'Notas C–B: som sintetizado pelo celular, independente dos samples de bateria.':'Notas C–B: MIDI do Roland na parte/canal '+droneChannel+' (configure timbre de piano/pad nessa parte).';
+  el('gx-chromatic-info').textContent=sample?'As 12 teclas musicais usam síntese original do Grauê. Os oito pads abaixo usam a biblioteca selecionada.':'As 12 teclas enviam notas MIDI ao canal do synth; a bateria usa o canal '+drumChannel+'. Prefira canais diferentes.';
 
   el('gx-pad-local-wrapper').hidden=!sample;el('gx-pad-import').hidden=!sample;
   el('gx-pad-import-label').hidden=!sample;el('gx-pad-stop-audio').hidden=!sample;el('gx-pad-import-all').hidden=!sample;el('gx-pad-import-zip').hidden=!sample;el('gx-pad-export-drive').hidden=false;
@@ -181,7 +224,7 @@
  renderAudioSource();
 
  el('gx-drums-channel').onchange=()=>{drumChannel=+el('gx-drums-channel').value;native('stopSequence');save();renderAudioSource();};
- el('gx-drone-channel').onchange=()=>{native('stopDronePad');droneOn=false;droneChannel=+el('gx-drone-channel').value;save();};
+ el('gx-drone-channel').onchange=()=>{native('stopDronePad');droneOn=false;droneChannel=+el('gx-drone-channel').value;chromaticChannel.value=String(droneChannel);save();renderAudioSource();};
  el('gx-beats-bpm').onchange=()=>{bpm=Math.min(180,Math.max(40,Number(el('gx-beats-bpm').value)||72));el('gx-beats-bpm').value=String(bpm);save();};
  for(const [label,note] of drumNotes){
   const btn=document.createElement('button');btn.className='gx-drum-key';btn.type='button';
@@ -298,7 +341,7 @@
    el('gx-pad-source').value=audioMode;
    el('gx-pad-local-kit').value=String(sampleBank);
    el('gx-drums-channel').value=String(drumChannel);
-   el('gx-drone-channel').value=String(droneChannel);
+   el('gx-drone-channel').value=String(droneChannel);chromaticChannel.value=String(droneChannel);
    el('gx-beats-bpm').value=String(bpm);
    kits.value=selectedRoland;
    save();renderSteps();renderAudioSource();
@@ -307,6 +350,8 @@
   if(type==='drumKitSent'){
    const choice=xpsDrumKits.find(x=>x.msb===payload?.msb&&x.lsb===payload?.lsb&&x.program===payload?.program);
    el('gx-pad-library-status').textContent='Comando MIDI enviado: '+(choice?.name||'kit')+'. Som não confirmado por SysEx; teste tocando um pad.';
+  }
+  if(type==='chromaticReady'){el('gx-chromatic-info').textContent=audioMode==='samples'?'Teclas musicais prontas para tocar pelo áudio do celular.':'Teclas musicais prontas; use um canal MIDI com timbre melódico.';
   }
   if(type==='droneStatus'){droneOn=!!payload;el('gx-drone-status').textContent=droneOn?'● Pad contínuo ativo — toque Parar Pad':'Pad parado';el('gx-drone-start').classList.toggle('on',droneOn);}
   if(type==='xpsConnection'){usbAttached=!!payload;renderAudioSource();}
