@@ -1,0 +1,138 @@
+# Copiloto XPS 0.7.2 — prévia funcional Android
+
+Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não processa o áudio do PA; comandos MIDI e pads podem alterar ou produzir som no teclado. Android 8+; alvo de teste físico: Samsung S25 FE.
+
+## Funções implementadas
+- Palco: notas MIDI, sustain por canal, acordes (tríades, sétimas, suspensos e add9), inversões, graus, teclado gráfico e histórico de velocidades.
+- Áudio: captura local, nota monofônica e estimativa heurística de tom. Banda polifônica/ruído pode confundir a análise. Índice de confiança não é probabilidade.
+- Repertório persistente: edição, importação JSON/ChordPro, exportação JSON, transposição da cifra, BPM/tap tempo, avanço programado, rolagem da letra, aviso antecipado, voicing sugerido e exemplo de empréstimo modal.
+- Sons: envio MIDI explicitamente ativado, canal 1–16, CC7/10/11/71/72/73/74/91/93, preparação e aplicação de cenas de controles. Não são patches completos.
+- Copiloto: guia harmônico determinístico e runtime neural offline MediaPipe 0.10.27 com importação de modelo .task. O modelo não está incluído. GGUF não é compatível. Respostas neurais nunca executam comandos.
+- Temas claro/escuro e análise musical local. Permissão de internet usada pelo navegador Cifra Club.
+
+## Usar
+1. Instale o APK de `Copiloto-XPS-0.7.2-APK` nos artifacts do GitHub Actions.
+2. Conecte o XPS-10 por USB e toque em Conectar USB; selecione o dispositivo.
+3. Toque notas e confira o teclado gráfico. O cabo USB transporta MIDI, não o áudio do XPS-10.
+4. Ative Ouvir ambiente e autorize o microfone. Confirme o tom manualmente; a estimativa não muda a referência sozinha.
+5. Salve uma música em Repertório. Iniciar segue o BPM, não a execução da banda. Ajuste o ponto com as setas.
+6. Sons: escolha canal, prepare sliders, ative envio e toque em Aplicar. Confira o efeito no teclado. 64 é neutro nos offsets de cutoff/ressonância/attack/release.
+7. IA: obtenha modelo .task compatível conforme documentação Google, aceite a licença do fornecedor e importe em Ajustes. Primeira pergunta carrega o modelo. Compatibilidade/memória/latência ainda precisam de teste físico.
+
+## Limitações / trabalho ainda pendente
+- Sem sincronização direta LouveApp/Cifra Club; depende de documentação, credenciais e permissão de integração. Assinatura Pro não é uma credencial API.
+- Sem leitura da tela do editor EXE/APK; o EXE fornecido não contém o código-fonte Android.
+- Leitura e edição SysEx implementadas para Performance, partes, zonas e controles gerais MFX/chorus/reverb. A versão 0.7 acrescenta parâmetros internos dos 78 algoritmos MFX; o mapeamento vem do editor fornecido e requer validação física. Undo restaura somente os campos da última edição SysEx com leitura anterior conhecida. Sliders CC continuam sendo valores preparados no app.
+- Sem correção automática de notas no PA, reconhecimento robusto da posição da banda na música ou tempo estimado do áudio.
+- O teclado gráfico mostra C3–C5; notas fora da faixa aparecem no texto.
+- Modelo neural não acompanha o APK. Nenhuma promessa de inteligência ilimitada ou desempenho por tamanho de arquivo.
+- Build/lint e testes automatizados não substituem validação USB/microfone/modelo no S25 e XPS-10.
+
+## Desenvolvimento e fontes
+JDK 21 (fonte Java 17) / Gradle 8.9 / SDK35. `gradle :app:assembleDebug :app:lintDebug`; `node tests/music.test.js`. Workflow também executa testes Java de áudio/harmonia/parser MIDI.
+
+- Roland MIDI implementation: https://static.roland.com/assets/media/pdf/XPS-10_MIDI_Imple_e01.pdf
+- Runtime local: https://developers.google.com/edge/mediapipe/solutions/genai/llm_inference/android
+- LouveApp: https://louveapp.com.br/
+
+A WebView dos controles carrega apenas assets locais, bloqueia rede e não usa HTML interpretado para letras/importações/respostas. O navegador online usa outra WebView sem bridge MIDI. Bridge MIDI valida canal, CC e valores. Importação musical limitada a 1 MB; modelos copiados em streaming. Nenhum executável de terceiros redistribuído.
+
+
+## Novidades 0.3 — timbres e leitura do XPS-10
+
+- Catálogo com 1.564 timbres, extraído da lista oficial Roland eng02: busca por nome, filtro por categoria e favoritos persistentes. Não redistribuímos o PDF nem amostras de áudio.
+- Troca de timbre por parte, via MSB/LSB/programa. A tela mostra programas 1–128; o protocolo envia 0–127.
+- Ler XPS-10 consulta Setup, Performance Common, 16 partes, 16 zonas, 3 MFX, chorus, reverb e 16 patches temporários e grupo de ritmos temporário. Somente blocos que responderam são exibidos como lidos.
+- Ler timbres de usuário consulta as 256 posições User Patch e seus nomes (cerca de 30 segundos), sem trocar o timbre em uso. A lista desta leitura vale para a conexão atual. Não inclui biblioteca de samples de pendrive nem os 8 User Rhythm.
+- Seleção de nome personalizado e envio para a parte escolhida. Dados de timbres de usuário não são confundidos com a lista de fábrica.
+- Camada/split nas partes 1 e 2 e edição individual das zonas por canal. As partes precisam de canais diferentes. Outras zonas podem continuar soando; confira quais estão ativas.
+- Tipo e envios MFX, roteamento da parte, tipos/níveis chorus e reverb. Aplicar MFX seleciona explicitamente a fonte Performance.
+- Cada edição exige leitura anterior e envio ativado. Depois do envio, o app faz nova consulta e informa se os valores foram confirmados. Disconnect/background cancela a fila. Desfazer restaura os campos anteriores, não um backup completo da Performance.
+- Nenhum comando grava bancos User. Para guardar alterações temporárias após desligar, use WRITE no teclado.
+
+### Fluxo para trocar um timbre
+1. Palco > Conectar USB.
+2. Sons > Ler XPS-10. Device ID esperado: 17 (10h).
+3. Se necessário, ative envio e toque em Entrar em Performance; aguarde a nova leitura.
+4. Escolha a parte, busque o nome ou consulte os timbres de usuário e selecione um.
+5. Ative envio MIDI e toque em Trocar timbre nesta parte. Aguarde a confirmação de leitura.
+
+Fonte do catálogo: https://static.roland.com/assets/media/pdf/XPS-10_ToneList_eng02_W.pdf
+Extração reproduzível: `python scripts/extract_tones.py /caminho/lista.pdf` (PyMuPDF).
+Protocolos e testes usam o mapa Roland MIDI e01: endereços base-128, checksum, RQ1 com bloco/tamanho documentado e DT1 apenas em campos permitidos. Os testes incluem pacotes fragmentados, realtime, dados inválidos, faixas, catálogo e fluxo da interface. A validação no equipamento físico continua pendente.
+
+
+## Novidades 0.4 — instalação da IA e compartilhamento
+
+- O Android oferece Copiloto XPS como destino de compartilhamento `text/plain`. O texto recebido fica para revisão em Repertório; importar exige toque explícito. Links isolados não são buscados nem tratados como cifra.
+- Importação de linhas de acordes e ChordPro. Ampliação da notação: maj9, 7M, m9, m11, m6, m7b5/m7(b5), dim7, aug, 6, 9, 11, 13, 7sus4.
+- Botões abrem LouveApp/Cifra Club no navegador externo. Isso não é sincronização de contas/API. Não foi encontrada documentação oficial suficiente para implementar a sincronização nesta sessão.
+- Tipos MFX pelo nome (78 algoritmos + sem efeito), conforme a lista Roland. O manual de parâmetros abre no navegador externo. A lista descreve controles, mas não fornece a correspondência completa de cada controle ao índice MIDI interno: editor detalhado ainda depende dessa validação.
+- Instalação neural: botão para a página do modelo compatível, status/tamanho local, progresso de cópia, carregamento de verificação antes de substituir o modelo anterior e teste de uma resposta. Contexto limitado a 1024 tokens e pergunta a 1500 caracteres. O arquivo .task deve ser compatível com MediaPipe; formatos GGUF/.litertlm não são aceitos pelo runtime atual.
+- A página Gemma exige login e aceite da licença do fornecedor. O modelo não é redistribuído pelo app. Sem um modelo importado, o guia musical determinístico funciona, mas não há conversa neural.
+
+Fontes: https://huggingface.co/litert-community/Gemma3-1B-IT e https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf
+
+Pendências externas/avançadas: validação física da inferência/USB/áudio no S25; APIs dos serviços externos; acompanhamento automático da posição e andamento da banda; correção de notas no áudio PA. Nenhuma dessas funções é simulada como concluída.
+
+
+## Novidades 0.5 — operação ao vivo e pads
+
+- Painel Ao vivo reúne repertório, timbres/favoritos, kits de bateria, leitura, ativação MIDI, parte e volume. Modo palco oculta gráficos de estudo e dicas extras.
+- Seleção de timbre em janela dentro do Palco, por famílias equivalentes aos grupos do teclado; aplicação explícita na parte escolhida. A confirmação ainda exige retorno MIDI do equipamento.
+- Músicas com categoria editável e filtro no Repertório; categorias preservadas na exportação/importação JSON. Timbres agrupados por Piano, Teclas, Cordas/Guitarra, Metais/Baixo, Synth, World, Bateria/FX, Sample e Usuário.
+- Oito pads na tela enviam Note On/Off por MIDI, com canal, intensidade e notas configuráveis/persistentes. Ao abrir Kits de bateria após leitura, o canal dos pads acompanha o canal da parte escolhida. Selecione o kit e aplique antes de tocar. Os nomes dos pads são referências GM e podem variar nos kits eletrônicos.
+- Pads exigem envio MIDI ativado. As notas emitidas são soltas após 120 ms, ao desativar envio ou ao sair do app. Botão Soltar notas dos pads encerra notas ainda mantidas pelo aplicativo.
+- São pads MIDI na tela, não controle dos AUDIO PAD físicos, sequenciador de batidas, importador de samples ou editor de kits. Esses recursos não estão implementados.
+- Testes da interface cobrem categorias, seleção de kits, troca de programa sem alterar outros campos, mapeamento dos pads e volume no canal lido. Validação física dos novos controles permanece necessária.
+
+
+## Novidades 0.6 — Cifra Club e paisagem
+
+- Navegador Cifra Club incorporado em painel separado: ao lado dos controles em paisagem e abaixo em retrato. Botões Voltar, Recarregar, Início, Externo e Fechar. Cookies próprios da WebView persistem; cookies de terceiros desativados. Sem bridge JavaScript, acesso a arquivos, captura de credenciais ou comandos MIDI no conteúdo remoto.
+- Login feito diretamente no site. Compatibilidade de login e recursos Pro depende de teste físico; provedores como Google podem rejeitar WebViews. Externo abre o navegador do aparelho, mas não transfere sua sessão para o painel. Não contornamos restrições do provedor.
+- Não extrai cifras nem entrega automaticamente a página à IA. Navegação autenticada não equivale a sincronização API ou acompanhamento da rolagem.
+- Rotação liberada sem recriar a Activity nas mudanças de orientação/tamanho. Modo show solicita paisagem e preserva controles do Palco, tom, notas/acorde, acompanhamento, USB/microfone e acesso às demais abas. Sair do show devolve rotação automática.
+- Atalhos para efeitos CC (cutoff, ressonância, ataque, release, reverb, chorus, expressão), desfazer última edição SysEx e liberar sustain/notas nos 16 canais. O último botão é de emergência e pode interromper notas tocadas; não restaura timbres/efeitos.
+- No S25, validar rotação durante MIDI, proporções do painel, acesso ao Cifra Club, login, cookies e resposta dos controles. Testes de interface não substituem esses testes físicos.
+
+
+## Novidades 0.7 — controles completos de MFX, ritmos e cifras
+
+- Editor de 1.011 parâmetros distribuídos pelos 78 algoritmos MFX. Lê valores reais da unidade selecionada; edita um parâmetro de cada vez, valida algoritmo/faixa no Java, codifica quatro nibbles e transmite um pacote DT1 contíguo. Não muda o tipo e seus parâmetros na mesma operação. Valores sem unidade disponível são índices, não Hz/ms inventados.
+- Metadados de interoperabilidade extraídos do EXE fornecido pelo usuário. Endereços, tamanho, encoding e faixa global conferidos com MIDI Implementation Roland e01; nomes/ordem dos 78 efeitos conferidos com Effects List. O executável, imagens e código do editor não são redistribuídos. `scripts/extract_mfx.py` reproduz as tabelas a partir do arquivo do usuário (SHA256 85580b29fdf808734502dc1de9dd1e8eaf173e6405926429a493fac1e9f6b2e8). Testes físicos de cada efeito não foram feitos.
+- Filtro, ressonância, ataque, decay e release por parte com leitura SysEx. Arpejador: habilitar, hold, estilo, oitavas e acento.
+- Rhythm Pattern: habilitar, grupo, acento e intensidade. Grupo temporário: padrões 1–256 e intensidade atribuíveis aos seis pads físicos. Não envia um comando de disparo AUDIO PAD, não carrega amostras nem grava bancos User. Use os pads do teclado para disparar os padrões atribuídos.
+- Sequenciador de tela: oito instrumentos por 16 semicolcheias, BPM30–240, notas dos pads configuráveis, base pop, limpar, iniciar/parar e desenho persistente. Emite notas ao kit via MIDI; não transfere o desenho para a memória do XPS. Temporização Android é best-effort, sem promessa de precisão de DAW. Para ao desarmar, desconectar, sair do app, usar emergência ou editar o desenho; atrasos não disparam rajadas de passos acumulados.
+- Após edição, consulta somente os blocos afetados (e patch quando troca timbre); mudança de modo/grupo exige leitura completa. Ausência de retorno nunca é apresentada como confirmação.
+- Navegador: Importar lê o texto da cifra aberta em um elemento `pre` e traz título, letra e acordes ao repertório. A ação é explícita e só aceita páginas HTTPS do domínio Cifra Club. Sem cifra reconhecida, informa falha; acordes não suportados ficam para revisão. Não baixa catálogos em massa nem usa APIs privadas. Alterações de HTML do site podem exigir manutenção. A requisição de página pública nesta sessão não retornou a cifra, portanto a extração real precisa ser validada no aparelho autenticado.
+- Importação em lote de até100 arquivos de texto/ChordPro/JSON, máximo1MB por arquivo. Um erro não interrompe os demais arquivos. PDFs/imagens ainda não têm OCR.
+
+### Critérios de entrega e limites
+
+Compilação Android, lint, testes de harmonia/MIDI e integração de interface são executados em CI. Os testes novos verificam limites dos parâmetros, encoding, endereços, atribuições de pads, sequenciador e importação da página com dados de teste. Não certificam áudio físico, login externo ou latência.
+
+O projeto não pode ser declarado integralmente validado sem XPS-10/S25 conectados. Permanecem fora desta entrega: modelo neural redistribuído (licença/importação do fornecedor), sincronização oficial LouveApp/Cifra Club, OCR em lote, transferência do sequenciador para memória de padrões, edição/carregamento de samples dos AUDIO PAD, seguimento automático da banda e correção automática do áudio no PA. O app não apresenta esses itens como operacionais.
+
+
+## Correção 0.7.1 — importação neural
+
+O importador anterior passava `model.tmp` ao runtime antes de instalar `model.task`. Agora copia para um nome temporário único terminado em `.task` e preserva essa extensão durante a validação. Não exige outro download: reimporte o arquivo original já salvo em Downloads.
+
+Verificação estrutural antes da inferência: ZIP válido, entradas TF_LITE_PREFILL_DECODE/TOKENIZER_MODEL/METADATA não vazias e sem compressão, assinatura TFL3. Rejeita HTML de login, arquivos truncados e outros formatos com mensagem legível. O modelo instalado só é substituído por movimentação atômica após validação do runtime; candidato é removido em caso de falha. Mensagens longas quebram linha.
+
+Referência do formato: código oficial MediaPipe v0.10.26, `tasks/python/genai/bundler/llm_bundler.py` e `tasks/python/metadata/metadata_writers/model_asset_bundle_utils.py`. O runtime permanece 0.10.27. Testes Java usam um pacote mínimo de teste para verificar nome/extensão, rejeição de arquivo inválido, preservação do anterior, limpeza e promoção. Isso não constitui teste neural: não há S25 conectado nem cópia autorizada do modelo do usuário no ambiente. A troca para `.task` corrige uma falha do fluxo, mas a causa exata do erro no dispositivo e a geração da resposta ainda precisam ser confirmadas no aparelho.
+
+## Correção 0.7.2 — validação do pacote
+
+A verificação de 0.7.1 exigia nomes internos específicos e entradas sem compressão, barrando outros pacotes antes de chamar o runtime. Agora a pré-verificação exige apenas um ZIP não vazio: o MediaPipe valida a compatibilidade do modelo. Mantém o arquivo temporário com extensão .task, a substituição atômica e a preservação do modelo anterior em caso de falha.
+
+Teste de regressão usa arquivos sintéticos com nomes alternativos e compressão, verifica que chegam ao validador e que falhas preservam o modelo instalado. Não demonstra inferência real; o arquivo do usuário e a execução no S25 ainda precisam ser testados.
+
+## Unificação Grauê + Copiloto XPS (prévia 0.8)
+
+- Projeto-base: **Copiloto XPS** (mantém applicationId e dados existentes). O Grauê passa a ser o módulo musical integrado: microfone, estimativa de tom e sugestões; USB MIDI continua sendo a fonte confiável do que o músico toca.
+- Referência funcional independente: XPS Mobile Editor (Smart Edições / Eddie Tavares). Não copiar telas, ativos, textos ou código proprietários.
+- Modo Ao Vivo: seleção tátil das 16 partes e atalhos de timbres favoritos; nenhum comando enviado só por navegar. Trocar um favorito exige leitura prévia do teclado e envio MIDI explicitamente habilitado.
+- Próximas integrações: leitura e ajuste por parte dos controles de pedal/pitch bend/modulação conforme tabela SysEx documentada; performance e patches de usuário; importação não destrutiva de backups; melhoria do áudio neural e Cifra Club; retomar Bip 6 somente após corrigir reinicialização.
+- O novo painel indica *dados lidos*, não conectividade física contínua. A confirmação após o envio depende de leitura de retorno. Não gravar User patches diretamente sem confirmação adicional.

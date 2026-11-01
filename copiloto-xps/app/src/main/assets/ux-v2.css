@@ -1,0 +1,888 @@
+
+/* GRAUÊ XPS 0.9 — Redesign fiel ao painel de quatro telas aprovado. */
+body.gx-ready{--gx-bg:#07111c;--gx-panel:#101f2d;--gx-panel2:#162c3c;--gx-line:#244052;--gx-mint:#30e8c6;--gx-blue:#137feb;--gx-white:#f1faff;background:radial-gradient(ellipse at 50% -30%,#0f3550 0%,#07111c 52%);color:var(--gx-white);padding:0!important;font-family:system-ui,Arial,sans-serif}
+body.gx-ready > header,body.gx-ready > nav,body.gx-ready > #status,body.gx-ready > main{display:none!important}
+body.gx-ready.gx-legacy > header,body.gx-ready.gx-legacy > nav,body.gx-ready.gx-legacy > #status,body.gx-ready.gx-legacy > main{display:block!important}
+body.gx-ready.gx-legacy > nav{display:flex!important}
+body.gx-ready.gx-legacy{padding:24px 16px 40px!important}
+body.gx-legacy #gx-shell{display:none}
+#gx-shell{padding:12px 14px 30px;min-height:100vh;max-width:1440px;margin:0 auto;color:var(--gx-white)}
+#gx-shell *{box-sizing:border-box}
+#gx-shell button{font:inherit;color:var(--gx-white);border:1px solid #2a4156;background:linear-gradient(165deg,#1c3345,#142535);border-radius:9px;cursor:pointer;transition:background .12s,transform .12s;touch-action:manipulation}
+#gx-shell button:active{transform:scale(.97);background:#254a63}
+#gx-shell button:focus-visible{outline:2px solid var(--gx-mint);outline-offset:2px}
+#gx-shell button[disabled]{opacity:.45;cursor:default}
+#gx-shell h2,#gx-shell h3,#gx-shell p{margin:0}
+#gx-shell small{font-size:11px;letter-spacing:.03em;color:#9ab4c2}
+#gx-shell strong{line-height:1.12}
+#gx-shell input,#gx-shell select{font:inherit;min-width:0;max-width:100%;color:var(--gx-white);background:#102234;border:1px solid #2a475c;border-radius:8px;padding:10px}
+#gx-shell input[type=range]{accent-color:#28dba8;padding:0;cursor:pointer}
+#gx-shell .gx-panel{background:linear-gradient(155deg,#152c3d,#10212f 70%);border:1px solid var(--gx-line);border-radius:12px;padding:13px;min-width:0}
+.gx-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:0 4px 9px;border-bottom:1px solid #1a3343}
+.gx-brand{display:flex;align-items:center;gap:9px}
+.gx-brand b{display:block;font-size:21px;letter-spacing:-.7px;line-height:1.1}
+.gx-brand small{display:block;font-size:9px;letter-spacing:1.6px;color:#61d5c6;margin-top:3px}
+.gx-mark{font-size:38px;font-style:italic;font-weight:900;line-height:1;color:#27ecc9;text-shadow:0 4px 8px #03453c}
+.gx-usb{margin-left:auto;color:#42e5ba;font-size:12px;text-align:right;line-height:1.1}
+.gx-usb small{font-size:10px;color:#c3d0da}
+#gx-shell .gx-gear{font-size:22px;border:0;background:transparent;padding:4px 8px}
+.gx-nav{display:flex;justify-content:center;align-items:stretch;gap:7px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;background:#07121deb;backdrop-filter:blur(12px);z-index:10;margin:0 0 8px;padding:9px 0 12px}
+.gx-nav::-webkit-scrollbar{display:none}
+#gx-shell .gx-nav button{flex:0 0 auto;min-width:85px;min-height:43px;border:1px solid transparent;border-radius:8px;background:transparent;color:#c7d4df;font-weight:550;padding:8px 13px}
+#gx-shell .gx-nav button.on{background:linear-gradient(180deg,#167bd3,#113e66);color:white;border-color:#15507f;box-shadow:inset 0 -2px #33c9ff}
+.gx-screen{display:none;animation:gx-appear .15s ease-out}
+.gx-screen.on{display:block}
+@keyframes gx-appear{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:none}}
+.gx-stage-summary{display:grid;grid-template-columns:minmax(175px,2.2fr) minmax(90px,.74fr) minmax(90px,.78fr) minmax(90px,.8fr) minmax(105px,1fr);gap:8px}
+.gx-current{display:flex;flex-direction:column;gap:6px}
+.gx-current small{color:#50d8b6!important}
+.gx-current strong{font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gx-current>span{color:#b8c6d0;font-size:12px}
+.gx-progress{height:5px;border-radius:4px;background:#18394b;margin-top:auto;overflow:hidden}
+.gx-progress i{display:block;height:100%;background:#2be7c4;border-radius:5px;transition:width .2s}
+.gx-mini{display:flex;flex-direction:column;gap:7px}
+.gx-mini strong{font-size:22px;color:#f6fbff;overflow-wrap:anywhere}
+.gx-mini span{font-size:11px;color:#aebdcb}
+.gx-stage-actions{display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr 1.6fr 1fr;gap:9px;margin:9px 0}
+#gx-shell .gx-stage-actions>button{min-height:82px;padding:9px;font-size:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+#gx-shell .gx-stage-actions button span{font-size:12px;font-weight:650;text-align:center}
+#gx-shell .gx-stage-actions .gx-start{background:linear-gradient(140deg,#13be8a,#078b6f);border-color:#05c799}
+#gx-shell .gx-stage-actions .gx-danger{background:linear-gradient(130deg,#ad3347,#6b2837);border-color:#a34457}
+.gx-transpose{display:grid;grid-template-columns:1fr .7fr 1fr;gap:5px;align-items:center;background:linear-gradient(145deg,#182e3c,#122635);border:1px solid var(--gx-line);padding:8px;border-radius:10px;text-align:center}
+#gx-shell .gx-transpose button{font-size:23px;min-height:39px;font-weight:600;padding:2px}
+.gx-transpose strong{font-size:17px}
+.gx-transpose small{grid-column:1/-1;text-transform:uppercase;font-size:9px}
+.gx-zone{margin:9px 0}
+.gx-section-label{font-size:12px;font-weight:800;letter-spacing:.045em;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#d8e9f5;margin-bottom:10px}
+.gx-section-label button{padding:4px 8px!important;font-size:11px!important;min-height:24px!important}
+.gx-fav-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
+#gx-shell .gx-fav-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:5px;min-width:0;min-height:66px;text-align:left;padding:9px 8px;border:1px solid #417a92;border-radius:8px;background:linear-gradient(165deg,#1773be,#11395d)}
+.gx-fav-tile strong{font-size:12px;overflow-wrap:anywhere}
+.gx-fav-tile small{font-size:10px;color:#c6faff!important}
+#gx-shell .gx-fav-1,#gx-shell .gx-fav-5{background:linear-gradient(165deg,#258966,#15573f);border-color:#2c9e77}
+#gx-shell .gx-fav-2,#gx-shell .gx-fav-6{background:linear-gradient(165deg,#329775,#1c594c);border-color:#2d8064}
+#gx-shell .gx-fav-3{background:linear-gradient(165deg,#6643b6,#35266f);border-color:#8062d0}
+#gx-shell .gx-fav-4{background:linear-gradient(165deg,#996036,#533b2d);border-color:#9d774a}
+#gx-shell .gx-fav-7{background:linear-gradient(165deg,#278baf,#16536e);border-color:#2697ba}
+.gx-stage-parts{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}
+#gx-shell .gx-stage-parts button{min-height:70px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px;align-items:center;padding:6px 2px}
+.gx-stage-parts strong{font-size:22px}
+.gx-stage-parts span{font-size:12px;font-weight:650}
+.gx-stage-parts small{font-size:9px;white-space:nowrap;max-width:100%;overflow:hidden}
+.gx-stage-footer{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+#gx-shell .gx-stage-footer button{padding:10px 13px;font-size:12px;min-height:44px}
+.gx-empty{font-size:12px;color:#9fb8cb;padding:12px;line-height:1.45}
+.gx-rep-layout{display:grid;grid-template-columns:minmax(230px,.36fr) minmax(350px,1fr);gap:10px;min-height:calc(100vh - 165px)}
+.gx-rep-library{display:flex;flex-direction:column;min-height:330px}
+#gx-search{width:100%;margin-bottom:10px;padding:11px}
+.gx-filters{display:flex;gap:4px;overflow:auto;padding-bottom:9px}
+#gx-shell .gx-filters button{border:0;min-width:0;flex:0 0 auto;padding:7px 9px;font-size:11px;border-radius:7px}
+#gx-shell .gx-filters button.on{background:#147de2}
+.gx-song-list{overflow-y:auto;max-height:76vh;flex:1;scrollbar-color:#315167 transparent}
+.gx-song-row{display:flex;align-items:center;border-radius:7px;min-height:54px;margin:3px 0}
+.gx-song-row.active{background:#11589c}
+#gx-shell .gx-song-pick{min-width:0;flex:1;background:transparent;border:0;text-align:left;padding:7px}
+.gx-song-pick strong{font-size:13px;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.gx-song-pick small{display:block;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#gx-shell .gx-song-star{border:0;background:transparent;color:#ffe079;padding:5px 8px;font-size:23px}
+.gx-rep-view{display:flex;flex-direction:column;min-width:0}
+.gx-rep-tabs{display:flex;gap:5px;background:#112636;border-radius:10px 10px 0 0;padding:6px;overflow-x:auto}
+#gx-shell .gx-rep-tabs button{background:transparent;border:0;min-width:max-content;padding:9px 10px;font-size:12px}
+#gx-shell .gx-rep-tabs button.on{color:#25f1cf;border-bottom:2px solid #26d9e2;border-radius:3px}
+.gx-paper{background:#fff;color:#13202b;border-radius:10px;overflow:hidden;flex:1;min-height:340px}
+.gx-cifra-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f6f9fb;border-bottom:1px solid #e3edf2;padding:11px 14px}
+.gx-cifra-head b{display:block;font-size:15px;color:#101e29}
+.gx-cifra-head small{display:block;margin-top:3px;color:#566875!important}
+#gx-shell .gx-cifra-head button{color:#0d579d;background:#eff6fa;border-color:#d6e5f0;padding:9px 12px;font-weight:650;font-size:12px}
+.gx-paper-main{display:grid;grid-template-columns:minmax(230px,1fr) minmax(150px,.33fr);min-height:310px}
+.gx-paper-copy{padding:20px;min-width:0}
+.gx-paper-copy h2{font-size:26px}
+.gx-paper-copy>span{display:block;color:#627582;font-size:13px;margin:5px 0}
+.gx-paper-copy>p{color:#7c8b9b;font-size:12px;margin:12px 0!important}
+.gx-cifra-text{font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font-size:13px;color:#222e3a;max-height:70vh;overflow:auto}
+.gx-paper-actions{background:#f5f8fc;border-left:1px solid #e6eff4;display:flex;flex-direction:column;gap:9px;padding:12px}
+#gx-shell .gx-paper-actions button{color:#20394d;background:#fff;border:1px solid #cedce6;font-size:12px;font-weight:700;padding:12px 9px;text-align:center;min-height:45px}
+#gx-shell .gx-paper-actions .gx-blue{color:white;background:#1387ee;border-color:#1178d2}
+.gx-session{background:#e9faf2;border-radius:10px;color:#197454;padding:12px 8px;font-size:11px;font-weight:700}
+.gx-session small{color:#436d5c!important;font-weight:400;display:block;margin-top:5px}
+.gx-note{font-size:11px;color:#7fabb7;padding:8px 6px}
+.gx-sound-layout{display:grid;grid-template-columns:minmax(150px,.20fr) minmax(350px,1fr) minmax(185px,.29fr);gap:10px}
+.gx-sound-nav{display:flex;flex-direction:column;gap:6px}
+#gx-shell .gx-sound-nav button{background:transparent;text-align:left;font-size:13px;padding:11px 9px;border:0;min-height:42px}
+#gx-shell .gx-sound-nav button.on{background:#1678d9;color:#fff}
+.gx-sound-center{min-width:0;display:flex;flex-direction:column;gap:9px}
+.gx-performance small{display:block;font-size:11px;margin-bottom:12px}
+.gx-perf-row{display:flex;gap:6px;align-items:center}
+.gx-perf-row strong{min-width:0;overflow-wrap:anywhere;flex:1;font-size:19px}
+#gx-shell .gx-perf-row button{padding:9px;font-size:12px}
+.gx-mixer{flex:1}
+.gx-mixer .gx-section-label>div{display:flex;gap:4px}
+#gx-shell .gx-mixer .gx-section-label button{min-height:28px;font-size:11px}
+#gx-shell .gx-mixer .gx-section-label button.on{background:#146fb2}
+.gx-mixer-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;min-height:275px}
+.gx-channel{min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:9px 3px;background:#112636;border:1px solid #244354;border-radius:10px}
+.gx-channel b{font-size:15px}
+.gx-channel span{font-size:10px;min-height:28px;overflow-wrap:anywhere}
+.gx-channel input[type=range]{writing-mode:vertical-lr;direction:rtl;appearance:slider-vertical;width:25px;height:170px;min-height:130px}
+.gx-channel strong{font-size:12px;color:#e0f6f4}
+.gx-mixer>p{font-size:11px;color:#9cbbca;margin-top:10px!important}
+.gx-sound-right{display:flex;flex-direction:column;gap:9px}
+.gx-device #gx-device-state{color:#45dfad;font-size:12px}
+.gx-keyboard{background:#e7eff5;color:#10263b;padding:7px;font-size:20px;letter-spacing:3px;text-align:center;border-radius:5px;margin:12px 0}
+.gx-device small{line-height:1.5;display:block}
+#gx-shell .gx-device button{padding:10px;margin-top:10px;width:100%}
+.gx-fav-side{flex:1}
+.gx-fav-entry{display:block;text-align:left;padding:9px!important;margin:5px 0;width:100%;font-size:12px!important}
+.gx-coach-layout{display:grid;grid-template-columns:minmax(210px,.32fr) minmax(350px,1fr) minmax(180px,.28fr);gap:10px}
+.gx-listening{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:355px}
+.gx-listening h3{align-self:flex-start}
+#gx-shell .gx-mic-circle{display:flex;justify-content:center;align-items:center;width:145px;height:145px;border-radius:50%;font-size:72px;line-height:1;background:radial-gradient(circle at center,#124b5b,#092d42 65%);border:5px solid #1cdad4;color:#38f2d3;box-shadow:0 0 22px #1bd9c53b}
+#gx-shell .gx-mic-circle.listening{box-shadow:0 0 25px #22edc788;background:#115e54}
+.gx-listening strong{font-size:17px}
+.gx-listening span{font-size:11px;color:#bdd4db}
+.gx-wave{display:flex;align-items:center;justify-content:space-around;width:100%;height:60px;gap:2px;margin-top:10px}
+.gx-wave i{display:block;background:#18e0c8;width:3px;height:12px;border-radius:3px}
+.gx-wave i:nth-child(3n){height:29px}.gx-wave i:nth-child(2n){height:20px}
+.gx-wave.moving i{animation:gx-wave 1.2s ease-in-out infinite alternate}
+.gx-wave.moving i:nth-child(2n){animation-delay:.3s}.gx-wave.moving i:nth-child(3n){animation-delay:.55s}
+@keyframes gx-wave{to{height:42px;opacity:.45}}
+.gx-analysis h3{margin-bottom:13px!important}
+.gx-analysis-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gx-reading{display:flex;flex-direction:column;gap:7px;min-width:0;background:#122638;border:1px solid #254155;border-radius:9px;padding:10px}
+.gx-reading small{font-size:9px;color:#b1cad8}
+.gx-reading strong{font-size:29px;color:#eef8ff}
+.gx-reading span{font-size:10px;color:#76d1b5}
+.gx-reading select{width:100%;font-size:13px}
+.gx-analysis .gx-section-label{margin-top:14px}
+.gx-history{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-height:38px;font-size:12px;color:#e1f4ff}
+.gx-coach-tips{display:flex;flex-direction:column;gap:14px}
+.gx-coach-tips h3{font-size:15px}
+.gx-coach-tips p{font-size:13px;line-height:1.75;color:#c6d6e1}
+#gx-shell .gx-coach-tips button{min-height:44px;font-size:12px}
+.gx-coach-tips label{font-size:12px}
+.gx-coach-tips input{display:block;width:100%;margin-top:7px}
+.gx-settings{max-width:770px;margin:auto}
+.gx-settings p{color:#bdd1db;font-size:14px;line-height:1.6;margin:12px 0!important}
+#gx-shell .gx-settings button{display:block;min-height:50px;margin:7px 0;width:100%;text-align:left;padding:12px}
+#gx-return{display:none!important}
+body.gx-legacy #gx-return{display:block!important;position:fixed;z-index:100;right:10px;bottom:15px;background:#0c8c75;color:white;padding:12px;border:1px solid #4bcbaa;border-radius:12px;font-size:13px}
+@media(max-width:1050px){
+ .gx-stage-summary{grid-template-columns:minmax(180px,2fr) repeat(2,minmax(90px,1fr));}
+ .gx-stage-summary .gx-panel:nth-child(n+4){grid-column:auto}
+ .gx-fav-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .gx-stage-parts{grid-template-columns:repeat(6,minmax(0,1fr))}
+ .gx-sound-layout{grid-template-columns:minmax(120px,.25fr) minmax(260px,1fr)}
+ .gx-sound-right{grid-column:2;flex-direction:row}.gx-sound-right>.gx-panel{flex:1}
+ .gx-coach-layout{grid-template-columns:minmax(200px,.4fr) 1fr}.gx-coach-tips{grid-column:1/-1}
+}
+@media(max-width:700px){
+ #gx-shell{padding:8px 10px 36px}
+ .gx-brand b{font-size:19px}
+ #gx-shell .gx-nav button{min-width:75px;padding:9px 11px;font-size:12px}
+ .gx-nav{justify-content:flex-start}
+ .gx-stage-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .gx-stage-summary .gx-current{grid-column:1/-1}
+ .gx-mini strong{font-size:19px}
+ .gx-stage-summary .gx-mini{min-height:94px}
+ .gx-stage-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ #gx-shell .gx-stage-actions>button{min-height:77px}
+ .gx-transpose{min-height:77px}
+ .gx-fav-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+ #gx-shell .gx-fav-tile{min-height:72px}
+ .gx-stage-parts{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .gx-rep-layout,.gx-sound-layout,.gx-coach-layout{grid-template-columns:1fr}
+ .gx-rep-library{min-height:0;max-height:290px}
+ .gx-song-list{max-height:180px}
+ .gx-paper-main{grid-template-columns:1fr}
+ .gx-paper-actions{border-left:0;border-top:1px solid #e2ebf1;display:grid;grid-template-columns:1fr 1fr}
+ .gx-session{grid-column:1/-1}
+ .gx-sound-nav{display:flex;flex-direction:row;overflow-x:auto}
+ #gx-shell .gx-sound-nav button{white-space:nowrap;flex:0 0 auto}
+ .gx-sound-right{grid-column:1}
+ .gx-mixer-grid{min-height:220px}
+ .gx-channel input[type=range]{height:120px}
+ .gx-coach-tips{grid-column:auto}
+ .gx-listening{min-height:280px}
+ .gx-analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:370px){
+ .gx-brand b{font-size:17px}
+ .gx-usb{font-size:10px}
+ .gx-stage-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gx-fav-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gx-stage-parts{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .gx-sound-right{flex-direction:column}
+ .gx-mixer-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .gx-channel input[type=range]{height:130px}
+}
+@media(prefers-reduced-motion:reduce){#gx-shell *,#gx-shell *::before,#gx-shell *::after{animation:none!important;transition:none!important}}
+
+/* Mensagens de operação e erros permanecem visíveis mesmo com o núcleo legado oculto. */
+#gx-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:99999;max-width:min(94vw,650px);min-width:220px;border:1px solid #21d4bf;border-radius:13px;padding:13px 18px;color:#edffff;background:#092938;box-shadow:0 6px 28px #001018bb;font-size:14px;line-height:1.4;text-align:center;transition:opacity .15s,transform .15s}
+#gx-toast.gx-show{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){#gx-toast{transition:none}}
+
+/* Grauê XPS 1.0 — densidade de palco e área segura da navegação Android. */
+body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
+#gx-shell{min-height:100%;max-width:100%;padding:4px 10px calc(8px + env(safe-area-inset-bottom,0px));overflow-x:hidden}
+.gx-header{min-height:42px;padding:0 4px 3px}
+.gx-brand b{font-size:18px}
+.gx-brand small{font-size:8px}
+.gx-mark{font-size:29px}
+.gx-nav{margin:0 0 5px;padding:4px 0 7px;gap:4px;top:0}
+#gx-shell .gx-nav button{min-height:42px;min-width:71px;padding:6px 10px;font-size:12px}
+#gx-shell .gx-panel{padding:9px;border-radius:9px}
+.gx-stage-actions{gap:6px;margin:6px 0}
+#gx-shell .gx-stage-actions>button{min-height:65px;padding:5px;font-size:20px;gap:3px}
+#gx-shell .gx-stage-actions button span{font-size:11px}
+.gx-mini{gap:4px}
+.gx-mini strong{font-size:19px}
+.gx-current strong{font-size:19px}
+.gx-section-label{margin-bottom:6px;font-size:11px}
+.gx-zone{margin:6px 0}
+#gx-shell .gx-fav-tile{min-height:56px;padding:6px;font-size:11px}
+#gx-shell .gx-stage-parts button{min-height:55px;gap:2px}
+.gx-stage-parts strong{font-size:17px}
+.gx-stage-parts span{font-size:11px}
+.gx-stage-footer{gap:5px;margin:6px 0}
+#gx-shell .gx-stage-footer button{min-height:40px;padding:7px 9px}
+.gx-rep-layout{min-height:0}
+.gx-rep-library{min-height:220px}
+.gx-rep-tabs{padding:3px}
+.gx-paper-copy{padding:12px}
+.gx-paper-copy h2{font-size:20px}
+.gx-paper-main{min-height:220px}
+.gx-cifra-text{max-height:min(55vh,440px);line-height:1.5}
+.gx-sound-layout,.gx-rep-layout,.gx-coach-layout{gap:7px}
+.gx-listening{min-height:280px}
+#gx-shell .gx-mic-circle{width:112px;height:112px;font-size:56px}
+.gx-mixer-grid{min-height:215px}
+.gx-channel{padding:5px 2px;gap:4px}
+.gx-channel input[type=range]{height:130px}
+.gx-backups{max-width:1100px;margin:auto}
+.gx-backup-intro,.gx-backup-warning{font-size:12px;line-height:1.5;color:#b6ccd8;margin:8px 0!important}
+.gx-backup-warning{color:#f4d0a2}
+.gx-backup-actions{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+#gx-shell .gx-backup-actions button{min-height:44px;padding:9px 12px;font-size:12px}
+#gx-shell .gx-backup-actions button.gx-start{background:linear-gradient(145deg,#16ae86,#096c60)}
+.gx-backup-list{display:grid;gap:7px}
+.gx-backup-row{background:#0c2230;border:1px solid #264456;border-radius:9px;padding:9px;display:flex;align-items:center;gap:8px}
+.gx-backup-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.gx-backup-name strong{display:block;font-size:13px}
+.gx-backup-name small{display:block;font-size:10px;overflow-wrap:anywhere}
+#gx-shell .gx-backup-row button{min-height:42px;padding:8px;font-size:11px}
+#gx-shell .gx-backup-row .gx-danger-inline{border-color:#813c52;color:#e8b8c3}
+.gx-backup-compare{font-size:12px;color:#7de7d1}
+.gx-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#gx-shell .gx-settings-grid button{min-height:73px;padding:11px;margin:0}
+#gx-shell .gx-settings-grid button small{font-size:10px}
+@media(min-width:790px) and (orientation:landscape){
+ .gx-stage-summary{grid-template-columns:minmax(170px,2.1fr) minmax(75px,.7fr) minmax(80px,.7fr) minmax(85px,.8fr) minmax(95px,1fr)}
+ .gx-stage-actions{grid-template-columns:1fr 1fr 1fr 1.15fr 1.6fr 1fr}
+ .gx-fav-grid{grid-template-columns:repeat(8,minmax(0,1fr))}
+ .gx-stage-parts{grid-template-columns:repeat(12,minmax(0,1fr))}
+ .gx-rep-layout{grid-template-columns:minmax(160px,.33fr) minmax(380px,1fr)}
+ .gx-sound-layout{grid-template-columns:minmax(128px,.2fr) minmax(330px,1fr) minmax(160px,.29fr)}
+ .gx-sound-right{grid-column:auto;flex-direction:column}
+ .gx-coach-layout{grid-template-columns:minmax(160px,.30fr) minmax(360px,1fr) minmax(150px,.28fr)}
+ .gx-coach-tips{grid-column:auto}
+}
+@media(max-width:700px) and (orientation:portrait){
+ #gx-shell{padding:4px 8px calc(10px + env(safe-area-inset-bottom,0px))}
+ .gx-brand small{display:none}
+ .gx-usb{font-size:10px}
+ .gx-stage-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gx-stage-summary .gx-current{grid-column:1/-1}
+ .gx-stage-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .gx-fav-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .gx-stage-parts{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .gx-rep-layout,.gx-sound-layout,.gx-coach-layout{grid-template-columns:1fr}
+ .gx-settings-grid{grid-template-columns:1fr}
+ .gx-backup-row{flex-wrap:wrap}
+ .gx-backup-name{min-width:calc(100% - 50px)}
+}
+
+
+/* On-device Gemma 3 270M — licensing, download and offline copiloto. */
+.gx-gemma-panel{border:1px solid #1c8f8a;border-radius:12px;background:linear-gradient(135deg,#102b35,#10202d);padding:14px;margin:12px 0;display:flex;flex-direction:column;gap:9px}
+.gx-gemma-panel p{font-size:12px;line-height:1.5;margin:0!important;color:#c1d5db}
+.gx-gemma-heading{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.gx-gemma-heading strong{color:#58eccf;font-size:17px}
+#gx-gemma-status{font-size:12px;color:#a6e6db}
+.gx-gemma-panel .gx-gemma-source{font-size:11px;color:#adbbcc}
+.gx-gemma-links,.gx-gemma-controls{display:flex;flex-wrap:wrap;gap:8px}
+#gx-shell .gx-gemma-links button,#gx-shell .gx-gemma-controls button{padding:10px 13px;min-height:44px;font-size:12px}
+#gx-shell .gx-gemma-controls #gx-gemma-install{background:#078d72;border-color:#29e8b7;font-weight:700}
+.gx-gemma-license{display:flex;align-items:flex-start;gap:8px;line-height:1.5;font-size:13px;padding:8px;background:#142c3c;border-radius:8px}
+.gx-gemma-license input[type=checkbox]{width:19px;height:19px;flex-shrink:0;margin:1px 0 0;accent-color:#32dfba}
+#gx-gemma-progress{width:100%;height:12px;accent-color:#30d9bb}
+#gx-gemma-info{font-size:12px;color:#e7f8f6;line-height:1.5;overflow-wrap:anywhere}
+#gx-shell .gx-gemma-chat{display:flex;flex-direction:column;gap:8px;border:1px solid #2f6574;border-radius:10px;padding:10px;background:#0e2937}
+.gx-gemma-chat label{font-size:13px;font-weight:700;color:#65f2d1}
+#gx-shell #gx-gemma-question{min-height:70px;resize:vertical;font:inherit;font-size:13px;color:#f3faff;background:#0d1e2b}
+#gx-shell #gx-gemma-send{min-height:44px;background:#096a77;border-color:#1596a1;font-weight:700}
+#gx-gemma-answer{color:#dce8f0;font-size:12px;line-height:1.55;white-space:pre-wrap;max-height:210px;overflow-y:auto}
+@media(max-width:700px){.gx-gemma-heading{flex-direction:column;align-items:flex-start}.gx-gemma-controls button{flex:1}}
+
+/* XPS-10 1.2: editor de timbres em um toque, bancos 0–9 e palco compacto. */
+#gx-shell [hidden]{display:none!important}
+.gx-one-touch{display:flex;flex-direction:column;gap:8px}
+.gx-tone-heading,.gx-tone-toolbar,.gx-live-banks-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gx-tone-heading strong{color:#71e7d5;font-size:14px}
+.gx-tone-heading label{font-size:12px;display:flex;align-items:center;gap:8px}
+#gx-shell .gx-tone-heading select{min-width:55px;min-height:42px;padding:6px 10px;font-size:13px;background:#122738;color:#e8fffb}
+.gx-tone-categories{display:flex;gap:5px;overflow-x:auto;padding:3px 0 6px;scrollbar-width:thin;overscroll-behavior-x:contain}
+#gx-shell .gx-tone-categories button{flex:0 0 auto;min-height:44px;min-width:90px;border:1px solid #345466;padding:9px;font-size:12px;white-space:nowrap}
+#gx-shell .gx-tone-categories button.on,#gx-shell .gx-bank-tabs button.on,#gx-shell .gx-live-bank-tabs button.on{background:#17a889;color:#08242c;font-weight:700;border-color:#55e7c7}
+#gx-shell .gx-tone-toolbar input{flex:1;min-width:130px;min-height:44px;color:#f0f8ff;padding:8px 12px;background:#0c1e2e;border:1px solid #345061;border-radius:8px}
+#gx-shell .gx-tone-toolbar button{min-height:44px;padding:8px 10px}
+.gx-tone-count,.gx-tone-tip{color:#96b6c4;font-size:11px}
+.gx-tone-list{max-height:min(40vh,390px);overflow-y:auto;display:grid;gap:4px;scrollbar-width:thin}
+.gx-tone-line{display:grid;grid-template-columns:minmax(0,1fr) 44px 55px;gap:5px;align-items:stretch}
+#gx-shell .gx-tone-line button{min-height:48px;padding:7px 9px;margin:0;text-align:left;font-size:12px;overflow-wrap:anywhere}
+#gx-shell .gx-tone-line .gx-tone-pick{background:#0e3142;border-color:#2d5b65;color:#edfaf9}
+#gx-shell .gx-tone-line .gx-tone-pick:active{background:#00695f}
+#gx-shell .gx-tone-line button:not(.gx-tone-pick){text-align:center;font-size:12px}
+.gx-tone-banks{border-top:1px solid #285061;margin-top:6px;padding-top:8px}
+.gx-bank-tabs,.gx-live-bank-tabs{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;margin:5px 0}
+#gx-shell .gx-bank-tabs button,#gx-shell .gx-live-bank-tabs button{min-height:40px;padding:6px 1px;font-size:11px;border:1px solid #31556b}
+.gx-bank-slots,.gx-live-bank-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+#gx-shell .gx-bank-slots button,#gx-shell .gx-live-bank-slots button{min-height:48px;padding:6px 5px;font-size:11px;text-align:center;overflow-wrap:anywhere}
+.gx-live-banks-heading{font-size:12px;color:#9ac4cb;margin:10px 0 2px}
+#gx-shell .gx-live-bank-slots button:disabled{opacity:.4}
+.gx-tone-dialog{box-sizing:border-box;width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 35px);overflow-y:auto;border:1px solid #1bcfb3;border-radius:14px;padding:15px;background:#0c202e;color:#edfdfa;box-shadow:0 16px 55px #0009}
+.gx-tone-dialog::backdrop{background:#000b}
+.gx-tone-dialog-header{display:flex;justify-content:space-between;align-items:center;gap:9px}
+.gx-tone-dialog strong{font-size:17px}
+.gx-tone-dialog label{display:flex;flex-direction:column;gap:6px;font-size:12px;margin:12px 0}
+.gx-tone-dialog input[type=range]{width:100%;accent-color:#31d7b8}
+.gx-tone-dialog textarea{width:100%;box-sizing:border-box;min-height:80px;resize:vertical;padding:10px;background:#142a38;color:#f1fff9;border:1px solid #335568;border-radius:8px}
+.gx-tone-dialog button{min-height:44px;border:1px solid #2f5866;border-radius:8px;background:#183a47;color:#fff;padding:9px 13px}
+.gx-tone-dialog button:disabled{opacity:.4}
+.gx-variant-tabs,.gx-edit-actions{display:flex;flex-wrap:wrap;gap:6px}
+.gx-variant-tabs button{flex:1;min-width:95px}
+.gx-variant-tabs button.on{background:#078b79;border-color:#19cab2}
+.gx-edit-actions .gx-start{background:#099768}
+#gx-edit-confirm{background:#153849;border:1px solid #32baa7;padding:10px;margin:9px 0;border-radius:8px}
+.gx-tone-dialog small{font-size:11px;color:#a7c5c8}
+@media(max-width:700px){.gx-tone-line{grid-template-columns:minmax(0,1fr) 43px 56px}.gx-tone-list{max-height:38vh}.gx-bank-slots,.gx-live-bank-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-bank-tabs,.gx-live-bank-tabs{grid-template-columns:repeat(5,minmax(0,1fr))}.gx-tone-dialog{padding:11px}.gx-tone-dialog .gx-edit-actions button{flex:1}}
+
+
+.gx-assist{border:1px solid #208c86!important;background:linear-gradient(135deg,#0d2432,#102b34)}
+.gx-assist-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:7px 0}
+.gx-assist-controls>div{flex:1;min-width:92px}
+.gx-assist-controls strong{font-size:25px;display:block;color:#5de8c1}
+.gx-assist-controls small{font-size:11px;color:#9fc7c9}
+.gx-assist-controls label{font-size:11px;color:#9fc7c9;display:flex;gap:5px;align-items:center}
+#gx-shell .gx-assist-controls select{min-width:54px;min-height:44px;background:#0c2533;color:#fff;border:1px solid #39666b;border-radius:8px;padding:5px}
+#gx-shell .gx-assist-controls button{min-height:50px;padding:10px 12px;font-size:12px}
+#gx-shell #gx-assist-play{background:#0a966e;color:#fff;font-weight:700;border-color:#34ccae}
+#gx-shell #gx-assist-stop{background:#57354a;border-color:#a16976}
+.gx-assist>small{font-size:10px;color:#8fbabe;display:block;line-height:1.4}
+@media(max-width:700px){#gx-shell .gx-assist-controls button{flex:1;min-width:125px}}
+
+
+/* Jarvis Musical: sugestões sem voz para momentos de ministração. */
+.gx-silent-advisor{border:1px solid #1d887d!important;background:linear-gradient(115deg,#0b2930,#11283b);display:flex;flex-direction:column;gap:7px}
+.gx-silent-head{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.gx-silent-head strong{color:#59e3c8;font-size:12px;letter-spacing:.02em}
+.gx-silent-head span{font-size:10px;color:#a3bdc9}
+.gx-silent-content{display:grid;grid-template-columns:1fr 1.8fr;gap:7px}
+.gx-silent-content>div{display:flex;flex-direction:column;gap:3px;border:1px solid #2a5060;background:#10212c;border-radius:9px;padding:8px 10px;min-width:0}
+.gx-silent-content small{font-size:10px;color:#a6c3ca;line-height:1.3}
+.gx-silent-content strong{font-size:17px;line-height:1.2;color:#f4fffc;overflow-wrap:anywhere}
+.gx-silent-actions{display:grid;grid-template-columns:1.35fr 1.1fr 1.1fr .65fr;gap:6px}
+#gx-shell .gx-silent-actions button{min-height:46px;padding:8px 6px;font-size:12px;margin:0;line-height:1.15}
+#gx-shell #gx-silent-accept{background:#09876d;border:1px solid #28baa1;font-weight:700;color:white}
+#gx-shell .gx-silent-actions button:disabled{opacity:.4}
+.gx-silent-note{font-size:10px;color:#9eb8c0;line-height:1.4;margin:0!important}
+#gx-silent-ai-text{font-size:12px;color:#cbfff6;font-weight:500;line-height:1.45;margin:0!important;white-space:pre-line;max-height:74px;overflow-y:auto}
+#gx-silent-ai-text:empty{display:none}
+.gx-silent-muted .gx-silent-content,.gx-silent-muted .gx-silent-note{display:none}
+.gx-silent-muted{border-color:#3a4c55!important}
+@media(max-width:700px){.gx-silent-content{grid-template-columns:minmax(0,.75fr) minmax(0,1.3fr)}.gx-silent-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-silent-content strong{font-size:15px}.gx-silent-head span{font-size:9px}}
+@media(max-width:380px){.gx-silent-actions{grid-template-columns:1fr 1fr}}
+
+
+/* Persisted Jarvis musician preferences, intentionally small and readable on phones. */
+.gx-jarvis-memory{border:1px solid #287f80;border-radius:12px;background:#122a36;padding:12px;display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.gx-jarvis-memory h3{font-size:16px;margin:0;color:#71ead4}
+.gx-jarvis-memory p{font-size:12px;line-height:1.45;margin:0!important;color:#c8d9e2}
+.gx-jarvis-memory label{font-size:12px;font-weight:700}
+#gx-shell .gx-jarvis-memory textarea{min-height:88px;max-width:100%;box-sizing:border-box;padding:10px;background:#0c1b2b;color:#f8ffff;border:1px solid #3b5b6b;border-radius:8px;font-size:13px;line-height:1.4;resize:vertical}
+.gx-jarvis-memory-actions{display:flex;gap:6px;flex-wrap:wrap}
+#gx-shell .gx-jarvis-memory-actions button{min-height:44px;padding:9px 12px;font-size:12px;flex:1;min-width:145px}
+#gx-shell #gx-jarvis-save{background:#078b72;border-color:#24ccb0}
+#gx-jarvis-notes-status{color:#9fcbcb;font-size:11px}
+
+
+/* Jarvis hybrid: private Worker endpoint + offline Gemma fallback. */
+.gx-online-panel{display:flex;flex-direction:column;gap:8px;border:1px solid #267a9a;background:linear-gradient(135deg,#102a41,#0a2534);padding:13px;border-radius:12px;margin:10px 0}
+.gx-online-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.gx-online-heading strong{color:#73e6f3;font-size:16px}
+.gx-online-heading small{color:#aad1da;font-size:11px}
+.gx-online-panel p{font-size:12px;color:#c0d7dd;margin:0!important;line-height:1.5}
+.gx-online-panel>label{font-size:12px;font-weight:600}
+#gx-shell .gx-online-panel select,#gx-shell .gx-online-panel input{box-sizing:border-box;width:100%;min-height:44px;background:#0a1c2c;border:1px solid #375d76;color:#eefaff;padding:10px 11px;border-radius:8px;font-size:13px}
+#gx-shell .gx-online-panel input:focus-visible,#gx-shell .gx-online-panel select:focus-visible{outline:2px solid #49d9ed}
+.gx-online-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+#gx-shell .gx-online-buttons button{flex:1;min-width:130px;min-height:44px;padding:9px 10px;font-size:12px}
+#gx-shell #gx-online-save{background:#0d8a78;border-color:#25cbb5;font-weight:700}
+.gx-online-panel>small{font-size:11px;color:#9fc6d2;line-height:1.4}
+#gx-online-feedback{min-height:15px}
+
+
+/* Grauê 1.6: a conexão USB é global. Demais ações de diagnóstico ficam no editor avançado. */
+#gx-shell #gx-connect,
+#gx-shell #gx-read,
+#gx-shell #gx-device-connect,
+#gx-shell #gx-connect-settings,
+#gx-shell #gx-read-settings,
+#gx-shell #gx-perf-read,
+#gx-shell #gx-user-patches {display:none!important}
+#gx-shell .gx-usb-main{flex-shrink:0;min-height:44px;padding:8px 11px;border:1px solid #22c4af;background:#0b6d66;border-radius:10px;color:#fff;font-size:12px;font-weight:700}
+#gx-shell .gx-usb-main.connected{background:#154541;color:#75e6c8;border-color:#387668}
+.gx-direct-api{border:1px solid #28a7a1;border-radius:12px;background:linear-gradient(115deg,#112e40,#0b2831);padding:13px;display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.gx-direct-api h3{font-size:16px;color:#74e8da;margin:0}
+.gx-direct-api p{font-size:12px;line-height:1.55;color:#c3d8d9;margin:0!important}
+.gx-direct-api label{font-size:12px;font-weight:700}
+#gx-shell .gx-direct-api input,#gx-shell .gx-direct-api select{box-sizing:border-box;width:100%;min-height:45px;border:1px solid #316879;border-radius:9px;background:#0a1c29;color:#edfafd;font-size:13px;padding:10px}
+.gx-direct-actions{display:flex;gap:6px;flex-wrap:wrap}
+#gx-shell .gx-direct-actions button{min-height:44px;font-size:12px;flex:1;min-width:130px;padding:8px}
+#gx-shell #gx-direct-save{background:#0b8b75;border-color:#28e1c1;font-weight:700}
+#gx-shell .gx-direct-api>small{font-size:11px;line-height:1.5;color:#a9cbd0}
+.gx-advanced-cloud{margin-top:8px;color:#bcd1e3}
+.gx-advanced-cloud>summary{cursor:pointer;min-height:44px;padding:11px;background:#102635;border:1px solid #315360;border-radius:9px;font-size:12px}
+.gx-advanced-cloud[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+#gx-shell .gx-tone-line .gx-tone-pick{font-weight:650}
+@media(max-width:700px){
+ #gx-shell .gx-usb-main{font-size:10px;max-width:105px;padding:7px 8px}
+ #gx-shell .gx-usb{font-size:10px;max-width:100px}
+ #gx-shell .gx-direct-actions button{min-width:40%;flex:1}
+}
+
+/* Even in the legacy editor, the global USB entry point is the only connector. */
+body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {display:none!important}
+
+
+/* v1.7 · palco enxuto. Controles MIDI são habilitados com USB, não por botão. */
+#gx-shell #gx-arm,body.gx-ready #liveArm,body.gx-ready #arm,
+#gx-shell #gx-read,#gx-shell #gx-connect,
+#gx-shell #gx-perf-read,#gx-shell #gx-user-patches,
+#gx-shell #gx-device-connect,#gx-shell #gx-connect-settings,
+#gx-shell #gx-read-settings{display:none!important}
+#gx-shell .gx-stage-footer{display:flex;align-items:center;gap:6px;margin:3px 0;justify-content:flex-end}
+#gx-shell .gx-stage-footer #gx-show-mode{min-height:42px;padding:7px 12px}
+#gx-shell .gx-zone{margin:4px 0}
+#gx-shell .gx-fav-grid{gap:4px}
+#gx-shell .gx-panel{padding:9px!important}
+#gx-shell .gx-silent-note,#gx-shell .gx-assist>small,
+#gx-shell .gx-tone-tip,#gx-shell .gx-backup-intro,
+#gx-shell .gx-gemma-source,#gx-shell .gx-gemma-panel>p,
+#gx-shell .gx-jarvis-memory>p{display:none}
+#gx-shell .gx-silent-content strong{font-size:20px}
+#gx-shell .gx-stage-parts{gap:5px}
+#gx-shell .gx-stage-parts button{min-height:48px!important;padding:5px 3px!important}
+#gx-shell .gx-stage-parts small{display:none}
+#gx-shell .gx-assist-controls button{min-height:50px!important}
+#gx-shell .gx-sound-layout{gap:7px}
+#gx-shell .gx-sound-right{gap:7px}
+#gx-shell .gx-tone-list{max-height:62vh}
+#gx-shell .gx-bank-slots button{min-height:47px}
+#gx-shell .gx-performance{padding:8px!important}
+#gx-shell .gx-perf-row{gap:6px}
+#gx-shell .gx-performance small{font-size:10px}
+#gx-shell .gx-performance strong{font-size:17px;min-width:0}
+.gx-performance-banks{display:flex;flex-direction:column;gap:7px}
+.gx-perf-tools{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.gx-perf-tools strong{color:#72e6d6;font-size:13px;flex:1}
+.gx-perf-tools span{min-width:36px;text-align:center;font-size:11px}
+#gx-shell .gx-perf-tools button{min-height:40px;padding:7px 10px;font-size:12px}
+#gx-shell .gx-perf-tools button.on{background:#099e87;color:#061b20;border-color:#3be0c0}
+.gx-perf-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+#gx-shell .gx-perf-grid button{min-height:55px;text-align:center;padding:6px 4px;font-size:12px;overflow-wrap:anywhere}
+#gx-shell .gx-performance-banks>small{font-size:10px;color:#acc9d3}
+#gx-shell .gx-one-touch .gx-tone-list{margin:0}
+@media(min-width:840px) and (orientation:landscape){
+  .gx-perf-grid{grid-template-columns:repeat(8,minmax(0,1fr))}
+  #gx-shell .gx-sound-layout{grid-template-columns:minmax(110px,.18fr) minmax(360px,1fr) minmax(145px,.25fr)}
+  #gx-shell .gx-sound-left button{min-height:42px!important;padding:6px 9px!important;font-size:12px}
+  #gx-shell .gx-assist-controls{flex-wrap:nowrap}
+}
+@media(max-width:700px){
+  #gx-shell .gx-stage-summary{gap:5px}
+  #gx-shell .gx-stage-actions button{min-height:66px}
+  #gx-shell .gx-fav-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #gx-shell .gx-stage-parts{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #gx-shell .gx-mixer-grid{gap:4px}
+  #gx-shell .gx-tone-categories{gap:4px}
+}
+
+
+.gx-modify-panel{margin:7px 0}
+.gx-modify-panel .gx-tone-heading small{font-size:10px;color:#82cdbf}
+.gx-modify-sliders{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+.gx-modify-cell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 2px;background:#102638;border:1px solid #2e4d5e;border-radius:9px;min-width:0}
+.gx-modify-cell span{font-size:10px;color:#cbdee1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-weight:600}
+.gx-modify-cell output{font-size:12px;color:#64e2ce}
+.gx-modify-cell input[type=range]{width:100%;height:126px;writing-mode:vertical-lr;direction:rtl;accent-color:#25cab1}
+@media(max-width:700px){.gx-modify-sliders{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.gx-modify-cell input[type=range]{height:87px}}
+
+
+/* DrumStudio Worship. Clear, oversized touch targets and fast access during service. */
+#gx-shell .gx-drums{display:grid;gap:10px;max-width:1440px;margin:auto}
+.gx-drums-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border:1px solid #235164;background:#0c2535;padding:12px;border-radius:12px}
+.gx-drums-heading h2{margin:2px 0;font-size:21px;font-weight:750;color:#e9fcff}
+.gx-drums-heading small{font-size:10px;color:#74dfd8;font-weight:700}
+#gx-shell .gx-drums-danger{background:#8f2847;border:1px solid #e87996;font-weight:750;min-height:54px;padding:10px 16px;color:white}
+.gx-drums-device{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;background:#102c3b;border:1px solid #345769;border-radius:10px;padding:10px;font-size:12px}
+.gx-drums-device strong{color:#57dcc0}
+.gx-drums-device span{color:#bbd4de;font-size:11px}
+.gx-drums-columns{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(275px,.75fr);gap:10px}
+.gx-drums-kit,.gx-drone,.gx-beats,.gx-backing{padding:13px!important;min-width:0}
+.gx-drums-settings{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;margin:9px 0}
+.gx-drums-settings label,.gx-drone-settings label,.gx-beats-toolbar label,.gx-youtube-fields label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:650;color:#b5d9dc}
+#gx-shell .gx-drums input,#gx-shell .gx-drums select,#gx-shell .gx-youtube-helper input{box-sizing:border-box;width:100%;min-height:43px;background:#0a1f2e;border:1px solid #3b6271;border-radius:9px;padding:8px;color:#e9f7f8;font:inherit}
+#gx-shell .gx-drums input[type=range]{min-height:24px;padding:0;accent-color:#26d5b3}
+#gx-shell .gx-drums button,#gx-shell .gx-youtube-helper button{min-height:45px;border:1px solid #315a6e;background:#153144;color:#e6f7fb;border-radius:9px;padding:9px;font-size:12px}
+#gx-shell .gx-drums button:active{filter:brightness(1.35)}
+.gx-drums-pads{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:11px 0}
+#gx-shell .gx-drum-key{min-height:94px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:linear-gradient(155deg,#175269,#0d2b3f);border:1px solid #26a2a1;font-size:13px;touch-action:manipulation}
+.gx-drum-key strong{font-size:14px;text-align:center}
+.gx-drum-key small{font-size:10px;color:#88c7c7}
+.gx-drums-kit>small,.gx-drone>small,.gx-beats>small{display:block;color:#b2c8d1;font-size:11px;line-height:1.45}
+.gx-drone-settings{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0}
+.gx-drone-settings label:last-child{grid-column:1/-1}
+.gx-drone-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+#gx-shell #gx-drone-start{background:#09896d;border-color:#26d3ad;font-weight:700;flex:1}
+#gx-shell #gx-drone-stop{background:#542e42;border-color:#9d6678;flex:1}
+#gx-drone-status{display:block;margin:6px 0;color:#66e9cf;font-size:13px}
+.gx-beats-toolbar{display:flex;flex-wrap:wrap;gap:7px;align-items:end;margin:10px 0}
+.gx-beats-toolbar label{width:84px}
+#gx-shell #gx-beats-start{background:#0d8c6f;border-color:#27d1ad;font-weight:750}
+#gx-shell #gx-beats-stop{background:#633443;border-color:#8e586b}
+.gx-beats-grid{display:grid;gap:5px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.gx-beat-row{display:grid;grid-template-columns:100px repeat(16,minmax(25px,1fr));gap:3px;min-width:600px;align-items:center}
+.gx-beat-row>span{font-size:11px;font-weight:650}
+#gx-shell .gx-beat-step{padding:3px 0;min-height:38px;font-size:9px;min-width:0;color:#a4c3cd;background:#112635}
+#gx-shell .gx-beat-step.on{background:#14aa90;color:#041a1e;border-color:#75edd9;font-weight:750}
+#gx-beats-status{display:block;margin-top:9px;font-size:11px}
+.gx-backing-links{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.gx-backing-links input{flex:1;min-width:150px}
+.gx-backing p,.gx-youtube-helper p{font-size:12px;color:#a6c5cf;line-height:1.6;margin:4px 0}
+.gx-youtube-helper{max-width:1250px;margin:10px auto 0;padding:13px!important}
+.gx-youtube-fields{display:grid;grid-template-columns:2fr 1fr 1fr 85px;gap:8px;margin:10px 0}
+.gx-youtube-actions{display:flex;gap:7px;flex-wrap:wrap}
+#gx-shell #gx-yt-save{background:#0e907a;border-color:#26c9ab}
+#gx-yt-message{font-size:11px;color:#8edbcc;display:block;margin-top:8px}
+@media(max-width:790px){.gx-drums-columns{grid-template-columns:1fr}.gx-youtube-fields{grid-template-columns:1fr 1fr}.gx-youtube-fields label:first-child{grid-column:1/-1}.gx-drums-pads{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:480px){.gx-drums-settings{grid-template-columns:1fr 1fr}.gx-drums-settings label:nth-child(3){grid-column:1/-1}.gx-drums-pads{grid-template-columns:repeat(2,minmax(0,1fr))}.gx-youtube-fields{grid-template-columns:1fr}.gx-youtube-fields label:first-child{grid-column:auto}.gx-drums-heading h2{font-size:17px}.gx-beats-toolbar{gap:5px}}
+
+
+/* 1.7 — Roland onboard FAVORITE map is not the phone's local banks. */
+.gx-roland-favorites{border:1px solid #258b83;border-radius:10px;background:#0d2b37;padding:12px;margin:8px 0 10px;display:flex;flex-direction:column;gap:8px}
+.gx-roland-favorites .gx-section-label{color:#88f1dc}
+.gx-roland-favorites strong{font-size:14px;color:#f1faf9}
+.gx-roland-favorites p{margin:0!important;font-size:12px;line-height:1.5;color:#b7d1d9}
+.gx-roland-favorites>small{font-size:11px;line-height:1.45;color:#a9bcc6}
+.gx-roland-actions{display:flex;flex-wrap:wrap;gap:6px}
+#gx-shell .gx-roland-actions button{flex:1;min-height:44px;min-width:145px;padding:9px 12px;font-size:12px}
+#gx-shell #gx-roland-backup-import{background:#128e78;border-color:#30d7b5}
+@media(max-width:700px){.gx-roland-favorites{padding:10px}.gx-roland-actions{flex-direction:column}}
+
+
+/* DrumPad libraries: Roland rhythm patches vs audio samples made on the Android device. */
+.gx-drum-library{border:1px solid #276d80;background:linear-gradient(105deg,#0d2935,#103141);border-radius:12px;padding:12px;margin:8px 0 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.gx-pad-library-source{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gx-drum-library label{display:flex;flex-direction:column;gap:5px;color:#c6e4e5;font-weight:600;font-size:12px;min-width:0}
+#gx-shell .gx-drum-library select{box-sizing:border-box;width:100%;min-height:46px;background:#0a2231;color:#effcfc;border:1px solid #39687d;border-radius:9px;padding:8px;font-size:13px}
+.gx-pad-library-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:end}
+#gx-shell .gx-pad-library-actions button{min-height:46px;padding:9px 12px;font-size:12px;font-weight:650}
+#gx-shell #gx-pad-use-roland{background:#13745f;border-color:#31bc9d;color:#fff}
+#gx-shell #gx-pad-import{background:#19768d;border-color:#42b6cf;color:#fff}
+#gx-shell #gx-pad-stop-audio{background:#522f43;border-color:#93566a;color:#fff}
+.gx-pad-library-actions label{min-width:140px;flex:1}
+.gx-drum-library small{color:#9fc8d1;font-size:11px;line-height:1.5}
+.gx-drum-library .gx-pad-library-help{color:#d4ceda}
+#gx-shell .gx-drum-key.gx-drum-empty{opacity:.65;border-style:dashed}
+#gx-shell .gx-drums-pads button strong{overflow-wrap:anywhere}
+#gx-shell .gx-drum-library [hidden]{display:none!important}
+@media(max-width:700px){.gx-pad-library-source{grid-template-columns:1fr}.gx-pad-library-actions>*{flex:1 1 45%}.gx-pad-library-actions label{min-width:120px}.gx-drum-library{padding:10px}}
+
+
+/* Mirror only physical CC7 messages; preserve independent split/dual parts. */
+.gx-played-feedback{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px;align-items:center;border:1px solid #1d766d!important}
+.gx-played-feedback>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.gx-played-feedback small{font-size:10px;color:#9ac3ca}
+.gx-played-feedback strong{font-size:16px;color:#e8fff8;overflow-wrap:anywhere}
+.gx-played-feedback>small{grid-column:1/-1}
+.gx-faders-physical{display:flex;flex-direction:column;gap:10px;border:1px solid #287c77!important}
+.gx-physical-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.gx-physical-two label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#d3f4f0}
+.gx-physical-two input{width:100%;accent-color:#32e1bf}
+.gx-physical-two output{font-size:19px;font-weight:700;color:#e9fcff}
+.gx-faders-physical>small{font-size:11px;color:#aec8d0;line-height:1.4}
+@media(max-width:650px){.gx-played-feedback{grid-template-columns:1fr 1fr;gap:5px}.gx-played-feedback strong{font-size:13px}}
+
+
+/* Roland is authoritative: no synthetic performance slots or duplicated phone banks. */
+#gx-shell .gx-tone-banks,#gx-shell .gx-perf-tools button,#gx-shell #gx-perf-page,
+#gx-shell .gx-live-bank-tabs,#gx-shell .gx-live-bank-slots,
+#gx-shell .gx-live-banks-heading{display:none!important}
+#gx-shell .gx-performance-banks{min-height:130px;justify-content:center}
+#gx-shell .gx-real-source{font-size:13px;line-height:1.55;color:#c5dce2;white-space:normal;margin:7px 0!important}
+#gx-shell #gx-performance-source{display:block;font-size:11px;color:#6ce4d1;line-height:1.35;margin-top:7px}
+#gx-shell .gx-roland-favorites{order:-1;padding:14px}
+.gx-inspection-report{margin-top:9px;border:1px solid #447687;background:#092132;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;max-width:100%}
+.gx-inspection-report pre{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;line-height:1.45;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px}
+.gx-inspection-report>small{font-size:11px;color:#9bbdc8}
+#gx-shell .gx-backup-row button{min-height:44px}
+
+
+/* Roland favorites tab displays only verifiable physical favorites, never local placeholders. */
+#gx-shell .gx-physical-favorites-mode .gx-tone-heading,
+#gx-shell .gx-physical-favorites-mode .gx-tone-categories,
+#gx-shell .gx-physical-favorites-mode .gx-tone-toolbar,
+#gx-shell .gx-physical-favorites-mode .gx-tone-count,
+#gx-shell .gx-physical-favorites-mode .gx-tone-list {display:none!important}
+#gx-shell .gx-physical-favorites-mode .gx-roland-favorites {order:0;margin:0}
+
+
+/* 1.14 — Fix: Performance name collapsed to one character per line.
+ * The original flex row allowed the name to shrink to 0 while the
+ * description and edit controls reserved their widths.
+ * On compact portrait screens these are stacked, never squeezed.
+ */
+#gx-shell .gx-sound-center,
+#gx-shell .gx-performance,
+#gx-shell .gx-perf-row {min-width:0;max-width:100%;box-sizing:border-box}
+#gx-shell .gx-perf-row{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  align-items:center;
+  width:100%;
+}
+#gx-shell .gx-perf-row > #gx-perf-name{
+  grid-column:1/-1;
+  display:block;
+  flex:none;
+  min-width:0;
+  max-width:100%;
+  width:auto;
+  font-size:clamp(15px,4.4vw,19px);
+  line-height:1.32;
+  text-align:left;
+  white-space:normal;
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+#gx-shell .gx-perf-row > #gx-performance-source{
+  grid-column:1/-1;
+  display:block;
+  min-width:0;
+  margin:0!important;
+  font-size:11px;
+  line-height:1.4;
+  white-space:normal;
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+#gx-shell .gx-perf-row > button{
+  min-width:0;
+  width:100%;
+  min-height:44px;
+  margin:0;
+  white-space:normal;
+}
+@media (min-width:850px) and (orientation:landscape){
+  #gx-shell .gx-perf-row{
+    grid-template-columns:minmax(180px,1fr) repeat(2,minmax(78px,max-content));
+    align-items:center;
+  }
+  #gx-shell .gx-perf-row > #gx-perf-name{
+    grid-column:1;
+    grid-row:1;
+  }
+  #gx-shell .gx-perf-row > #gx-performance-source{
+    grid-column:1;
+    grid-row:2;
+  }
+  #gx-shell .gx-perf-row > #gx-perf-edit{
+    grid-column:2;
+    grid-row:1/span 2;
+  }
+  #gx-shell .gx-perf-row > #gx-perf-new{
+    grid-column:3;
+    grid-row:1/span 2;
+  }
+}
+
+/* DrumStudio: user-triggered cloud save through Android's system file picker. */
+#gx-pad-export-drive{background:linear-gradient(140deg,#108b79,#076655)!important;border:1px solid #60dfbf!important;color:#f4ffff!important;font-weight:700!important;min-height:48px}
+#gx-pad-import-zip{border:1px solid #477889!important;min-height:45px}
+.gx-pad-library-actions{gap:7px!important}
+@media(max-width:700px){#gx-pad-export-drive{flex-basis:100%;width:100%}}
+
+
+/* Grauê: score-only Cifra Club reader. Native browser is hidden after importing. */
+#gx-shell .gx-rep-tabs{scrollbar-width:thin}
+#gx-shell .gx-cifra-shift{display:grid;grid-template-columns:minmax(40px,1fr) .7fr minmax(40px,1fr);align-items:center;gap:5px;font-size:12px;text-align:center;color:#516a79}
+#gx-shell .gx-cifra-shift button{min-height:44px;font-size:20px;font-weight:700;padding:4px 10px}
+#gx-shell .gx-scroll-controls{display:flex;flex-direction:column;gap:7px;border:1px solid #deebf2;border-radius:8px;padding:8px}
+#gx-shell .gx-scroll-controls button{min-height:44px;padding:8px 10px}
+#gx-shell .gx-scroll-controls label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#445e72}
+#gx-shell #gx-scroll-speed{accent-color:#0b91ba;min-height:24px;width:100%}
+#gx-shell .gx-cifra-text{white-space:pre;overflow-x:auto;overflow-y:auto;overflow-wrap:normal;max-height:min(68dvh,770px);line-height:1.55;tab-size:4;font-size:clamp(12px,1.5vw,17px);padding-bottom:30vh;margin:0;color:#142938}
+#gx-shell .gx-paper-copy{min-width:0;overflow:hidden}
+#gx-shell .gx-paper-main{min-width:0}
+@media(max-width:700px) {
+ #gx-shell .gx-cifra-text{max-height:58dvh;font-size:13px}
+ #gx-shell .gx-paper-actions{border-left:0;border-top:1px solid #d9e5f0}
+ #gx-shell .gx-cifra-shift button,#gx-shell .gx-scroll-controls button{min-height:46px}
+}
+
+
+/* Performance selector v1.7: 128 user/16 presets, observe-before-edit. */
+#gx-shell .gx-perf-slot{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;min-width:0;min-height:70px;line-height:1.2}
+#gx-shell .gx-perf-slot strong{font-size:12px;color:#ebfff9;white-space:nowrap}
+#gx-shell .gx-perf-slot small{font-size:10px;min-width:0;max-width:100%;color:#a8c6d3;line-height:1.25;overflow-wrap:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#gx-shell #gx-perf-mode{min-height:44px;border:1px solid #32beab;background:#096d60;color:#fff;font-weight:700;padding:9px 11px;border-radius:9px}
+#gx-shell #gx-perf-mode[hidden]{display:none!important}
+.gx-perf-import-actions{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid #31556a;padding-top:9px}
+#gx-shell .gx-perf-import-actions button{min-height:44px;font-size:11px;padding:8px 12px;background:#103c49;border:1px solid #377c7c;border-radius:9px}
+.gx-perf-import-actions small{font-size:10px;color:#a2bfcb;flex:1;min-width:170px}
+#gx-performance-hint{display:block;font-size:11px;line-height:1.4;color:#8ddacb;margin-top:8px}
+@media(max-width:700px){.gx-perf-grid{grid-template-columns:repeat(3,minmax(0,1fr))}#gx-shell .gx-perf-slot{min-height:72px}}
+
+
+/* Single MIDI service: manual input/output refresh beside the global USB connection. */
+#gx-shell .gx-midi-refresh{flex-shrink:0;min-height:44px;padding:8px 10px;border:1px solid #3a798b;background:#142c3b;color:#def9ff;border-radius:10px;font-size:12px;font-weight:650;white-space:nowrap}
+#gx-shell .gx-midi-refresh:active{background:#206675}
+#gx-shell .gx-midi-refresh:focus-visible{outline:2px solid #80e8e0;outline-offset:2px}
+@media(max-width:700px){
+ #gx-shell .gx-midi-refresh{min-width:43px;padding:7px 9px;font-size:16px}
+ #gx-shell .gx-midi-refresh span{display:none}
+}
+@media(max-width:390px){
+ #gx-shell .gx-midi-refresh{min-width:40px;padding:7px}
+}
+
+/* Favoritos de palco: ações explícitas para Android (sem clique direito). */
+#gx-shell .gx-bank-slot-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;min-width:0}
+#gx-shell .gx-bank-slot-row>.gx-bank-slot{grid-column:1/-1;width:100%;min-height:50px}
+#gx-shell .gx-bank-slot-row>.gx-bank-action{min-height:32px;padding:3px;font-size:10px}
+#gx-shell .gx-bank-slot-row>.gx-bank-action-danger{color:#ffc7c7}
+#gx-shell .gx-tone-pick,#gx-shell .gx-fav-tile,#gx-shell .gx-fav-entry,#gx-shell .gx-bank-slot,#gx-shell .gx-live-bank-slot{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+
+/* Current lyrics autoscroll speed, legible during performances. */
+#gx-shell #gx-scroll-speed-value{font-size:13px;font-weight:700;color:#10496e}
+#gx-shell .gx-scroll-controls small{color:#506c7e;line-height:1.35}
+
+
+/* Grauê DrumPads 1.26 — library sheet, independent sources and big one-touch targets. */
+.gx-kit-picker-entry{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 13px}
+#gx-shell #gx-open-kit-picker{display:flex;align-items:center;justify-content:space-between;min-height:54px;gap:12px;background:linear-gradient(135deg,#0c8979,#13687e);border:1px solid #35c5b2;color:#fff;border-radius:12px;padding:10px 16px;font-weight:700;font-size:14px}
+.gx-kit-picker-entry>small{font-size:12px;color:#9de4de;line-height:1.3;overflow-wrap:break-word}
+.gx-kit-picker{position:fixed;box-sizing:border-box;width:min(650px,calc(100vw - 20px));max-height:min(80dvh,800px);margin:auto auto 10px;border:1px solid #386978;border-radius:23px 23px 14px 14px;padding:15px;background:#0e1b29;color:#f1faff;overflow-y:auto;box-shadow:0 20px 70px #000c}
+.gx-kit-picker::backdrop{background:#000b}
+.gx-kit-picker-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.gx-kit-picker-head h3{margin:4px 0 0;font-size:24px;line-height:1.2}
+.gx-kit-picker-head small{font-size:10px;color:#78dddb;letter-spacing:.09em}
+#gx-kit-close{min-height:44px;min-width:44px;border:1px solid #467080;background:#1f3746;color:#fff;border-radius:11px;font-size:22px}
+.gx-kit-explain{margin:8px 0 13px;font-size:12px;color:#b6d2db;line-height:1.5}
+.gx-kit-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.gx-kit-switch button{min-height:46px;background:#172c3c;border:1px solid #416474;color:#cee3ec;border-radius:9px;font-size:13px}
+.gx-kit-switch button.on{color:#0c2528;background:#69ddc9;border-color:#b2ffef;font-weight:750}
+.gx-kit-picker-list{display:grid;gap:6px;max-height:43dvh;overflow-y:auto;scrollbar-width:thin}
+.gx-kit-choice{display:flex;align-items:center;gap:12px;width:100%;min-height:65px;border:1px solid #334e62;border-radius:10px;padding:9px 12px;background:#162a3b;color:#f3faff;text-align:left;font-size:14px}
+.gx-kit-choice[aria-pressed="true"]{border-color:#46e3cb;background:#173f47}
+.gx-kit-choice-icon{display:grid;place-items:center;width:36px;height:36px;background:#253f50;border-radius:11px;flex-shrink:0;font-size:21px}
+.gx-kit-choice-text{display:flex;flex-direction:column;flex:1;min-width:0;gap:3px}
+.gx-kit-choice-title{font-weight:650;font-size:14px;overflow-wrap:break-word}
+.gx-kit-choice-detail{font-size:11px;color:#adcad7;line-height:1.3}
+.gx-kit-choice-check{font-size:22px;color:#5af1d0;min-width:22px}
+.gx-kit-picker-help{font-size:11px;color:#b1c8d2;line-height:1.5;margin:13px 0 0}
+@media(orientation:landscape) and (max-height:550px){.gx-kit-picker{max-height:calc(100dvh - 14px);padding:10px}.gx-kit-picker-head h3{font-size:19px}.gx-kit-picker-list{max-height:42dvh}}
+@media(max-width:460px){.gx-kit-picker{width:calc(100vw - 16px);margin-bottom:8px}.gx-kit-picker-head h3{font-size:21px}.gx-kit-choice-title{font-size:13px}}
+
+
+/* Grauê 1.27: reference-inspired chromatic 12 keys above sample/MIDI drum pads. */
+#gx-shell .gx-chromatic-section{padding:12px;background:#0c1d2c;border:1px solid #285367;border-radius:13px;margin:12px 0;display:flex;flex-direction:column;gap:8px}
+#gx-shell .gx-chromatic-section p{font-size:12px;color:#abd2d6;line-height:1.45;margin:0!important}
+.gx-chromatic-channel{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:#bdcbd8}
+#gx-shell .gx-chromatic-channel select{background:#102c3c;color:#fff;min-height:44px;padding:9px;border:1px solid #357386;border-radius:9px}
+.gx-chromatic-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;touch-action:manipulation}
+#gx-shell .gx-chromatic-key{min-height:100px;border:1px solid #31556a;background:linear-gradient(155deg,#162836,#0b131c);border-radius:15px;color:#f5fbff;font-size:25px;font-weight:750;user-select:none;touch-action:none;-webkit-user-select:none;transition:background .07s ease,transform .07s ease}
+#gx-shell .gx-chromatic-key:active,#gx-shell .gx-chromatic-key.playing{background:#07846e;color:#fff;border-color:#58e4c7;transform:scale(.98)}
+#gx-chromatic-info{color:#95c6cb;font-size:11px;line-height:1.45}
+@media(max-width:680px) and (orientation:portrait){
+ .gx-chromatic-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ #gx-shell .gx-chromatic-key{min-height:94px;font-size:23px}
+ .gx-chromatic-channel{flex-wrap:wrap}
+}
+@media(max-width:380px){
+ #gx-shell .gx-chromatic-key{min-height:76px}
+}
+@media(min-width:820px) and (orientation:landscape){
+ .gx-chromatic-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+ #gx-shell .gx-chromatic-key{min-height:82px;font-size:20px}
+}
+/* 2026-10-31: separação operacional - um só MIDI para todas as telas e um modo show sem menus de edição. */
+#gx-shell .gx-live-toggle{min-height:46px;padding:9px 14px;border-radius:10px;background:#116c5e;border:1px solid #4bd3bc;color:#f2fffd;font-size:13px;font-weight:750;white-space:nowrap}
+#gx-shell.gx-live-mode .gx-live-toggle{background:#274054;border-color:#7ea5b9}
+#gx-shell.gx-live-mode .gx-nav,#gx-shell.gx-live-mode .gx-stage-prep-only,#gx-shell.gx-live-mode #gx-edit-fav,#gx-shell.gx-live-mode .gx-header .gx-gear,#gx-shell.gx-live-mode .gx-midi-refresh,#gx-shell.gx-live-mode .gx-stage-footer{display:none!important}
+#gx-shell.gx-live-mode .gx-header{position:sticky;top:0;background:#07121d;z-index:20;padding:6px 3px}
+#gx-shell .gx-live-song-chooser{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#bcd7e0;min-width:0}
+#gx-shell .gx-live-song-chooser select{width:100%;min-width:0;min-height:44px;border-radius:8px;background:#17364a;border:1px solid #39708a;color:#fff;padding:6px;font-size:14px}
+#gx-shell .gx-live-score-wrap{margin:8px 0;padding:9px 12px}
+#gx-shell #gx-live-score-toggle{min-height:46px;min-width:170px;background:#143f5b;border:1px solid #3c829e;color:#effaff;border-radius:9px;font-size:14px;font-weight:650;padding:10px}
+#gx-shell .gx-live-score{white-space:pre-wrap;overflow-wrap:break-word;max-height:min(48dvh,470px);overflow-y:auto;font-size:clamp(16px,2vw,24px);line-height:1.7;color:#f2f9ff;margin:12px 0 0;padding:10px 5px;scrollbar-width:thin}
+#gx-shell .gx-live-score[hidden]{display:none!important}
+#gx-shell.gx-live-mode .gx-stage-summary{gap:9px}
+#gx-shell.gx-live-mode .gx-mini strong{font-size:clamp(22px,2.8vw,36px)}
+@media(max-width:620px){#gx-shell .gx-live-toggle{white-space:normal;font-size:12px;padding:7px 8px}#gx-shell .gx-header{flex-wrap:wrap}#gx-shell.gx-live-mode .gx-stage-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(orientation:landscape) and (max-height:560px){#gx-shell.gx-live-mode .gx-stage-summary{grid-template-columns:minmax(190px,2fr) repeat(4,minmax(78px,1fr))}#gx-shell.gx-live-mode .gx-stage-actions>button{min-height:51px}}
+
+/* One global USB connection; preparation keeps explicit read/refresh actions. */
+#gx-connect,#gx-device-connect,#gx-connect-settings,#gx-arm,#gx-read,#arm,#liveArm{display:none!important}
+.gx-cifra-shift select,.gx-stage-scroll button,.gx-stage-scroll input{min-height:44px}
+.gx-stage-scroll{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px}
+.gx-stage-scroll label{display:flex;align-items:center;gap:8px}
+.gx-stage-scroll[hidden]{display:none!important}
+
+/* Stage: ten bank choices, nine Favorite buttons; no Performance part grid. */
+.stage-favorites,.stage-favorite-heading{display:flex;flex-direction:column;gap:12px;width:100%}
+.stage-favorite-heading label{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.stage-favorite-bank{background:#153144;color:#f3fbff;border:1px solid #4a9c9b;border-radius:12px;min-height:48px;padding:10px 16px;font-size:17px}
+.stage-favorite-current{font-size:13px;color:#adc3cd}
+.stage-favorite-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+.stage-favorite-grid .stage-favorite-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:100px;padding:10px 5px;border-radius:15px;border:1px solid #355267;background:#102332;color:#e0eaf1;opacity:1}
+.stage-favorite-slot strong{font-size:27px}.stage-favorite-slot small{font-size:12px;color:#9eb5c2}
+.stage-favorite-hint{font-size:12px;line-height:1.5}
+.legacy-stage-part-controls[hidden]{display:none!important}
+#gx-shell #gx-live-favorites{display:flex;flex-direction:column;gap:12px}
+@media(orientation:landscape) and (max-height:600px){.stage-favorite-grid .stage-favorite-slot{min-height:70px}.stage-favorite-slot strong{font-size:23px}}
+
+#gx-louve-text{width:100%;box-sizing:border-box;min-height:200px;background:#102332;color:#eef7ff;border:1px solid #3b6a7f;border-radius:10px;padding:12px;font-size:15px}
+#gx-louve-state{font-size:12px;line-height:1.5;color:#b9d5df;overflow-wrap:break-word;padding:8px}
+#gx-louve-state p{margin:8px 0}#gx-louve-dialog button,#gx-louve-open,#gx-louve-retry,#gx-louve-cancel{min-height:44px}
+#gx-louve-retry[hidden],#gx-louve-cancel[hidden]{display:none!important}
+
+/* 1.30.1: the import summary must not squeeze the repertoire out of its card. */
+#gx-shell .gx-rep-layout>.gx-rep-library{max-height:none;min-height:0;height:auto;overflow:visible;align-self:start}
+#gx-shell .gx-rep-library>.gx-section-label,#gx-shell .gx-rep-library>#gx-search,#gx-shell .gx-rep-library>.gx-filters,#gx-shell .gx-rep-library>#gx-louve-open,#gx-shell .gx-rep-library>#gx-louve-state{flex-shrink:0}
+#gx-shell .gx-rep-library .gx-filters{min-height:42px}
+#gx-shell .gx-rep-library>.gx-song-list{flex:0 1 auto;min-height:56px;max-height:250px;overflow-y:auto;margin-top:6px}
+#gx-shell #gx-louve-state{padding:4px 0;font-size:12px;line-height:1.4;min-width:0}
+#gx-shell #gx-louve-state[hidden]{display:none!important}
+#gx-shell .gx-louve-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;min-height:38px;padding:8px 6px;border-bottom:1px solid #315167}
+#gx-shell .gx-louve-title{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;line-height:1.4;color:#d6ebf4}
+#gx-shell .gx-louve-count{flex:0 0 auto;font-size:11px;font-weight:500;line-height:1.4;white-space:nowrap;color:#77ddc7}
+#gx-shell .gx-louve-rows{max-height:145px;overflow-y:auto;font-size:12px;line-height:1.45;padding:0 6px}
+#gx-shell .gx-louve-rows p{font-size:12px;line-height:1.45;margin:8px 0}
+@media(max-width:700px){#gx-shell .gx-rep-library>.gx-song-list{max-height:210px}#gx-shell .gx-rep-library>#gx-louve-open{min-height:40px;padding:8px 10px;font-size:13px}}
+#gx-shell .gx-louve-details{margin:0;padding:0;border:0;background:transparent}
+#gx-shell .gx-cifra-shift{display:grid;grid-template-columns:30px minmax(52px,1fr) 30px;gap:3px;align-items:center}
+#gx-shell .gx-cifra-shift button{min-width:0;width:30px;padding:4px}
+#gx-shell .gx-cifra-shift select{min-width:52px;width:100%;padding:5px 3px;font-size:14px}

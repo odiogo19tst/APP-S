@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../app/src/main');
+const ui=fs.readFileSync(path.join(root,'assets/drumpads.js'),'utf8');
+const engine=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/PadSampleEngine.java'),'utf8');
+const native=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/MainActivity.java'),'utf8');
+const exporter=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/RolandAudioPadExporter.java'),'utf8');
+const gradle=fs.readFileSync(path.join(__dirname,'../app/build.gradle'),'utf8');
+assert(ui.includes('id="gx-pad-export-roland"')&&ui.includes("native('exportRolandAudioPads',sampleBank)"),'Missing Roland export command');
+assert(ui.includes('SONG LIST/GRAUE1')&&ui.includes('GRAUE2'),'Roland USB folder guide missing');
+assert(engine.includes('public synchronized int exportRolandAudioPads')&&engine.includes('MediaExtractor'),'Samples export not linked/checked');
+assert(native.includes('@JavascriptInterface public void exportRolandAudioPads(int bank)')&&native.includes('if(req==11)'),'Android native export missing');
+assert(exporter.includes('SONG LIST/%s/%02d.%s')&&exporter.includes('RATE=44100'),'XPS-10 folder/sample format mismatch');
+assert(exporter.includes('i<6?"GRAUE1":"GRAUE2"'),'XPS-10 has six AUDIO PAD buttons, not eight');
+const currentCode=Number(gradle.match(/versionCode\s+(\d+)/)?.[1]||0);assert(currentCode>=40,'Roland Audio Pad export requires app version >= 40');
+assert(ui.includes("native('playPadSample',sampleBank")&&ui.includes("native('padHit'"),'Existing audio and MIDI paths must remain functional');
+console.log('Grauê 1.25: portable Roland Audio Pad package wiring OK');
