@@ -19,7 +19,7 @@ assert(!drum.includes('youtube-dl')&&!drum.includes('spotify_download'),'Do not 
 assert(drum.includes('Repertório')||drum.includes('repertório'),'YouTube song tool should save locally');
 assert(drum.includes('Music.parse(t)')&&drum.includes('não inferida do vídeo'),'Never claim chords extracted from URL');
 assert(app.includes('drumStudio:saved.drumStudio||null')&&app.includes('youtubeUrl:'),'Saved patterns and video links must survive restart');
-for(const item of ['@JavascriptInterface public void startDrone','@JavascriptInterface public void stopDronePad','@JavascriptInterface public void launchPlaybackUrl','private void stopDrone()','stopPadNotes(){stopDrone()'])assert(java.includes(item),'Missing safe MIDI/audio separation: '+item);
+for(const item of ['@JavascriptInterface public void startDrone','@JavascriptInterface public void stopDronePad','@JavascriptInterface public void launchPlaybackUrl','private void stopDrone()','stopPadNotes(){stopChromatic();stopDrone()'])assert(java.includes(item),'Missing safe MIDI/audio separation: '+item);
 assert(java.includes('isYoutubeUrl')&&java.includes('open.spotify.com'),'Only official links allowed');
 assert(java.includes('stopDrone();stopAssist()'),'Stop on disconnect');
 assert(css.includes('.gx-drums-pads')&&css.includes('.gx-beats-grid'),'Responsive DrumStudio missing');
