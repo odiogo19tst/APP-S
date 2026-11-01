@@ -79,13 +79,15 @@ console.log('Live: category persistence, drum filter, patch selection, pad mappi
 
 for(const method of ['openCifra','showMode','panic','undoHardware'])native[method]=(...a)=>calls.push([method,...a]);
 els.liveCifra.onclick();assert.deepEqual(calls.at(-1),['openCifra']);
-els.liveFocus.onclick();assert.deepEqual(calls.at(-1),['showMode',true]);
-els.liveFocus.onclick();assert.deepEqual(calls.at(-1),['showMode',false]);
+// O botão legado foi substituído pelo comando único no painel principal.
+assert.equal(els.liveFocus.hidden,true);
+assert.equal(els.liveFocus.disabled,true);
+assert.equal(els.liveFocus.onclick,null);
 els.livePanic.onclick();assert.deepEqual(calls.at(-1),['panic']);
 els.liveEffects.onclick();assert.equal(els.effectsDrawer.open,true);
 ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});
 els.liveCC.value='74';els.liveCCValue.value='64';els.liveSendCC.onclick();assert.deepEqual(calls.at(-1),['cc',10,74,64]);
-console.log('Show: landscape toggle, embedded browser entry, panic and effect control channel passed');
+console.log('Show: legacy toggle retired; browser entry, panic and effect control channel passed');
 
 // Dados lidos habilitam seleção local de parte, sem transmissão imediata.
 ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});

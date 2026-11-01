@@ -828,3 +828,25 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
  .gx-chromatic-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
  #gx-shell .gx-chromatic-key{min-height:82px;font-size:20px}
 }
+/* 2026-10-31: separação operacional - um só MIDI para todas as telas e um modo show sem menus de edição. */
+#gx-shell .gx-live-toggle{min-height:46px;padding:9px 14px;border-radius:10px;background:#116c5e;border:1px solid #4bd3bc;color:#f2fffd;font-size:13px;font-weight:750;white-space:nowrap}
+#gx-shell.gx-live-mode .gx-live-toggle{background:#274054;border-color:#7ea5b9}
+#gx-shell.gx-live-mode .gx-nav,#gx-shell.gx-live-mode .gx-stage-prep-only,#gx-shell.gx-live-mode #gx-edit-fav,#gx-shell.gx-live-mode .gx-header .gx-gear,#gx-shell.gx-live-mode .gx-midi-refresh,#gx-shell.gx-live-mode .gx-stage-footer{display:none!important}
+#gx-shell.gx-live-mode .gx-header{position:sticky;top:0;background:#07121d;z-index:20;padding:6px 3px}
+#gx-shell .gx-live-song-chooser{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#bcd7e0;min-width:0}
+#gx-shell .gx-live-song-chooser select{width:100%;min-width:0;min-height:44px;border-radius:8px;background:#17364a;border:1px solid #39708a;color:#fff;padding:6px;font-size:14px}
+#gx-shell .gx-live-score-wrap{margin:8px 0;padding:9px 12px}
+#gx-shell #gx-live-score-toggle{min-height:46px;min-width:170px;background:#143f5b;border:1px solid #3c829e;color:#effaff;border-radius:9px;font-size:14px;font-weight:650;padding:10px}
+#gx-shell .gx-live-score{white-space:pre-wrap;overflow-wrap:break-word;max-height:min(48dvh,470px);overflow-y:auto;font-size:clamp(16px,2vw,24px);line-height:1.7;color:#f2f9ff;margin:12px 0 0;padding:10px 5px;scrollbar-width:thin}
+#gx-shell .gx-live-score[hidden]{display:none!important}
+#gx-shell.gx-live-mode .gx-stage-summary{gap:9px}
+#gx-shell.gx-live-mode .gx-mini strong{font-size:clamp(22px,2.8vw,36px)}
+@media(max-width:620px){#gx-shell .gx-live-toggle{white-space:normal;font-size:12px;padding:7px 8px}#gx-shell .gx-header{flex-wrap:wrap}#gx-shell.gx-live-mode .gx-stage-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(orientation:landscape) and (max-height:560px){#gx-shell.gx-live-mode .gx-stage-summary{grid-template-columns:minmax(190px,2fr) repeat(4,minmax(78px,1fr))}#gx-shell.gx-live-mode .gx-stage-actions>button{min-height:51px}}
+
+/* One global USB connection; preparation keeps explicit read/refresh actions. */
+#gx-connect,#gx-device-connect,#gx-connect-settings,#gx-arm,#gx-read,#arm,#liveArm{display:none!important}
+.gx-cifra-shift select,.gx-stage-scroll button,.gx-stage-scroll input{min-height:44px}
+.gx-stage-scroll{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px}
+.gx-stage-scroll label{display:flex;align-items:center;gap:8px}
+.gx-stage-scroll[hidden]{display:none!important}

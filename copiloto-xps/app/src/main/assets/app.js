@@ -15,7 +15,7 @@ if(saved.light)document.body.classList.add('light');
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,nav button').forEach(x=>x.classList.remove('active'));$(b.dataset.tab).classList.add('active');b.classList.add('active');if(b.dataset.tab==='coach')guide();});
 $('theme').onclick=()=>{document.body.classList.toggle('light');persist();draw();};
 $('connect').onclick=()=>invoke('connect');$('mic').onclick=()=>invoke('microphone',!mic);
-$('arm').onchange=()=>invoke('arm',$('arm').checked);
+$('arm').hidden=true;$('arm').disabled=true;$('arm').onchange=null; // Envio e leitura MIDI habilitados juntos na conexão USB
 $('key').onchange=()=>{root=+$('key').value;renderNotes();updateSong();};$('mode').onchange=()=>{minor=!!+$('mode').value;renderNotes();updateSong();};
 $('useKey').onclick=()=>{if(!estimate||estimate.root<0)return status('Ainda não há estimativa de tom.');root=estimate.root;minor=estimate.mode===1;$('key').value=root;$('mode').value=minor?1:0;renderNotes();updateSong();};
 function notes(){return [...new Set([...held.values(),...latched.values()].map(x=>x.note))].sort((a,b)=>a-b);}
