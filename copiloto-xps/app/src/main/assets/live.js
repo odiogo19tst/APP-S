@@ -6,7 +6,7 @@ for(let i=0;i<16;i++){add('livePart','Parte '+(i+1),i);add('drumChannel','Canal 
 Object.entries(lib.families).forEach(([id,name])=>add('liveFamily',name,id));
 window.refreshLiveSongs=()=>{f('liveSong').replaceChildren();add('liveSong','Selecionar música…','');songs.forEach((s,i)=>add('liveSong',(s.category||'Sem categoria')+' • '+s.title,i));};window.refreshLiveSongs();
 f('liveSong').onchange=()=>{if(f('liveSong').value!=='')select(songs[+f('liveSong').value]);};
-f('liveFocus').onclick=()=>{document.body.classList.toggle('live-focus');f('liveFocus').textContent=document.body.classList.contains('live-focus')?'Sair do show':'Modo show ↔';native('showMode',document.body.classList.contains('live-focus'));};
+f('liveFocus').hidden=true;f('liveFocus').disabled=true;f('liveFocus').onclick=null; // A experiência Ao Vivo fica no painel principal, não no legado.
 f('liveCifra').onclick=()=>native('openCifra');f('liveUndo').onclick=()=>native('undoHardware');f('livePanic').onclick=()=>native('panic');
 f('liveEffects').onclick=()=>f('effectsDrawer').showModal();f('closeEffects').onclick=()=>f('effectsDrawer').close();f('liveSendCC').onclick=()=>{let p=hw['part:'+f('livePart').value];if(!p)return f('status').textContent='Leia o teclado antes de aplicar efeitos nesta parte.';native('cc',p[0]+1,+f('liveCC').value,+f('liveCCValue').value);};
 f('liveRead').onclick=()=>native('readHardware');f('liveArm').hidden=true;f('liveArm').disabled=true;f('liveArm').onclick=null;
