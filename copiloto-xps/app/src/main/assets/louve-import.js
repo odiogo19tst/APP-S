@@ -10,7 +10,7 @@ function parse(input){
   const heading=line.match(/^\s*\d+[.)]\s+(.+?)(?:\s+[—–]\s+(.+))?\s*$/);
   if(heading){if(items.length>=50)throw Error('Importe até 50 músicas por escala.');item={id:'entry-'+items.length,title:heading[1].trim().slice(0,150),artist:(heading[2]||'').trim().slice(0,100),category:title,key:'',bpm:72,sourceUrl:'',youtubeUrl:'',lyricsUrl:'',audioUrl:''};items.push(item);continue;}
   if(!item)continue;
-  const key=line.match(/Tom:\s*([A-G](?:#|b)?m?)\b/i);if(key)item.key=key[1][0].toUpperCase()+key[1].slice(1);
+  const key=line.match(/Tom:\s*([A-G](?:#|b)?m?)(?=\s|[·,;)]|$)/i);if(key)item.key=key[1][0].toUpperCase()+key[1].slice(1);
   const bpm=line.match(/BPM:\s*(\d{1,3})/i);if(bpm&&+bpm[1]>=30&&+bpm[1]<=300)item.bpm=+bpm[1];
   const link=line.match(/https:\/\/\S+/);if(!link)continue;const url=link[0].replace(/[*)]+$/,'');
   if(/Cifra:/i.test(line))item.sourceUrl=cifraUrl(url);

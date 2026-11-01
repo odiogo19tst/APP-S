@@ -85,7 +85,7 @@
   const artistElement=doc.querySelector('[data-testid="artist-name"],[class*="artist-name"],h2');
   const artist=trimText(artistElement?.innerText||artistElement?.textContent||'').trim().slice(0,100);
   const keyText=parsed.notes+'\n'+trimText(doc.body?.innerText||doc.body?.textContent||'');
-  const explicitKey=(keyText.match(/(?:^|\n)\s*(?:tom original|tom)\s*:\s*([A-G](?:#|b)?m?)\b/i)||[])[1]||'';
+  const explicitKey=(keyText.match(/(?:^|\n)\s*(?:tom original|tom)\s*:\s*([A-G](?:#|b)?m?)(?=\s|[·,;)]|$)/i)||[])[1]||'';
   return {ok:true,title,artist,key:explicitKey,sourceUrl:loc.split('#')[0].slice(0,500),...parsed,detector:candidate.kind};
  }
  root.GraueCifraExtract=extract;

@@ -3,6 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),L=require('../a
 const fixture=fs.readFileSync(__dirname+'/fixtures/louve-scale.txt','utf8');const set=L.parse(fixture);
 assert.equal(set.items.length,3);assert.equal(set.title,'Culto Louvor e Adoração');
 assert.deepEqual(set.items.map(x=>x.key),['C','E','C']);assert.deepEqual(set.items.map(x=>x.bpm),[162,150,124]);
+assert.equal(L.parse(fixture.replace('Tom: C','Tom: F#')).items[0].key,'F#');
 assert.equal(set.items[0].artist,'Quatro por Um');assert.equal(set.items[1].title,'Poder Pra Salvar (Mighty to Save)');
 assert(set.items[2].sourceUrl.endsWith('#instrument=guitar&key=3'));
 for(const url of ['http://www.cifraclub.com.br/x/','https://cifraclub.com.br.evil.com/x/','https://evil.com/x','https://user@cifraclub.com.br/x/'])assert.equal(L.cifraUrl(url),'');
