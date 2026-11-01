@@ -6,20 +6,21 @@
  const callOld=(id)=>{let el=$x(id);if(el)el.click();};
  const shell=document.createElement('div');shell.id='gx-shell';
  shell.innerHTML=[
- '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não conectado</small></span><button id="gx-unified-usb" class="gx-usb-main">Conectar USB</button><button id="gx-midi-refresh" class="gx-midi-refresh" aria-label="Atualizar entradas e saídas MIDI" title="Atualizar entrada e saída MIDI">↻ <span>Atualizar MIDI</span></button><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
+ '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não conectado</small></span><button id="gx-unified-usb" class="gx-usb-main">Conectar USB</button><button id="gx-midi-refresh" class="gx-midi-refresh" aria-label="Atualizar entradas e saídas MIDI" title="Atualizar entrada e saída MIDI">↻ <span>Atualizar MIDI</span></button><button id="gx-show-mode" class="gx-live-toggle" type="button" aria-pressed="false">▶ Entrar no Ao Vivo</button><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
  '<nav class="gx-nav" aria-label="Áreas do aplicativo"><button data-gx-tab="stage" class="on">Palco</button><button data-gx-tab="repertoire">Repertório</button><button data-gx-tab="sound">Sons</button><button data-gx-tab="drums">DrumPads</button><button data-gx-tab="coach">Copiloto</button><button data-gx-tab="backups">Backups</button><button data-gx-tab="settings">Ajustes</button></nav>',
  '<div class="gx-screen on" data-gx-screen="stage">',
- '<div class="gx-stage-summary"><section class="gx-current gx-panel"><small>● TOCANDO AGORA</small><strong id="gx-song-name">Selecione uma música</strong><span id="gx-song-cat">Seu repertório</span><div class="gx-progress"><i id="gx-progress-bar"></i></div></section>',
+ '<div class="gx-stage-summary"><section class="gx-current gx-panel"><small>● TOCANDO AGORA</small><strong id="gx-song-name">Selecione uma música</strong><span id="gx-song-cat">Seu repertório</span><label class="gx-live-song-chooser">Escolher música<select id="gx-live-song-select" aria-label="Escolher música para tocar no palco"><option value="">Selecione uma música</option></select></label><div class="gx-progress"><i id="gx-progress-bar"></i></div></section>',
  '<section class="gx-panel gx-mini"><small>TOM</small><strong id="gx-key">—</strong><span id="gx-scale">Referência</span></section>',
  '<section class="gx-panel gx-mini"><small>ANDAMENTO</small><strong id="gx-bpm">72</strong><span>BPM • 4/4</span></section>',
  '<section class="gx-panel gx-mini"><small>SEÇÃO ATUAL</small><strong id="gx-section">Em execução</strong></section>',
  '<section class="gx-panel gx-mini"><small>PRÓXIMO ACORDE</small><strong id="gx-next-chord">—</strong><span id="gx-next-line">Acompanhamento</span></section></div>',
  '<div class="gx-played-feedback gx-panel"><div><small>ACORDE REALMENTE TOCADO · MIDI</small><strong id="gx-played-chord">—</strong></div><div><small>COMPARAÇÃO COM A CIFRA</small><strong id="gx-played-verdict">Aguardando notas MIDI</strong></div><small>Previsão da cifra e notas tocadas são coisas diferentes. Acompanhamento automático ainda não validado.</small><button id="gx-score-next">Próximo acorde da cifra (manual)</button></div><div class="gx-stage-actions"><button class="gx-start" id="gx-start">▶<span>Iniciar</span></button><button id="gx-pause">Ⅱ<span>Pausar</span></button><button id="gx-next">⏭<span>Próxima música</span></button><button class="gx-danger" id="gx-panic">⚠<span>Parar MIDI</span></button><div class="gx-transpose"><button id="gx-down" aria-label="Transpor abaixo">−</button><strong id="gx-transpose">0</strong><button id="gx-up" aria-label="Transpor acima">+</button><small>Transpor cifra</small></div><button id="gx-show-favorites">★<span>Favoritos</span></button></div>',
+ '<section class="gx-panel gx-live-score-wrap"><button id="gx-live-score-toggle" type="button" aria-expanded="false">▤ Mostrar cifra no palco</button><pre id="gx-live-score" class="gx-live-score" hidden></pre></section>',
  '<div class="gx-panel gx-silent-advisor" id="gx-silent-advisor"><div class="gx-silent-head"><strong>✦ JARVIS · SUGESTÕES SILENCIOSAS</strong><span id="gx-silent-source">Cifra e favoritos do celular</span></div><div class="gx-silent-content"><div><small>PRÓXIMA HARMONIA</small><strong id="gx-silent-next">—</strong><small id="gx-silent-detail">Abra uma música do repertório.</small></div><div><small>TIMBRE PREPARADO</small><strong id="gx-silent-tone">—</strong><small id="gx-silent-tone-detail">Marque sons como favoritos para receber sugestões.</small></div></div><div class="gx-silent-actions"><button id="gx-silent-accept" disabled>Aplicar timbre</button><button id="gx-silent-alternate" disabled>Outra sugestão</button><button id="gx-silent-ai">Dica da IA local</button><button id="gx-silent-dismiss">Ignorar</button></div><p id="gx-silent-ai-text" role="status" aria-live="polite"></p><p class="gx-silent-note">Sugestões visuais, sem fala nem som. Timbres só mudam com seu toque. A próxima harmonia vem da cifra, não de reconhecimento automático da banda.</p></div>',
 '<div class="gx-panel gx-zone"><div class="gx-section-label">✧ TROCA RÁPIDA DE TIMBRES <button id="gx-edit-fav">Organizar</button></div><div id="gx-live-favorites" class="gx-fav-grid"></div><div class="gx-live-banks-heading">Banco de favoritos <strong id="gx-live-bank-name">0</strong></div><div id="gx-live-bank-tabs" class="gx-live-bank-tabs"></div><div id="gx-live-bank-slots" class="gx-live-bank-slots"></div></div>',
  '<div class="gx-panel gx-assist"><div class="gx-section-label">✦ JARVIS MUSICAL <small>ACORDE DE APOIO</small></div><div class="gx-assist-controls"><div><strong id="gx-assist-chord">—</strong><small>acorde atual da música</small></div><label>Canal<select id="gx-assist-channel"></select></label><button id="gx-assist-play">▶ Tocar acorde</button><button id="gx-assist-stop">■ Parar</button></div><small>Envio automático ao conectar · acordes só tocam com seu comando</small></div>',
- '<div class="gx-panel gx-zone"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
- '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm" hidden>Envio MIDI automático</button><button id="gx-show-mode">Modo show ↔</button></div></div>',
+ '<div class="gx-panel gx-zone gx-stage-prep-only"><div class="gx-section-label">▤ PARTES DO TECLADO <small>ACESSO RÁPIDO</small></div><div id="gx-stage-parts" class="gx-stage-parts"></div></div>',
+ '<div class="gx-stage-footer"><button id="gx-connect">Conectar USB</button><button id="gx-read">Ler teclado</button><button id="gx-arm" hidden>Envio MIDI automático</button></div></div>',
  '<div class="gx-screen" data-gx-screen="repertoire"><div class="gx-rep-layout">',
  '<aside class="gx-panel gx-rep-library"><div class="gx-section-label">▏ Meu Repertório</div><input id="gx-search" placeholder="Buscar música, artista ou tom…" aria-label="Buscar repertório"><div class="gx-filters"><button class="on" data-gx-filter="all">Todas</button><button data-gx-filter="favorites">Favoritas</button><button data-gx-filter="setlist">Setlist</button><button data-gx-filter="recent">Recentes</button><button id="gx-add-song">+</button></div><div id="gx-songs" class="gx-song-list"></div></aside>',
  '<section class="gx-rep-view"><div class="gx-rep-tabs"><button class="on" data-gx-rep="cifra">Cifra integrada</button><button data-gx-rep="letter">Letra</button><button data-gx-rep="notes">Anotações</button><button data-gx-rep="riffs">Riffs / Tabs</button><button data-gx-rep="setlist">Setlist</button></div>',
@@ -54,6 +55,7 @@
  document.body.append(returnButton);
  const screens=[...shell.querySelectorAll('[data-gx-screen]')],tabs=[...shell.querySelectorAll('[data-gx-tab]')];
  let active='stage',filter='all',section='cifra',soundSection='tones',selectedIndex=-1,partPage=0,transposeSteps=0;
+ let liveMode=false,stageScoreOpen=false;
  let lastAudio=null,hw={},connected=false,recording=false,notesHistory=[],keyName='—',lastCh='—';
  let backupRows=[],backupSelection=new Set();
  let silentDismissedKey='',silentToneIndex=0,silentPending=false,silentSuggested=null,silentMusicKey='';
@@ -108,9 +110,10 @@
 
  const friendlyNote=midi=>Number.isInteger(midi)&&midi>=0&&midi<=127?M.names[midi%12]+String(Math.floor(midi/12)-1):'—';
  let usbConnected=false;
- const switchTab=name=>{active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();if(name==='backups'&&window.Native?.listBackups)window.Native.listBackups();};
- tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');
- const openLegacy=tab=>{document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
+ const switchTab=name=>{if(liveMode&&name!=='stage'){notify('Saia do Ao Vivo para configurar ou editar. Sua música continua selecionada.');return;}active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();if(name==='backups'&&window.Native?.listBackups)window.Native.listBackups();};
+ const setLiveMode=enabled=>{liveMode=!!enabled;shell.classList.toggle('gx-live-mode',liveMode);$x('gx-show-mode').textContent=liveMode?'← Sair do Ao Vivo':'▶ Entrar no Ao Vivo';$x('gx-show-mode').setAttribute('aria-pressed',String(liveMode));if(liveMode)switchTab('stage');window.Native?.showMode?.(liveMode);syncStage();};
+ tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');$x('gx-show-mode').onclick=()=>setLiveMode(!liveMode);
+ const openLegacy=tab=>{if(liveMode){notify('Saia do Ao Vivo para abrir os editores.');return;}document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
  const arm=()=>{}; // connection owns MIDI send/receive readiness
  const connect=()=>callOld('connect');
@@ -151,7 +154,9 @@
  $x('gx-assist-stop').onclick=()=>window.Native?.stopAssistChord?.();
 
  $x('gx-edit-fav').onclick=()=>{switchTab('sound');soundSection='favorites';showSoundPanel();};
- $x('gx-connect').onclick=connect;$x('gx-read').onclick=read;$x('gx-arm').onclick=arm;$x('gx-show-mode').onclick=()=>callOld('liveFocus');
+ $x('gx-connect').onclick=connect;$x('gx-read').onclick=read;$x('gx-arm').onclick=arm;
+ $x('gx-live-score-toggle').onclick=()=>{stageScoreOpen=!stageScoreOpen;$x('gx-live-score').hidden=!stageScoreOpen;$x('gx-live-score-toggle').textContent=stageScoreOpen?'▤ Ocultar cifra':'▤ Mostrar cifra no palco';$x('gx-live-score-toggle').setAttribute('aria-expanded',String(stageScoreOpen));};
+ $x('gx-live-song-select').onchange=()=>{const i=Number($x('gx-live-song-select').value);if(!Number.isInteger(i)||i<0||i>=songs.length)return;selectedIndex=i;transposeSteps=0;select(songs[i]);renderSongs();renderRepertoire();syncStage();};
  $x('gx-search').oninput=renderSongs;
  shell.querySelectorAll('[data-gx-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.gxFilter;shell.querySelectorAll('[data-gx-filter]').forEach(x=>x.classList.toggle('on',x===b));renderSongs();});
  $x('gx-add-song').onclick=()=>openLegacy('songs');
@@ -410,7 +415,8 @@
  $x('gx-perf-next').onclick=()=>{perfPage=Math.min(userPerformances?7:0,perfPage+1);renderPerformanceBanks();};
  renderPerformanceBanks();
  const songFavoriteSet=()=>new Set(Array.isArray(saved.songFavorites)?saved.songFavorites:[]);
- function renderSongs(){
+ function renderStageSongOptions(){const dropdown=$x('gx-live-song-select');const catalog=songs.map((entry,i)=>i+':'+S(entry?.title)).join('|');if(dropdown.dataset.catalog!==catalog){dropdown.replaceChildren();songs.forEach((entry,i)=>{if(!entry)return;const option=document.createElement('option');option.value=String(i);option.textContent=S(entry.title||'Música '+(i+1));dropdown.append(option);});dropdown.dataset.catalog=catalog;}const current=songs.findIndex(entry=>entry&&entry.title===song?.title);if(current>=0)dropdown.value=String(current);else dropdown.selectedIndex=-1;}
+ function renderSongs(){renderStageSongOptions();
   const box=$x('gx-songs'),q=$x('gx-search').value.trim().toLowerCase(),favs=songFavoriteSet();box.replaceChildren();
   let items=songs.map((s,i)=>({s,i})).filter(({s})=>(S(s.title)+' '+S(s.category)+' '+S(s.root)).toLowerCase().includes(q));
   if(filter==='favorites')items=items.filter(({s})=>favs.has(s.title));
@@ -712,6 +718,8 @@
   $x('gx-device-state').textContent=hw['setup:0']?'● Performance respondendo por MIDI':'● XPS-10 • aguardando leitura';
  }
  function syncStage(){
+  const score=$x('gx-live-score'),scoreText=S(song?.text||'').trim()||'Cifra não disponível. Importe no menu Repertório, fora do Modo Ao Vivo.';if(score.textContent!==scoreText)score.textContent=scoreText;
+  const stageDropdown=$x('gx-live-song-select');const matchingSong=songs.findIndex(entry=>entry&&entry.title===song?.title);if(matchingSong>=0&&stageDropdown.value!==String(matchingSong))stageDropdown.value=String(matchingSong);
   const hasRealSong=songs.some(m=>m&&m.title===song.title);
   $x('gx-song-name').textContent=hasRealSong?song.title:'Selecione uma música do repertório';
   $x('gx-song-cat').textContent=song.category||'Repertório local';
@@ -725,7 +733,7 @@
   renderPlayedChord();
   renderSilentAdvisor();
   $x('gx-transpose').textContent=(transposeSteps>0?'+':'')+transposeSteps;
-  $x('gx-arm').textContent=$x('arm')?.checked?'Desabilitar envio MIDI':'Habilitar envio MIDI';
+  $x('gx-arm').textContent='USB-MIDI unificado: leitura e envio ativos na conexão';
  }
  function renderCoach(){
   $x('gx-mic-label').textContent=recording?'Escuta ativa':'Escuta parada';
