@@ -65,6 +65,8 @@ public class MainActivity extends Activity {
   if(merged.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",merged.toString()).apply();
  }
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio; private boolean armed=false;
+  private final java.util.concurrent.atomic.AtomicBoolean gemmaBusy=new java.util.concurrent.atomic.AtomicBoolean(false);
+  private final java.util.concurrent.atomic.AtomicBoolean gemmaCancel=new java.util.concurrent.atomic.AtomicBoolean(false);
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private final ExecutorService modelInstallerWorker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
  private PadSampleEngine padSamples; private ChromaticPadEngine chromaticPad;
  private final java.util.Set<Integer> chromaticMidiNotes=new java.util.HashSet<>(); private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1,exportRolandBank=-1; private String exportKitSettings="{}";
@@ -545,8 +547,6 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void importXpsBackups(){runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(i,5);});}
   @JavascriptInterface public void exportXpsBackup(String sha){worker.execute(()->{try{File file=backupArchive.fileFor(sha);String originalName=backupArchive.originalName(sha);backupExportSha=sha;runOnUiThread(()->startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/octet-stream").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,originalName),6));}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void deleteXpsBackup(String sha){worker.execute(()->{try{if(backupArchive.delete(sha)){emit("backups",backupArchive.list());emit("status","Copia local excluida. Nenhuma alteração foi feita no XPS-10.");}}catch(Exception e){emit("status",e.getMessage());}});}
-  private final java.util.concurrent.atomic.AtomicBoolean gemmaBusy=new java.util.concurrent.atomic.AtomicBoolean(false);
-  private final java.util.concurrent.atomic.AtomicBoolean gemmaCancel=new java.util.concurrent.atomic.AtomicBoolean(false);
   @JavascriptInterface public void installGemma(boolean accepted){
    if(!accepted){emit("status","Leia e aceite os Termos Gemma antes de instalar.");return;}
    if(!gemmaBusy.compareAndSet(false,true)){emit("status","Instalação da Gemma em andamento.");return;}
