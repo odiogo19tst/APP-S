@@ -79,12 +79,14 @@
   const candidate=bestSource(doc);
   if(!candidate||candidate.score<7)return {ok:false,error:'O site não disponibilizou uma cifra legível nesta página. Confira se abriu uma música e tente de novo.'};
   const parsed=classify(candidate.text);
-  if(!parsed.text||parsed.text.length<25)return {ok:false,error:'Não encontrei versos suficientes para importar.'};
+  if(!parsed.text||parsed.text.length<25||(!parsed.chordLines&&!/\[[A-G](?:#|b)?[^\]]*\]/.test(parsed.text)))return {ok:false,error:'Não encontrei versos suficientes para importar.'};
   const titleElement=doc.querySelector('h1');
   const title=trimText(titleElement?.innerText||titleElement?.textContent||doc.title||'Cifra importada').trim().slice(0,150);
   const artistElement=doc.querySelector('[data-testid="artist-name"],[class*="artist-name"],h2');
   const artist=trimText(artistElement?.innerText||artistElement?.textContent||'').trim().slice(0,100);
-  return {ok:true,title,artist,sourceUrl:loc.split('#')[0].slice(0,500),...parsed,detector:candidate.kind};
+  const keyText=parsed.notes+'\n'+trimText(doc.body?.innerText||doc.body?.textContent||'');
+  const explicitKey=(keyText.match(/(?:^|\n)\s*(?:tom original|tom)\s*:\s*([A-G](?:#|b)?m?)\b/i)||[])[1]||'';
+  return {ok:true,title,artist,key:explicitKey,sourceUrl:loc.split('#')[0].slice(0,500),...parsed,detector:candidate.kind};
  }
  root.GraueCifraExtract=extract;
  if(typeof module!=='undefined')module.exports={extract,classify,chordLine,simpleChord,quality};

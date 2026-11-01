@@ -6,7 +6,7 @@ let saved={};try{saved=JSON.parse(N?N.load():localStorage.getItem('copiloto')||'
 let songs=Array.isArray(saved.songs)?saved.songs:[],scenes=Array.isArray(saved.scenes)?saved.scenes:[],root=0,minor=false,idx=0,elapsed=0,playing=false,last=performance.now(),mic=false,estimate=null,taps=[],song={title:'Exercício • progressão em C',chords:['C','Am','F','G'],beats:4,bpm:72,root:0,minor:false,text:''};
 const held=new Map(),latched=new Map(),pedals=new Set(),history=[];
 const controls=[[7,'Volume',100],[10,'Panorama',64],[11,'Expressão',127],[74,'Cutoff • 64 neutro',64],[71,'Ressonância • 64 neutro',64],[73,'Attack • 64 neutro',64],[72,'Release • 64 neutro',64],[91,'Envio reverb',30],[93,'Envio chorus',0]];
-function persist(){let s=JSON.stringify({songs,scenes,toneFavorites:saved.toneFavorites||[],xpsToneCache:saved.xpsToneCache||[],favoriteBanks:saved.favoriteBanks||{},stageFavoriteBank:saved.stageFavoriteBank||0,lastToneBank:saved.lastToneBank||0,assistChannel:saved.assistChannel||3,scoreScrollSpeed:saved.scoreScrollSpeed||3,tonePresets:saved.tonePresets||{},performanceNames:saved.performanceNames||{},lastTonePart:saved.lastTonePart||0,songFavorites:saved.songFavorites||[],padNotes:saved.padNotes||null,pattern:saved.pattern||null,drumStudio:saved.drumStudio||null,light:document.body.classList.contains('light')});if(N)N.save(s);else localStorage.setItem('copiloto',s);}
+function persist(){let s=JSON.stringify({songs,scenes,toneFavorites:saved.toneFavorites||[],xpsToneCache:saved.xpsToneCache||[],favoriteBanks:saved.favoriteBanks||{},stageFavoriteBank:saved.stageFavoriteBank||0,lastToneBank:saved.lastToneBank||0,assistChannel:saved.assistChannel||3,scoreScrollSpeed:saved.scoreScrollSpeed||3,tonePresets:saved.tonePresets||{},performanceNames:saved.performanceNames||{},backupPerformanceNames:saved.backupPerformanceNames||{},louveSetlist:saved.louveSetlist||null,lastTonePart:saved.lastTonePart||0,songFavorites:saved.songFavorites||[],padNotes:saved.padNotes||null,pattern:saved.pattern||null,drumStudio:saved.drumStudio||null,light:document.body.classList.contains('light')});if(N)N.save(s);else localStorage.setItem('copiloto',s);}
 function option(select,text,value){let e=document.createElement('option');e.textContent=text;e.value=value;select.append(e);}
 M.names.forEach((n,i)=>option($('key'),n,i));for(let i=1;i<=16;i++)option($('channel'),'Parte '+i,i);
 for(let note=48;note<=72;note++){let k=document.createElement('div');k.className='key'+([1,3,6,8,10].includes(note%12)?' black':'');k.dataset.note=note;k.textContent=M.names[note%12];$('piano').append(k);}
@@ -41,6 +41,7 @@ function normalize(s){if(!s||typeof s.title!=='string'||!Array.isArray(s.chords)
  riffs:String(s.riffs||'').slice(0,30000),scoreNotes:String(s.scoreNotes||'').slice(0,10000),
  sections:Array.isArray(s.sections)?s.sections.filter(x=>typeof x==='string').slice(0,100):[],
  sourceUrl:typeof s.sourceUrl==='string'&&/^https:\/\/(?:[\w-]+\.)*cifraclub\.com\.br\//i.test(s.sourceUrl)?s.sourceUrl.slice(0,500):'',
+ artist:String(s.artist||'').slice(0,100),requestedKey:String(s.requestedKey||'').slice(0,5),sourceKey:String(s.sourceKey||'').slice(0,5),keyMatched:!!s.keyMatched,lyricsUrl:typeof s.lyricsUrl==='string'&&s.lyricsUrl.startsWith('https://')?s.lyricsUrl.slice(0,500):'',audioUrl:typeof s.audioUrl==='string'&&s.audioUrl.startsWith('https://')?s.audioUrl.slice(0,500):'',
  youtubeUrl:
  typeof s.youtubeUrl==='string'&&/^https:\/\/(?:www\.|m\.)?youtube\.com\/watch\?|^https:\/\/youtu\.be\//i.test(s.youtubeUrl)?s.youtubeUrl.slice(0,260):''};}
 function select(s){song=normalize(s);pause();idx=0;elapsed=0;root=song.root;minor=song.minor;$('key').value=root;$('mode').value=minor?1:0;$('tempo').value=song.bpm;$('songCategory').value=song.category;$('title').value=song.title;$('changes').value=song.chords.join(' ');$('beats').value=song.beats;$('text').value=song.text;updateSong();renderNotes();status('Música carregada: '+song.title);}
@@ -70,20 +71,21 @@ $('saveScene').onclick=()=>{let name=$('sceneName').value.trim();if(!name)return
 function guide(){updateSong();}$('refreshGuide').onclick=guide;$('ask').onclick=()=>{let q=$('question').value.trim();if(!q)return;$('answer').textContent='Processando no aparelho…';invoke('ask','Tom '+M.names[root]+(minor?' menor':' maior')+'; acorde tocado '+M.chord(notes())+'; controles '+JSON.stringify(values())+'. Pergunta: '+q);};$('clearNotes').onclick=clear;
 window.receive=(type,data)=>{if(type==='webCifra'){try{
   if(!data||typeof data.text!=='string')throw Error('Cifra não recebida.');
-  let parsed=parseSharedCifra(data.text,M.parse);
-  parsed.title=String(data.title||parsed.title||'Música importada').slice(0,150);
-  parsed.text=data.text;
-  parsed.category='Cifra Club';
+  let parsed=data.louveBatch?GraueLouve.prepareScore(data,M,parseSharedCifra,GraueCifraTranspose):parseSharedCifra(data.text,M.parse);
+  parsed.title=String(data.louveBatch?parsed.title:(data.title||parsed.title||'Música importada')).slice(0,150);
+  parsed.text=data.louveBatch?parsed.text:data.text;
+  parsed.category=data.louveBatch?parsed.category:'Cifra Club';
   parsed.riffs=String(data.riffs||'');
-  parsed.scoreNotes=String(data.notes||'');
+  parsed.scoreNotes=data.louveBatch?parsed.scoreNotes:String(data.notes||'');
   parsed.sections=Array.isArray(data.sections)?data.sections:[];
-  parsed.sourceUrl=String(data.sourceUrl||'');
-  const item=normalize(parsed),at=songs.findIndex(s=>s.title===item.title&&s.category==='Cifra Club');
+  parsed.sourceUrl=String(data.louveBatch?parsed.sourceUrl:(data.sourceUrl||''));
+  const item=normalize(parsed),at=songs.findIndex(s=>s.sourceUrl===item.sourceUrl&&s.category===item.category);
   if(at<0)songs.push(item);else songs[at]=item;
+  if(data.louveBatch&&saved.louveSetlist){const row=saved.louveSetlist.items.find(x=>x.id===data.louve.id);if(row){row.status='done';row.error='';row.keyMatched=item.keyMatched;}}
   persist();list();select(item);
   if(window.refreshLiveSongs)window.refreshLiveSongs();
   status('Cifra identificada automaticamente: '+item.chords.length+' acordes · '+item.sections.length+' seções. Tom e BPM podem ser ajustados.');
- }catch(e){if(data&&typeof data.text==='string')$('sharedText').value=data.text;status('Importação automática não concluída: '+e.message);}}if(type==='sharedText'){$('sharedText').value=data;status('Texto recebido. Revise na aba Repertório e toque em Importar texto revisado.');}if(type==='modelInfo')$('modelInfo').textContent=data;if(type==='status')status(data);if(type==='midi')midi(data);if(type==='clear')clear();if(type==='pause')pause();if(type==='armed')$('arm').checked=data;if(type==='mic'){mic=data;$('mic').textContent=mic?'Parar áudio':'Ouvir ambiente';if(!mic)$('audio').textContent='Áudio desligado';}if(type==='answer')$('answer').textContent=data;if(type==='import')importSongs(data);if(type==='audio'){estimate=data;$('audio').textContent=data.root>=0?'Estimativa: '+M.names[data.root]+(data.mode===1?' menor':' maior')+' • índice '+data.confidence+' (não é probabilidade)':'Ouvindo • tom ainda indefinido';}};
+ }catch(e){if(data?.louveBatch&&saved.louveSetlist){const row=saved.louveSetlist.items.find(x=>x.id===data.louve.id);if(row){row.status='failed';row.error=e.message;persist();}}if(data&&typeof data.text==='string')$('sharedText').value=data.text;status('Importação automática não concluída: '+e.message);}}if(type==='sharedText'){$('sharedText').value=data;status('Texto recebido. Revise na aba Repertório e toque em Importar texto revisado.');}if(type==='modelInfo')$('modelInfo').textContent=data;if(type==='status')status(data);if(type==='midi')midi(data);if(type==='clear')clear();if(type==='pause')pause();if(type==='armed')$('arm').checked=data;if(type==='mic'){mic=data;$('mic').textContent=mic?'Parar áudio':'Ouvir ambiente';if(!mic)$('audio').textContent='Áudio desligado';}if(type==='answer')$('answer').textContent=data;if(type==='import')importSongs(data);if(type==='audio'){estimate=data;$('audio').textContent=data.root>=0?'Estimativa: '+M.names[data.root]+(data.mode===1?' menor':' maior')+' • índice '+data.confidence+' (não é probabilidade)':'Ouvindo • tom ainda indefinido';}};
 list();sceneList();updateSong();draw();
 
 $('importShared').onclick=()=>importSongs($('sharedText').value);
