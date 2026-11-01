@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 45
-        versionName '1.30.0-louve-svd'
+        versionCode 46
+        versionName '1.30.1-repertorio-fix'
     }
     buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }

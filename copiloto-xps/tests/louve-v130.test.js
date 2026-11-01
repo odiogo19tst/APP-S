@@ -12,3 +12,5 @@ const score={text:'C  F  G\nLetra de teste original',key:'C',louve:set.items[1]}
 const converted=L.prepareScore(score,M,parse,transpose);assert.equal(converted.root,4);assert(converted.text.startsWith('E  A  B'));assert.equal(converted.bpm,150);assert.equal(converted.keyMatched,true);
 const unknown=L.prepareScore({...score,key:''},M,parse,transpose);assert(unknown.text.startsWith('C  F  G'));assert.equal(unknown.keyMatched,false);assert(unknown.scoreNotes.includes('Tom pedido: E'));
 console.log('Louve: three real setlist entries, metadata, safe URLs, explicit-key transposition and unknown-key preservation passed');
+
+assert.equal(L.cleanScoreText('[Primeira Parte]\nParte 1 de 3\nC  G\nParte de mim\n  Parte 2 de 3\n[Refrão]'),'[Primeira Parte]\nC  G\nParte de mim\n[Refrão]');
