@@ -850,3 +850,16 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 .gx-stage-scroll{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px}
 .gx-stage-scroll label{display:flex;align-items:center;gap:8px}
 .gx-stage-scroll[hidden]{display:none!important}
+
+/* Stage: ten bank choices, nine Favorite buttons; no Performance part grid. */
+.stage-favorites,.stage-favorite-heading{display:flex;flex-direction:column;gap:12px;width:100%}
+.stage-favorite-heading label{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.stage-favorite-bank{background:#153144;color:#f3fbff;border:1px solid #4a9c9b;border-radius:12px;min-height:48px;padding:10px 16px;font-size:17px}
+.stage-favorite-current{font-size:13px;color:#adc3cd}
+.stage-favorite-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+.stage-favorite-grid .stage-favorite-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:100px;padding:10px 5px;border-radius:15px;border:1px solid #355267;background:#102332;color:#e0eaf1;opacity:1}
+.stage-favorite-slot strong{font-size:27px}.stage-favorite-slot small{font-size:12px;color:#9eb5c2}
+.stage-favorite-hint{font-size:12px;line-height:1.5}
+.legacy-stage-part-controls[hidden]{display:none!important}
+#gx-shell #gx-live-favorites{display:flex;flex-direction:column;gap:12px}
+@media(orientation:landscape) and (max-height:600px){.stage-favorite-grid .stage-favorite-slot{min-height:70px}.stage-favorite-slot strong{font-size:23px}}

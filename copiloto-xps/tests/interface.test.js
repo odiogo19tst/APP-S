@@ -47,16 +47,16 @@ assert.equal(ctx.window.XPS_EFFECTS[21],'Rotary');assert.equal(ctx.window.XPS_EF
 console.log('Share: plain chords, ChordPro, link-only rejection and effect catalog passed');
 
 vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/live.js','utf8'),ctx);
-// Grauê XPS: painel de palco deve respeitar permissões de envio MIDI.
-assert.equal(els.livePartsGrid.children.length,16);
-assert.equal(els.liveConnection.textContent,'Aguardando leitura MIDI');
+// Bank selector and nine placeholders must never recall Performance parts.
 const quick=els.liveQuickFavorites;
-assert(quick.children.length>=1);
-const qCount=calls.filter(c=>c[0]==='edit').length;
-const toneCount=calls.filter(c=>c[0]==='selectTone').length;
-if(quick.children[0].onclick)quick.children[0].onclick();
-assert.equal(calls.filter(c=>c[0]==='edit').length,qCount);
-assert.equal(calls.filter(c=>c[0]==='selectTone').length,toneCount+1); // Tap requests a direct Bank/Program Change; Android verifies USB.
+assert.equal(quick.children[0].children[0].children[0].children.length,10);
+assert.equal(quick.children[1].children.length,9);
+assert(quick.children[1].children.every(b=>b.disabled));
+assert.equal(els.liveConnection.textContent,'Favoritos ainda não lidos');
+const beforeBank=calls.filter(c=>c[0]==='selectTone'||c[0]==='edit').length;
+const bankSelect=quick.children[0].children[0].children[0];bankSelect.value='9';bankSelect.onchange();
+assert.equal(quick.children[0].children[0].children[0].value,'9');
+assert.equal(calls.filter(c=>c[0]==='selectTone'||c[0]==='edit').length,beforeBank);
 
 native.padHit=(...a)=>calls.push(['pad',...a]);native.stopPads=()=>calls.push(['stopPads']);
 assert.equal(els.toneFamilies.children.length,9);
@@ -89,21 +89,12 @@ ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:
 els.liveCC.value='74';els.liveCCValue.value='64';els.liveSendCC.onclick();assert.deepEqual(calls.at(-1),['cc',10,74,64]);
 console.log('Show: legacy toggle retired; browser entry, panic and effect control channel passed');
 
-// Dados lidos habilitam seleção local de parte, sem transmissão imediata.
+// A Performance response must not be relabeled as a physical Favorite read.
 ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});
-assert.equal(els.liveConnection.textContent,'Performance lida');
-const countBeforeSelect=calls.filter(c=>c[0]==='edit').length;
-els.livePartsGrid.children[1].onclick();
-assert.equal(els.livePart.value,'1');
-assert.equal(calls.filter(c=>c[0]==='edit').length,countBeforeSelect);
-els.livePartsGrid.children[0].onclick();
-assert.equal(els.livePart.value,'0');
-els.arm.checked=false; // Simulates stale UI switch, which must not block MIDI on connected Android.
-const beforeTone=calls.filter(c=>c[0]==='selectTone').length;
-if(els.liveQuickFavorites.children[0].onclick)els.liveQuickFavorites.children[0].onclick();
-assert.equal(calls.filter(c=>c[0]==='edit').length,countBeforeSelect);
-assert.equal(calls.filter(c=>c[0]==='selectTone').length,beforeTone+1);
-console.log('Grauê XPS: 16 partes, leitura, favoritos e segurança de envio passaram');
+assert.equal(els.liveConnection.textContent,'MIDI lido · favoritos pendentes');
+assert.equal(els.liveQuickFavorites.children[1].children.length,9);
+assert(els.liveQuickFavorites.children[1].children.every(b=>b.disabled));
+console.log('Stage: banks 0–9, nine Favorite buttons, no synthetic names or MIDI on bank selection passed');
 
 for(const file of ['mfx-params.js','advanced.js','sequencer.js'])vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/'+file,'utf8'),ctx);
 assert.equal(ctx.window.XPS_MFX_PARAMS.length,79);assert.equal(ctx.window.XPS_MFX_PARAMS[1][0].id,'equalizer-loFreq');assert(ctx.window.XPS_MFX_PARAMS[21][0].id.startsWith('rotary-'));assert(ctx.window.XPS_MFX_PARAMS[78][0].id.startsWith('sympatheticResonance-'));
