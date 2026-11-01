@@ -815,7 +815,7 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell .gx-live-song-chooser select{width:100%;min-width:0;min-height:44px;border-radius:8px;background:#17364a;border:1px solid #39708a;color:#fff;padding:6px;font-size:14px}
 #gx-shell .gx-live-score-wrap{margin:8px 0;padding:9px 12px}
 #gx-shell #gx-live-score-toggle{min-height:46px;min-width:170px;background:#143f5b;border:1px solid #3c829e;color:#effaff;border-radius:9px;font-size:14px;font-weight:650;padding:10px}
-#gx-shell .gx-live-score{white-space:pre-wrap;overflow-wrap:anywhere;max-height:min(48dvh,470px);overflow-y:auto;font-size:clamp(16px,2vw,24px);line-height:1.7;color:#f2f9ff;margin:12px 0 0;padding:10px 5px;scrollbar-width:thin}
+#gx-shell .gx-live-score{white-space:pre-wrap;overflow-wrap:break-word;max-height:min(48dvh,470px);overflow-y:auto;font-size:clamp(16px,2vw,24px);line-height:1.7;color:#f2f9ff;margin:12px 0 0;padding:10px 5px;scrollbar-width:thin}
 #gx-shell .gx-live-score[hidden]{display:none!important}
 #gx-shell.gx-live-mode .gx-stage-summary{gap:9px}
 #gx-shell.gx-live-mode .gx-mini strong{font-size:clamp(22px,2.8vw,36px)}
