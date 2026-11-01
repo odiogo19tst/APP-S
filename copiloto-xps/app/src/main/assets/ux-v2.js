@@ -163,11 +163,17 @@
  shell.querySelectorAll('[data-gx-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.gxFilter;shell.querySelectorAll('[data-gx-filter]').forEach(x=>x.classList.toggle('on',x===b));renderSongs();});
  $x('gx-add-song').onclick=()=>openLegacy('songs');
  const renderLouve=()=>{
-  const set=saved.louveSetlist,box=$x('gx-louve-state');box.replaceChildren();
-  if(!set?.items?.length)return;
-  const title=document.createElement('strong');title.textContent=set.title;box.append(title);
-  const summary=document.createElement('p');summary.textContent=set.items.filter(x=>x.status==='done').length+' de '+set.items.length+' cifras importadas';box.append(summary);
-  set.items.forEach(item=>{const line=document.createElement('p');line.textContent=(item.status==='done'?'✓ ':item.status==='failed'?'⚠ ':'… ')+item.title+' · Tom '+(item.key||'—')+' · BPM '+item.bpm+(item.error?' · '+item.error:'')+(item.status==='done'&&!item.keyMatched?' · conferir tom da fonte':'');box.append(line);});
+  const set=saved.louveSetlist,box=$x('gx-louve-state'),wasOpen=!!box.querySelector('details')?.open;box.replaceChildren();
+  if(!set?.items?.length){box.hidden=true;return;}
+  box.hidden=false;
+  const details=document.createElement('details');details.className='gx-louve-details';details.open=wasOpen;
+  const summary=document.createElement('summary');summary.className='gx-louve-summary';
+  const title=document.createElement('span');title.className='gx-louve-title';title.textContent=set.title;
+  const count=document.createElement('span');count.className='gx-louve-count';const done=set.items.filter(x=>x.status==='done').length;count.textContent=done+'/'+set.items.length+' importadas';
+  summary.append(title,count);details.append(summary);
+  const rows=document.createElement('div');rows.className='gx-louve-rows';
+  set.items.forEach(item=>{const line=document.createElement('p');line.textContent=(item.status==='done'?'✓ ':item.status==='failed'?'⚠ ':'… ')+item.title+' · Tom '+(item.key||'—')+' · BPM '+item.bpm+(item.error?' · '+item.error:'')+(item.status==='done'&&!item.keyMatched?' · conferir tom da fonte':'');rows.append(line);});
+  details.append(rows);box.append(details);
   $x('gx-louve-retry').hidden=!set.items.some(x=>x.status!=='done');
  };
  const startLouve=items=>{
@@ -481,7 +487,7 @@
    const retainedScroll=content.querySelector('pre')?.scrollTop||0;
    content.replaceChildren();
    if(section==='setlist'){content.textContent='Escolha músicas pela lista à esquerda. A ordem da apresentação pode ser preparada no editor completo.';return;}
-   let txt=S(song.text).trim();
+   let txt=GraueLouve.cleanScoreText(S(song.text)).trim();
    if(section==='notes')txt=S(song.scoreNotes).trim()||'Nenhuma observação técnica identificada nesta cifra.';
    if(section==='riffs')txt=S(song.riffs).trim()||'Nenhum riff ou tablatura identificado nesta cifra.';
    if(section==='letter'&&txt)txt=window.GraueCifraView?.lyricsOnly?GraueCifraView.lyricsOnly(txt,M.parse):txt;
@@ -759,7 +765,7 @@
  }
  function syncStage(){
   $x('gx-score-key').value=String(root);$x('gx-stage-score-key').value=String(root);
-  const score=$x('gx-live-score'),scoreText=S(song?.text||'').trim()||'Cifra não disponível. Importe no menu Repertório, fora do Modo Ao Vivo.';if(score.textContent!==scoreText)score.textContent=scoreText;
+  const score=$x('gx-live-score'),scoreText=GraueLouve.cleanScoreText(S(song?.text||'')).trim()||'Cifra não disponível. Importe no menu Repertório, fora do Modo Ao Vivo.';if(score.textContent!==scoreText)score.textContent=scoreText;
   const stageDropdown=$x('gx-live-song-select');const matchingSong=songs.findIndex(entry=>entry&&entry.title===song?.title);if(matchingSong>=0&&stageDropdown.value!==String(matchingSong))stageDropdown.value=String(matchingSong);
   const hasRealSong=songs.some(m=>m&&m.title===song.title);
   $x('gx-song-name').textContent=hasRealSong?song.title:'Selecione uma música do repertório';

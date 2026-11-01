@@ -868,3 +868,21 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-louve-state{font-size:12px;line-height:1.5;color:#b9d5df;overflow-wrap:break-word;padding:8px}
 #gx-louve-state p{margin:8px 0}#gx-louve-dialog button,#gx-louve-open,#gx-louve-retry,#gx-louve-cancel{min-height:44px}
 #gx-louve-retry[hidden],#gx-louve-cancel[hidden]{display:none!important}
+
+/* 1.30.1: the import summary must not squeeze the repertoire out of its card. */
+#gx-shell .gx-rep-layout>.gx-rep-library{max-height:none;min-height:0;height:auto;overflow:visible;align-self:start}
+#gx-shell .gx-rep-library>.gx-section-label,#gx-shell .gx-rep-library>#gx-search,#gx-shell .gx-rep-library>.gx-filters,#gx-shell .gx-rep-library>#gx-louve-open,#gx-shell .gx-rep-library>#gx-louve-state{flex-shrink:0}
+#gx-shell .gx-rep-library .gx-filters{min-height:42px}
+#gx-shell .gx-rep-library>.gx-song-list{flex:0 1 auto;min-height:56px;max-height:250px;overflow-y:auto;margin-top:6px}
+#gx-shell #gx-louve-state{padding:4px 0;font-size:12px;line-height:1.4;min-width:0}
+#gx-shell #gx-louve-state[hidden]{display:none!important}
+#gx-shell .gx-louve-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;min-height:38px;padding:8px 6px;border-bottom:1px solid #315167}
+#gx-shell .gx-louve-title{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;line-height:1.4;color:#d6ebf4}
+#gx-shell .gx-louve-count{flex:0 0 auto;font-size:11px;font-weight:500;line-height:1.4;white-space:nowrap;color:#77ddc7}
+#gx-shell .gx-louve-rows{max-height:145px;overflow-y:auto;font-size:12px;line-height:1.45;padding:0 6px}
+#gx-shell .gx-louve-rows p{font-size:12px;line-height:1.45;margin:8px 0}
+@media(max-width:700px){#gx-shell .gx-rep-library>.gx-song-list{max-height:210px}#gx-shell .gx-rep-library>#gx-louve-open{min-height:40px;padding:8px 10px;font-size:13px}}
+#gx-shell .gx-louve-details{margin:0;padding:0;border:0;background:transparent}
+#gx-shell .gx-cifra-shift{display:grid;grid-template-columns:30px minmax(52px,1fr) 30px;gap:3px;align-items:center}
+#gx-shell .gx-cifra-shift button{min-width:0;width:30px;padding:4px}
+#gx-shell .gx-cifra-shift select{min-width:52px;width:100%;padding:5px 3px;font-size:14px}

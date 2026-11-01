@@ -1,6 +1,8 @@
 # Grauê XPS — referência de continuidade
 
-Versão 1.30.0-louve-svd, versionCode 45.
+Versão 1.30.1-repertorio-fix, versionCode 46.
+
+Resumo LouveApp compacto e recolhível; lista de músicas preserva altura no celular. Remove marcadores de paginação “Parte N de N” da exibição das cifras e das próximas importações. Mesma chave permanente da 1.30.
 
 Escalas LouveApp: colar/compartilhar, fila de cifras no WebView, tons e BPM preservados; falhas ficam pendentes. SVD: diretório e 128 nomes de Performances/256 USER validados no arquivo real; sem decoder completo de parâmetros/FAVORITE. Ver AUDITORIA_BACKUP_V130.md.
 

@@ -29,5 +29,6 @@ function prepareScore(data,M,parseScore,transposeText){
  if(sourceKey&&requested){const shift=M.mod(requested.root-sourceKey.root);parsed.chords=parsed.chords.map(c=>M.transpose(c,shift));parsed.text=transposeText(parsed.text,shift,M.parse,M.transpose);parsed.root=requested.root;parsed.minor=requested.q.startsWith('m')&&!requested.q.startsWith('maj');}
  return {...parsed,title:meta.title||data.title||parsed.title,artist:meta.artist||data.artist||'',category:meta.category||'LouveApp',bpm:meta.bpm||72,sourceUrl:meta.sourceUrl||data.sourceUrl,youtubeUrl:meta.youtubeUrl||'',lyricsUrl:meta.lyricsUrl||'',audioUrl:meta.audioUrl||'',requestedKey:meta.key||'',sourceKey:String(data.key||''),keyMatched:!!(sourceKey&&requested),riffs:data.riffs||'',scoreNotes:[data.notes||'',!sourceKey&&meta.key?'Tom pedido: '+meta.key+'. Confira o tom da fonte antes de transpor.':''].filter(Boolean).join('\n'),sections:data.sections||[]};
 }
-const api={parse,cifraUrl,prepareScore};g.GraueLouve=api;if(typeof module==='object')module.exports=api;
+function cleanScoreText(text){return String(text||'').split('\n').filter(line=>!/^\s*Parte\s+\d+\s+de\s+\d+\s*$/i.test(line)).join('\n');}
+const api={parse,cifraUrl,prepareScore,cleanScoreText};g.GraueLouve=api;if(typeof module==='object')module.exports=api;
 })(typeof window==='object'?window:globalThis);

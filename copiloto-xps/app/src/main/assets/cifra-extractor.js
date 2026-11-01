@@ -25,6 +25,7 @@
    const line=raw.trim();
    if(line.length>800)continue;
    if(!line){if(mode==='riffs')riffs.push('');else score.push('');continue;}
+   if(/^Parte\s+\d+\s+de\s+\d+$/i.test(line))continue; // Site pagination, not a musical section.
    const label=labelOf(line);
    if(label){parts.push(label);mode=/\b(?:riff|tab|dedilhado|solo de guitarra|violão solo)\b/i.test(label)?'riffs':'score';(mode==='riffs'?riffs:score).push(raw);continue;}
    if(note.test(line)){notes.push(line);continue;}
