@@ -805,3 +805,26 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 .gx-kit-picker-help{font-size:11px;color:#b1c8d2;line-height:1.5;margin:13px 0 0}
 @media(orientation:landscape) and (max-height:550px){.gx-kit-picker{max-height:calc(100dvh - 14px);padding:10px}.gx-kit-picker-head h3{font-size:19px}.gx-kit-picker-list{max-height:42dvh}}
 @media(max-width:460px){.gx-kit-picker{width:calc(100vw - 16px);margin-bottom:8px}.gx-kit-picker-head h3{font-size:21px}.gx-kit-choice-title{font-size:13px}}
+
+
+/* Grauê 1.27: reference-inspired chromatic 12 keys above sample/MIDI drum pads. */
+#gx-shell .gx-chromatic-section{padding:12px;background:#0c1d2c;border:1px solid #285367;border-radius:13px;margin:12px 0;display:flex;flex-direction:column;gap:8px}
+#gx-shell .gx-chromatic-section p{font-size:12px;color:#abd2d6;line-height:1.45;margin:0!important}
+.gx-chromatic-channel{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:#bdcbd8}
+#gx-shell .gx-chromatic-channel select{background:#102c3c;color:#fff;min-height:44px;padding:9px;border:1px solid #357386;border-radius:9px}
+.gx-chromatic-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;touch-action:manipulation}
+#gx-shell .gx-chromatic-key{min-height:100px;border:1px solid #31556a;background:linear-gradient(155deg,#162836,#0b131c);border-radius:15px;color:#f5fbff;font-size:25px;font-weight:750;user-select:none;touch-action:none;-webkit-user-select:none;transition:background .07s ease,transform .07s ease}
+#gx-shell .gx-chromatic-key:active,#gx-shell .gx-chromatic-key.playing{background:#07846e;color:#fff;border-color:#58e4c7;transform:scale(.98)}
+#gx-chromatic-info{color:#95c6cb;font-size:11px;line-height:1.45}
+@media(max-width:680px) and (orientation:portrait){
+ .gx-chromatic-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ #gx-shell .gx-chromatic-key{min-height:94px;font-size:23px}
+ .gx-chromatic-channel{flex-wrap:wrap}
+}
+@media(max-width:380px){
+ #gx-shell .gx-chromatic-key{min-height:76px}
+}
+@media(min-width:820px) and (orientation:landscape){
+ .gx-chromatic-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+ #gx-shell .gx-chromatic-key{min-height:82px;font-size:20px}
+}
