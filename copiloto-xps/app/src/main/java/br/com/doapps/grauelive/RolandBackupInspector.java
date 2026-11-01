@@ -41,6 +41,15 @@ public final class RolandBackupInspector {
     out.put("entryListTruncated",entries.hasMoreElements());
    }catch(ZipException e){out.put("container","ZIP inválido/criptografado");}
   }
+  if(length>=6&&header[2]=='S'&&header[3]=='V'&&header[4]=='D'&&header[5]=='1'){
+   SvdCatalog catalog=SvdCatalog.read(file);out.put("container","Roland XPS-10 SVD1");
+   JSONArray blocks=new JSONArray(),performances=new JSONArray(),patches=new JSONArray();
+   for(SvdCatalog.Section section:catalog.sections)blocks.put(new JSONObject().put("tag",section.tag).put("offset",section.offset).put("bytes",section.size).put("records",section.count).put("recordBytes",section.stride));
+   for(int i=0;i<catalog.performances.size();i++)performances.put(new JSONObject().put("index",i+1).put("name",catalog.performances.get(i)).put("source","svd-backup"));
+   for(int i=0;i<catalog.patches.size();i++)patches.put(new JSONObject().put("index",i+1).put("name",catalog.patches.get(i)).put("source","svd-backup"));
+   out.put("sections",blocks).put("performances",performances).put("patches",patches);
+   out.put("coverage","Nomes e estrutura do backup lidos. Dados packed SVD não são endereços SysEx. Favoritos e demais parâmetros binários ainda não decodificados.");
+  }
   out.put("files",members);
   out.put("interpretation","Estrutura original identificada apenas para diagnóstico. Nenhum favorito foi extraído ou alterado. Para mapear as 100 posições, precisamos validar o formato real do arquivo.");
   return out;

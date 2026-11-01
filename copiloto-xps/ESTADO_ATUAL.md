@@ -1,6 +1,10 @@
 # Grauê XPS — referência de continuidade
 
-Versão 1.29.0-palco-favoritos, versionCode 44.
+Versão 1.30.0-louve-svd, versionCode 45.
+
+Escalas LouveApp: colar/compartilhar, fila de cifras no WebView, tons e BPM preservados; falhas ficam pendentes. SVD: diretório e 128 nomes de Performances/256 USER validados no arquivo real; sem decoder completo de parâmetros/FAVORITE. Ver AUDITORIA_BACKUP_V130.md.
+
+Assinatura fixa: obrigatória em todas as entregas. A CI gera APK UNSIGNED; assinar com o material privado do proprietário conforme SIGNING.md. Não distribuir APK de debug com uma nova chave.
 
 Palco: seletor de bancos 0–9 e nove botões 1–9 substituem a grade de 16 partes. Sem leitura física dos FAVORITE, os botões permanecem sem nomes inventados e desabilitados. Edição de partes continua em Sons.
 

@@ -863,3 +863,8 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 .legacy-stage-part-controls[hidden]{display:none!important}
 #gx-shell #gx-live-favorites{display:flex;flex-direction:column;gap:12px}
 @media(orientation:landscape) and (max-height:600px){.stage-favorite-grid .stage-favorite-slot{min-height:70px}.stage-favorite-slot strong{font-size:23px}}
+
+#gx-louve-text{width:100%;box-sizing:border-box;min-height:200px;background:#102332;color:#eef7ff;border:1px solid #3b6a7f;border-radius:10px;padding:12px;font-size:15px}
+#gx-louve-state{font-size:12px;line-height:1.5;color:#b9d5df;overflow-wrap:break-word;padding:8px}
+#gx-louve-state p{margin:8px 0}#gx-louve-dialog button,#gx-louve-open,#gx-louve-retry,#gx-louve-cancel{min-height:44px}
+#gx-louve-retry[hidden],#gx-louve-cancel[hidden]{display:none!important}

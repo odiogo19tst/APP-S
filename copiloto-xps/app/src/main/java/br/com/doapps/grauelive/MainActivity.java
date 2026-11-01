@@ -78,7 +78,7 @@ public class MainActivity extends Activity {
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setBackgroundColor(android.graphics.Color.rgb(7,17,28));rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
-  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();restoreConfirmedMidiCache();emitCachedUsers();}});
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();restoreConfirmedMidiCache();emitCachedUsers();worker.execute(()->publishLatestBackup());}});
   web.addJavascriptInterface(new Bridge(),"Native");
   worker.execute(()->{
    try{padSamples.prepare();emit("padSampleState",padSamples.state());}
@@ -154,8 +154,8 @@ public class MainActivity extends Activity {
    cifraPanel=new CifraPanel(this,data->{
     emit("webCifra",data);
     // Keep the user's page alive and cookies intact, but return immediately to the score in Grauê.
-    if(cifraPanel!=null){cifraPanel.setVisibility(android.view.View.GONE);layoutPanels();}
-   },()->{rootLayout.removeView(cifraPanel);cifraPanel.destroy();cifraPanel=null;layoutPanels();});
+    if(cifraPanel!=null&&!data.optBoolean("louveBatch")){cifraPanel.setVisibility(android.view.View.GONE);layoutPanels();}
+   },progress->{emit("louveProgress",progress);if(("done".equals(progress.optString("state"))||"cancelled".equals(progress.optString("state")))&&cifraPanel!=null){cifraPanel.setVisibility(android.view.View.GONE);layoutPanels();}},()->{rootLayout.removeView(cifraPanel);cifraPanel.destroy();cifraPanel=null;layoutPanels();});
    rootLayout.addView(cifraPanel);
   }
   cifraPanel.setVisibility(android.view.View.VISIBLE);
@@ -180,6 +180,7 @@ public class MainActivity extends Activity {
   stoppedWhileConnected=false;
  }
  private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+(new JSONArray().put(data).toString()+"[0]")+")",null);}catch(Exception ignored){} });}
+ private void publishLatestBackup(){try{JSONArray files=backupArchive.list();if(files.length()==0)return;JSONObject latest=files.getJSONObject(files.length()-1);String sha=latest.getString("sha256");emit("backupCatalog",RolandBackupInspector.inspect(backupArchive.fileFor(sha),latest.optString("name")));}catch(Exception e){emit("status","Catálogo do backup não disponível: "+e.getMessage());}}
  private void captureShare(Intent intent){if(Intent.ACTION_SEND.equals(intent.getAction())&&"text/plain".equals(intent.getType())){String text=intent.getStringExtra(Intent.EXTRA_TEXT);if(text!=null)pendingShare=text.substring(0,Math.min(text.length(),200000));}}
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);captureShare(intent);if(pageReady&&!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}}
  private void directInfo(){
@@ -400,6 +401,9 @@ public class MainActivity extends Activity {
   }
 
 
+  @JavascriptInterface public void startLouveImport(String json){runOnUiThread(()->{try{if(json==null||json.length()>70000)throw new IllegalArgumentException("Escala grande demais");org.json.JSONArray items=new org.json.JSONArray(json);showCifra();cifraPanel.importBatch(items);}catch(Exception e){emit("status","Escala: "+e.getMessage());}});}
+  @JavascriptInterface public void cancelLouveImport(){runOnUiThread(()->{if(cifraPanel!=null)cifraPanel.cancelBatch();});}
+  @JavascriptInterface public void pasteLouveScale(){runOnUiThread(()->{try{android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);if(clipboard==null||!clipboard.hasPrimaryClip())throw new IllegalArgumentException("Copie a escala do LouveApp primeiro");CharSequence text=clipboard.getPrimaryClip().getItemAt(0).coerceToText(MainActivity.this);if(text==null)throw new IllegalArgumentException("Texto não disponível");emit("sharedText",text.toString().substring(0,Math.min(text.length(),200000)));}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void openReference(String name){runOnUiThread(()->{String url=null;if(name.equals("model"))url="https://huggingface.co/litert-community/Gemma3-1B-IT/tree/main";if(name.equals("gemmaTerms"))url="https://ai.google.dev/gemma/terms";if(name.equals("gemmaSource"))url="https://huggingface.co/72fstudio/gemma-3-270m-it";if(name.equals("effects"))url="https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf";if(name.equals("louve"))url="https://louveapp.com.br/";if(name.equals("cifra"))url="https://www.cifraclub.com.br/";if(url!=null)try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(Exception e){emit("status","Não foi possível abrir o navegador.");}});}
   @JavascriptInterface public void testModel(){
     // Verifica explicitamente a Gemma local, sem roteamento para OpenAI.
@@ -544,6 +548,7 @@ public class MainActivity extends Activity {
     }catch(Exception e){emit("status","Não foi possível examinar o backup: "+e.getMessage());}
    });
   }
+  @JavascriptInterface public void importGraueSettings(){runOnUiThread(()->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),12));}
   @JavascriptInterface public void importXpsBackups(){runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(i,5);});}
   @JavascriptInterface public void exportXpsBackup(String sha){worker.execute(()->{try{File file=backupArchive.fileFor(sha);String originalName=backupArchive.originalName(sha);backupExportSha=sha;runOnUiThread(()->startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/octet-stream").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,originalName),6));}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void deleteXpsBackup(String sha){worker.execute(()->{try{if(backupArchive.delete(sha)){emit("backups",backupArchive.list());emit("status","Copia local excluida. Nenhuma alteração foi feita no XPS-10.");}}catch(Exception e){emit("status",e.getMessage());}});}
@@ -681,6 +686,10 @@ public class MainActivity extends Activity {
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
+ if(req==12){try(InputStream in=getContentResolver().openInputStream(data.getData());ByteArrayOutputStream output=new ByteArrayOutputStream()){
+  if(in==null)throw new IOException("Arquivo não disponível");byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1){if(output.size()+n>1000000)throw new IOException("Backup de configurações maior que 1 MB");output.write(buffer,0,n);}
+  JSONObject archive=new JSONObject(output.toString("UTF-8"));if(archive.optInt("graueSettingsBackup")!=1)throw new IOException("Não é um backup de dados do Grauê");JSONObject state=archive.getJSONObject("state");if(!(state.opt("songs") instanceof JSONArray))throw new IOException("Repertório ausente no backup");getPreferences(0).edit().putString("state",state.toString()).apply();runOnUiThread(()->web.reload());return;
+ }}
  if(req==11){
   int bank=exportRolandBank;
   int count=padSamples.exportRolandAudioPads(bank,data.getData());
@@ -732,7 +741,7 @@ public class MainActivity extends Activity {
   emit("status","Sample importado para o Grauê. Arquivo original preservado.");
   return;
  }
- if(req==5){java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else if(data.getData()!=null)uris.add(data.getData());emit("backups",backupArchive.importFiles(uris));emit("status","Backups copiados para a biblioteca. Originais preservados; formato ainda não interpretado.");return;}
+ if(req==5){java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else if(data.getData()!=null)uris.add(data.getData());emit("backups",backupArchive.importFiles(uris));publishLatestBackup();emit("status","Backups copiados para a biblioteca. Originais preservados; formato ainda não interpretado.");return;}
  if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
  if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>1000000)throw new IOException("Arquivo maior que 1 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
  @Override protected void onStop(){super.onStop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
