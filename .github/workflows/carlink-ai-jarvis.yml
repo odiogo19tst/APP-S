@@ -32,6 +32,9 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
       - name: Install SDKs and native toolchains required by upstream
         if: matrix.target == 'headunit'
         run: sdkmanager 'platforms;android-36' 'platforms;android-37.0' 'build-tools;35.0.0' 'build-tools;36.0.0' 'build-tools;37.0.0' 'ndk;29.0.14206865' 'ndk;28.2.13676358' 'cmake;3.22.1'
