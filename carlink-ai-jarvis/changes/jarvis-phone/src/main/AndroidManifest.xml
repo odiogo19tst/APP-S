@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <queries>
+        <intent><action android:name="android.speech.RecognitionService" /></intent>
+        <intent><action android:name="android.speech.tts.engine" /></intent>
+    </queries>
+    <application android:label="Jarvis • Samsung" android:icon="@drawable/jarvis_icon"
+        android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/jarvis_data_extraction_rules"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+        <activity android:name=".PhoneActivity" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity>
+    </application>
+</manifest>

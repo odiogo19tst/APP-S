@@ -1,0 +1,3 @@
+<resources>
+    <string name="prefer_offline">Preferir reconhecimento offline (depende do motor instalado)</string>
+</resources>

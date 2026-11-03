@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  CarLink's app manifest.
+
+  The connection backend's manifest (carlink-core/src/main/AndroidManifest.xml) declares the USB,
+  boot and Bluetooth entry points and the engines' component overrides (":aa" process, removed
+  launchers and receivers). This file adds CarLink's Application, Home (the launcher) and what
+  only CarLink's own screens need.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <!-- HomeLauncher's full-screen notification when Home cannot be opened directly. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- Diagnostics asks to keep CarLink ready when the car wakes (DESIGN_SPEC §6.4). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- The in-app updater (update/): asks GitHub for the latest release and installs a verified
+         APK with PackageInstaller. Both are also declared by the engines; listed here for CarLink. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- "Report a problem on GitHub" asks whether any browser opens web links (Android 11+ package visibility). -->
+    <queries>
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.spotify.music" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".CarLinkApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/carlink_data_extraction_rules"
+        android:fullBackupContent="false"
+        android:hardwareAccelerated="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:largeHeap="true"
+        android:localeConfig="@xml/locales_config"
+        android:resizeableActivity="true"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.CarLink"
+        tools:replace="android:name,android:label,android:icon,android:roundIcon,android:theme,android:allowBackup,android:fullBackupContent,android:dataExtractionRules,android:localeConfig">
+
+        <activity android:name=".jarvis.JarvisActivity" android:exported="true" android:label="Jarvis • sessão">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <service android:name=".jarvis.JarvisAccessibility" android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:label="Jarvis • controles autorizados">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/jarvis_accessibility" />
+        </service>
+
+        <activity
+            android:name=".ui.HomeActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|density|uiMode"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.CarLink.Starting"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.CAR_DOCK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Lets Macrobenchmark and Perfetto trace the release build from adb (no debugging, no
+             data access); Android's recommended setting for measuring release builds. -->
+        <profileable android:shell="true" tools:targetApi="29" />
+
+        <!-- PackageInstaller's answer for an update session (update/UpdateInstaller.kt). -->
+        <receiver
+            android:name=".update.UpdateInstallReceiver"
+            android:exported="false" />
+
+        <!-- Shares Diagnostics' connection log (cache/shared only); independent of the engines' providers. -->
+        <provider
+            android:name=".diagnostics.CarLinkFileProvider"
+            android:authorities="${applicationId}.carlink.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/carlink_file_paths" />
+        </provider>
+    </application>
+</manifest>

@@ -1,0 +1,70 @@
+name: Jarvis development APKs
+on:
+  push:
+    branches: [main, 'jarvis/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: jarvis-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [headunit, phone]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: android-actions/setup-android@v3
+      - name: Install SDKs and native toolchains required by upstream
+        if: matrix.target == 'headunit'
+        run: sdkmanager 'platforms;android-36' 'platforms;android-37.0' 'build-tools;35.0.0' 'build-tools;36.0.0' 'build-tools;37.0.0' 'ndk;29.0.14206865' 'ndk;28.2.13676358' 'cmake;3.22.1'
+      - name: Install lightweight phone SDK
+        if: matrix.target == 'phone'
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Verify resource names and domain tests
+        run: |
+          chmod +x gradlew
+          python3 scripts/resource_collisions.py --check
+          ./gradlew --no-daemon -Pjarvis.phoneOnly=true :jarvis-core:test
+      - name: Build head unit APK and run upstream app tests
+        if: matrix.target == 'headunit'
+        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
+      - name: Build phone APK and run Android lint
+        if: matrix.target == 'phone'
+        run: ./gradlew --no-daemon -Pjarvis.phoneOnly=true :jarvis-phone:assembleDebug :jarvis-phone:lintDebug
+      - name: Prepare artifacts with source and checksums
+        run: |
+          mkdir -p dist
+          if [ '${{ matrix.target }}' = headunit ]; then
+            cp app/build/outputs/apk/debug/*.apk dist/CarLink-AI-Jarvis-headunit-debug.apk
+          else
+            cp jarvis-phone/build/outputs/apk/debug/*.apk dist/Jarvis-Samsung-debug.apk
+          fi
+          git archive --format=zip --prefix=carlink-ai-jarvis/ HEAD > dist/corresponding-source.zip
+          cp LICENSE dist/LICENSE-AGPL-3.0.txt
+          cp JARVIS-CREDITS.md dist/
+          (cd dist && sha256sum *.apk corresponding-source.zip > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-${{ matrix.target }}-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-reports-${{ matrix.target }}
+          path: |
+            jarvis-core/build/reports/tests/
+            app/build/reports/tests/
+            jarvis-phone/build/reports/lint-results-debug.html
+          if-no-files-found: ignore

@@ -1,0 +1,3 @@
+<resources>
+    <string name="jarvis_accessibility_description">Jarvis: permite consultar IDs de controles autorizados no Maps e Spotify e acionar elementos aprovados. Exige sessão Bluetooth, aprovação de estacionamento e velocidade OBD zero recente. Não coleta textos ou imagens. Desative em Acessibilidade quando não utilizar.</string>
+</resources>
