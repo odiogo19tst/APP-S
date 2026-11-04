@@ -1,4 +1,4 @@
-name: CarLink — Anexar APKs ao rascunho
+name: CarLink — Downloads ZIP identificados
 
 on:
   workflow_dispatch:
@@ -6,117 +6,118 @@ on:
 permissions: {}
 
 concurrency:
-  group: carlink-draft-downloads-20261104
+  group: carlink-zip-downloads-20261104
   cancel-in-progress: false
 
 jobs:
-  upload-draft:
+  attach-zip-downloads:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      actions: read
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: odiogo19tst/APP-S
-      CARLINK_RUN_ID: '41751040527'
-      CARLINK_SOURCE_SHA: 2b6d2b7ebdfda7f97aab966709bb6be1fe58db3d
       CARLINK_RELEASE_ID: '433386446'
       CARLINK_TAG: carlink-apks-2026-11-04
     steps:
-      - name: Require the exact successful build and existing draft
+      - name: Confirm the published release and preserve its existing assets
         shell: bash
         run: |
           set -euo pipefail
-          gh api "repos/$GH_REPO/actions/runs/$CARLINK_RUN_ID" > source-run.json
-          gh api "repos/$GH_REPO/releases/$CARLINK_RELEASE_ID" > draft-release.json
+          gh api "repos/$GH_REPO/releases/$CARLINK_RELEASE_ID" > before.json
           python3 - <<'PY'
           import json, os
-          run = json.load(open('source-run.json'))
-          release = json.load(open('draft-release.json'))
-          assert run['id'] == int(os.environ['CARLINK_RUN_ID']), 'Unexpected build'
-          assert run['repository']['full_name'] == os.environ['GH_REPO'], 'Unexpected repository'
-          assert run['head_sha'] == os.environ['CARLINK_SOURCE_SHA'], 'Unexpected source revision'
-          assert run['head_branch'] == 'jarvis/carlink-apks-20261104', 'Unexpected source branch'
-          assert run['path'] == '.github/workflows/carlink-ai-jarvis.yml', 'Unexpected build workflow'
-          assert run['status'] == 'completed' and run['conclusion'] == 'success', 'Build must succeed first'
-          assert release['id'] == int(os.environ['CARLINK_RELEASE_ID']), 'Unexpected release'
-          assert release['tag_name'] == os.environ['CARLINK_TAG'], 'Unexpected release tag'
-          assert release['target_commitish'] == os.environ['CARLINK_SOURCE_SHA'], 'Release source mismatch'
-          assert release['draft'] is True, 'Release must remain a draft'
-          print('Exact successful source build and draft confirmed')
+          release = json.load(open('before.json'))
+          assert release['id'] == int(os.environ['CARLINK_RELEASE_ID'])
+          assert release['tag_name'] == os.environ['CARLINK_TAG']
+          assert release['draft'] is False, 'Expected the existing published release'
+          assets = {item['name']: item for item in release['assets']}
+          for name in ('CarLink-Celular-Samsung.apk', 'CarLink-Central-Multimidia.apk', 'corresponding-source.zip', 'LICENSE-AGPL-3.0.txt', 'JARVIS-CREDITS.md', 'SHA256SUMS.txt'):
+              assert assets[name]['state'] == 'uploaded', 'Missing original asset'
+          print('Existing published release confirmed; original assets will not be modified')
           PY
-      - name: Download the two build targets separately
+      - name: Download the original APKs, license and credits
         shell: bash
         run: |
           set -euo pipefail
-          gh run download "$CARLINK_RUN_ID" --name "Jarvis-phone-$CARLINK_SOURCE_SHA" --dir phone
-          gh run download "$CARLINK_RUN_ID" --name "Jarvis-headunit-$CARLINK_SOURCE_SHA" --dir headunit
-          (cd phone && sha256sum --check SHA256SUMS.txt)
-          (cd headunit && sha256sum --check SHA256SUMS.txt)
-      - name: Assemble verified APKs and corresponding source
+          for asset in CarLink-Celular-Samsung.apk CarLink-Central-Multimidia.apk LICENSE-AGPL-3.0.txt JARVIS-CREDITS.md; do
+            gh release download "$CARLINK_TAG" --pattern "$asset" --dir original
+          done
+      - name: Create unencrypted ZIPs containing unchanged verified APKs
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import hashlib, json, shutil, zipfile
+          import hashlib, json, zipfile
           from pathlib import Path
-
-          def source_tree(path):
-              with zipfile.ZipFile(path) as archive:
-                  names = [entry.filename for entry in archive.infolist() if not entry.is_dir()]
-                  assert len(names) == len(set(names)), 'Duplicate source entries'
-                  assert all(name.startswith('carlink-ai-jarvis/') and '..' not in Path(name).parts for name in names), 'Invalid source path'
-                  return {name: hashlib.sha256(archive.read(name)).hexdigest() for name in names}
-
-          assert source_tree('phone/corresponding-source.zip') == source_tree('headunit/corresponding-source.zip'), 'Phone and central source differ'
-          for name in ('LICENSE-AGPL-3.0.txt', 'JARVIS-CREDITS.md'):
-              assert Path('phone', name).read_bytes() == Path('headunit', name).read_bytes(), 'License or credits differ'
+          source_url = 'https://github.com/odiogo19tst/APP-S/releases/download/carlink-apks-2026-11-04/corresponding-source.zip'
+          expected = {
+              'CarLink-Celular-Samsung': (2554912, 'a88d113a9e7dd27215a5da2691bdc8e518e26c9ad886bb870bcd9a38db72b395', 'Celular Samsung com Android 11 ou posterior'),
+              'CarLink-Central-Multimidia': (42096045, 'f522bff1bb99f7e2b0ecdd6553aebc9af09d208e9d68c6889edc27467390c64d', 'Central multimídia Android do carro'),
+          }
           out = Path('dist')
           out.mkdir()
-          shutil.copyfile('phone/CarLink-Celular-Samsung.apk', out / 'CarLink-Celular-Samsung.apk')
-          shutil.copyfile('headunit/CarLink-Central-Multimidia.apk', out / 'CarLink-Central-Multimidia.apk')
-          for name in ('corresponding-source.zip', 'LICENSE-AGPL-3.0.txt', 'JARVIS-CREDITS.md'):
-              shutil.copyfile(Path('headunit', name), out / name)
-          names = ('CarLink-Celular-Samsung.apk', 'CarLink-Central-Multimidia.apk', 'corresponding-source.zip', 'LICENSE-AGPL-3.0.txt', 'JARVIS-CREDITS.md')
-          digests = {name: hashlib.sha256((out / name).read_bytes()).hexdigest() for name in names}
-          (out / 'SHA256SUMS.txt').write_text(''.join(f'{digests[name]}  {name}\n' for name in names))
-          digests['SHA256SUMS.txt'] = hashlib.sha256((out / 'SHA256SUMS.txt').read_bytes()).hexdigest()
-          release = json.load(open('draft-release.json'))
-          existing = {asset['name']: asset for asset in release['assets']}
-          assert set(existing).issubset(digests), 'Unexpected existing assets; refusing to overwrite'
+          zip_digests = {}
+          for stem, (size, digest, destination) in expected.items():
+              apk_name = stem + '.apk'
+              apk = Path('original', apk_name).read_bytes()
+              assert len(apk) == size and hashlib.sha256(apk).hexdigest() == digest, 'Original APK mismatch'
+              readme = f'CarLink — {destination}\n\n1. Extraia este ZIP no aplicativo Meus Arquivos.\n2. Abra {apk_name} no aparelho indicado acima.\n\nVersão de teste. Mantenha o Play Protect e as proteções do aparelho ativados. A instalação e o funcionamento ainda dependem de validação no aparelho.\n\nO APK é idêntico ao arquivo assinado publicado: não houve recompilação ou alteração da assinatura.\n\nCódigo-fonte correspondente: {source_url}\nA licença e os créditos estão incluídos neste ZIP.\n'
+              contents = {apk_name: apk, 'LEIA-ME.txt': readme.encode('utf-8')}
+              for name in ('LICENSE-AGPL-3.0.txt', 'JARVIS-CREDITS.md'):
+                  contents[name] = Path('original', name).read_bytes()
+              target = out / (stem + '.zip')
+              with zipfile.ZipFile(target, 'w') as archive:
+                  for name, data in contents.items():
+                      info = zipfile.ZipInfo(name, (2026, 11, 4, 0, 0, 0))
+                      info.compress_type = zipfile.ZIP_DEFLATED
+                      info.external_attr = 0o100644 << 16
+                      archive.writestr(info, data, compresslevel=6)
+              with zipfile.ZipFile(target) as archive:
+                  assert set(archive.namelist()) == set(contents), 'Unexpected archive content'
+                  assert not any(item.flag_bits & 1 for item in archive.infolist()), 'Archive must not be encrypted'
+                  assert archive.read(apk_name) == apk, 'APK bytes changed inside ZIP'
+                  assert hashlib.sha256(archive.read(apk_name)).hexdigest() == digest
+                  assert archive.testzip() is None, 'ZIP integrity failure'
+              zip_digests[target.name] = hashlib.sha256(target.read_bytes()).hexdigest()
+          before = json.load(open('before.json'))
+          existing = {item['name']: item for item in before['assets']}
           pending = []
-          for name, digest in digests.items():
+          for name, digest in zip_digests.items():
               if name in existing:
-                  assert existing[name].get('digest') == 'sha256:' + digest, 'Existing asset differs; refusing to overwrite'
+                  assert existing[name].get('digest') == 'sha256:' + digest, 'Existing ZIP differs; refusing to overwrite'
               else:
                   pending.append(name)
+          Path('zip-digests.json').write_text(json.dumps(zip_digests))
           Path('pending-assets.txt').write_text(''.join(name + '\n' for name in pending))
-          Path('expected-digests.json').write_text(json.dumps(digests))
-          print('Both APKs, source, license, credits and aggregate checksums verified')
+          print('Both ZIPs verified: unchanged APK bytes and signatures, standard unencrypted ZIP format')
           PY
-      - name: Attach files without publishing or overwriting different assets
+      - name: Attach only the two ZIPs and verify all original assets remain unchanged
         shell: bash
         run: |
           set -euo pipefail
           while IFS= read -r asset; do
             gh release upload "$CARLINK_TAG" "dist/$asset"
           done < pending-assets.txt
-          gh api "repos/$GH_REPO/releases/$CARLINK_RELEASE_ID" > uploaded-release.json
+          gh api "repos/$GH_REPO/releases/$CARLINK_RELEASE_ID" > after.json
           python3 - <<'PY'
           import json, os
-          expected = json.load(open('expected-digests.json'))
-          release = json.load(open('uploaded-release.json'))
-          assert release['draft'] is True, 'Draft must not be published by this workflow'
-          assets = {asset['name']: asset for asset in release['assets']}
-          assert set(assets) == set(expected), 'Unexpected uploaded asset set'
+          before = json.load(open('before.json'))
+          after = json.load(open('after.json'))
+          expected = json.load(open('zip-digests.json'))
+          assert after['id'] == before['id'] and after['draft'] is False
+          assets = {item['name']: item for item in after['assets']}
+          for original in before['assets']:
+              current = assets[original['name']]
+              for field in ('id', 'name', 'size', 'digest', 'state'):
+                  assert current.get(field) == original.get(field), 'Original asset was changed'
           for name, digest in expected.items():
-              assert assets[name].get('state') == 'uploaded', 'Incomplete asset'
-              assert assets[name].get('digest') == 'sha256:' + digest, 'Uploaded asset checksum mismatch'
+              assert assets[name]['state'] == 'uploaded'
+              assert assets[name].get('digest') == 'sha256:' + digest, 'Uploaded ZIP digest mismatch'
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
-              summary.write('## CarLink: arquivos anexados ao rascunho\n\n')
-              summary.write('Os dois APKs e a fonte foram verificados e anexados. A release continua em rascunho para revisão final.\n\n')
-              for name in expected:
-                  summary.write(f'- `{name}`\n')
-          print('All six files uploaded; release remains a draft')
+              summary.write('## CarLink: dois ZIPs prontos\n\nOs APKs dentro dos ZIPs mantêm exatamente os bytes e as assinaturas originais. Os arquivos anteriores da versão foram preservados.\n\n')
+              for name, digest in expected.items():
+                  summary.write(f'- `{name}` — SHA-256 `{digest}`\n')
+          print('Two ZIPs attached and all original assets preserved')
           PY
