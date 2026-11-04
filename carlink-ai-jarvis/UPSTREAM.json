@@ -3,7 +3,7 @@
   "commit": "cfba71424d04b33c6b62f873766af2564c1d177e",
   "local_jarvis_revision": "b9bfc6edb649b7abff309c0b250f39b43b37d876",
   "overlay_sha256": {
-    ".github/workflows/jarvis-apk.yml": "a5280a55029117710926f910d8af0b91ffb7c6bae06be4c78828d7b601efc27a",
+    ".github/workflows/jarvis-apk.yml": "08ff74bc14fcda4184fde49b6077e803f1abcab82ce543afc29471bbd189cebd",
     "JARVIS-CREDITS.md": "6107ab4849edfced847db752dfb79d6fbc76c35304c62c152a98ef56d5408512",
     "README.md": "0024cb374f4a51e7f3b0d4f32b5033c33edc2f1c784092ae771c318624a2df86",
     "app/build.gradle.kts": "eec276bf0c226ad1dd0b9acd727e925e6b93992c6dc65ab8f5cf15d5d8639ad2",
@@ -47,7 +47,7 @@
     "vendor/diplay/common/src/main/res/values-uk/carlink_accessibility_capabilities.xml": "fc39e44dbbef36771354771c16c508ebe61a6763351065a67f3cba85bf7cc0f2",
     "vendor/diplay/common/src/main/res/values-zh-rCN/carlink_accessibility_capabilities.xml": "debbe33a77ba1b20696a5f64184346b83b6f7908458f626f1001ae2767fbaa6e",
     "vendor/diplay/common/src/main/res/values-zh-rTW/carlink_accessibility_capabilities.xml": "80aa2de449285b1a14885f1d53bf1e9b40a12a9bce4f4c2aa1aca3230ce2f00f",
-    "vendor/diplay/common/src/test/java/com/shilapi/xcertplay/AccessibilityServiceAvailabilityTest.kt": "ae70da620568f5ccca7ff299fd1e07ceb50c739f2614ea1d3df7fdb051ff0fa4",
+    "vendor/diplay/common/src/test/java/com/shilapi/xcertplay/AccessibilityServiceAvailabilityTest.kt": "4b9afbef97fdfd9120a276e1de48925d014f7268d53c3de751da912e9a540590",
     "vendor/diplay/common/src/test/java/com/shilapi/xcertplay/AccessibilityServiceTestFixtures.kt": "da99f1b71bd8e57b24f213025b853a0e213281fedda0df7985ee79df12b849bd",
     "vendor/diplay/common/src/test/java/com/shilapi/xcertplay/UsbAutoConfirmServiceTest.kt": "97440161ff06ef5ccd62c76004c6243c29f1ec770d14adccb34a4956a95a79a8",
     "vendor/diplay/common/src/test/java/com/shilapi/xcertplay/UsbPermissionSetupTest.kt": "aec640b4c0e0e44e7e75cdc96a3e21c502abfaf9f54a1475167b7ec2e01e162c",

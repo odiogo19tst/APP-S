@@ -75,5 +75,7 @@ jobs:
           path: |
             jarvis-core/build/reports/tests/
             app/build/reports/tests/
+            vendor/diplay/common/build/reports/tests/
+            vendor/diplay/common/build/test-results/
             jarvis-phone/build/reports/lint-results-debug.html
           if-no-files-found: ignore

@@ -83,5 +83,7 @@ jobs:
           path: |
             carlink-build/jarvis-core/build/reports/tests/
             carlink-build/app/build/reports/tests/
+            carlink-build/vendor/diplay/common/build/reports/tests/
+            carlink-build/vendor/diplay/common/build/test-results/
             carlink-build/jarvis-phone/build/reports/lint-results-debug.html
           if-no-files-found: ignore

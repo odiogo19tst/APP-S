@@ -12,6 +12,7 @@ import android.widget.TextView
 import com.shilapi.xcertplay.adb.LocalAdb
 import com.shilapi.xcertplay.host.R
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -25,6 +26,14 @@ import org.robolectric.annotation.Config
 @Config(sdk = [29], manifest = Config.NONE, qualifiers = "en")
 class AccessibilityServiceAvailabilityTest {
     private val context get() = RuntimeEnvironment.getApplication()
+
+    @Before fun omitServicesFromHost() {
+        // CarLink: AGP's binary test resources can include the library manifest even with
+        // Config.NONE. Model the host's merged removals explicitly before testing absence.
+        val manager = shadowOf(context.packageManager)
+        manager.removeService(ComponentName(context, WheelKeyService::class.java))
+        manager.removeService(ComponentName(context, UsbAutoConfirmService::class.java))
+    }
 
     @Test fun declarationAndEnabledStateAreRequired() {
         assertFalse(WheelKeyService.isAvailable(context))
