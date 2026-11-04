@@ -1,87 +1,122 @@
-name: CarLink AI Jarvis APKs
+name: CarLink — Anexar APKs ao rascunho
+
 on:
-  push:
-    branches: [main, 'jarvis/**']
-    paths: ['carlink-ai-jarvis/**', '.github/workflows/carlink-ai-jarvis.yml']
-  pull_request:
-    paths: ['carlink-ai-jarvis/**', '.github/workflows/carlink-ai-jarvis.yml']
   workflow_dispatch:
-permissions:
-  contents: read
+
+permissions: {}
+
 concurrency:
-  group: carlink-ai-jarvis-${{ github.ref }}
-  cancel-in-progress: true
+  group: carlink-draft-downloads-20261104
+  cancel-in-progress: false
+
 jobs:
-  build:
+  upload-draft:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: carlink-build
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [headunit, phone]
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: odiogo19tst/APP-S
+      CARLINK_RUN_ID: '41749719337'
+      CARLINK_SOURCE_SHA: 5ddf4291559d3f4b7d2d1d2931bf20b9d9512b3e
+      CARLINK_RELEASE_ID: '433386446'
+      CARLINK_TAG: carlink-apks-2026-11-04
     steps:
-      - uses: actions/checkout@v4
-      - name: Reconstruct pinned upstream with verified Jarvis changes
-        working-directory: .
-        run: python3 carlink-ai-jarvis/prepare.py carlink-build
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
-          log-accepted-android-sdk-licenses: false
-      - name: Install SDKs and native toolchains required by upstream
-        if: matrix.target == 'headunit'
-        run: sdkmanager 'platforms;android-36' 'platforms;android-37.0' 'build-tools;35.0.0' 'build-tools;36.0.0' 'build-tools;37.0.0' 'ndk;29.0.14206865' 'ndk;28.2.13676358' 'cmake;3.22.1'
-      - name: Install lightweight phone SDK
-        if: matrix.target == 'phone'
-        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Verify resource names and domain tests
+      - name: Require the exact successful build and existing draft
+        shell: bash
         run: |
-          chmod +x gradlew
-          python3 scripts/resource_collisions.py --check
-          python3 -m unittest discover -s scripts/tests -p test_jarvis_manifest_contract.py
-          ./gradlew --no-daemon -Pjarvis.phoneOnly=true :jarvis-core:test
-      - name: Build head unit APK and run upstream app tests
-        if: matrix.target == 'headunit'
+          set -euo pipefail
+          gh api "repos/$GH_REPO/actions/runs/$CARLINK_RUN_ID" > source-run.json
+          gh api "repos/$GH_REPO/releases/$CARLINK_RELEASE_ID" > draft-release.json
+          python3 - <<'PY'
+          import json, os
+          run = json.load(open('source-run.json'))
+          release = json.load(open('draft-release.json'))
+          assert run['id'] == int(os.environ['CARLINK_RUN_ID']), 'Unexpected build'
+          assert run['repository']['full_name'] == os.environ['GH_REPO'], 'Unexpected repository'
+          assert run['head_sha'] == os.environ['CARLINK_SOURCE_SHA'], 'Unexpected source revision'
+          assert run['head_branch'] == 'jarvis/carlink-apks-20261104', 'Unexpected source branch'
+          assert run['path'] == '.github/workflows/carlink-ai-jarvis.yml', 'Unexpected build workflow'
+          assert run['status'] == 'completed' and run['conclusion'] == 'success', 'Build must succeed first'
+          assert release['id'] == int(os.environ['CARLINK_RELEASE_ID']), 'Unexpected release'
+          assert release['tag_name'] == os.environ['CARLINK_TAG'], 'Unexpected release tag'
+          assert release['target_commitish'] == os.environ['CARLINK_SOURCE_SHA'], 'Release source mismatch'
+          assert release['draft'] is True, 'Release must remain a draft'
+          print('Exact successful source build and draft confirmed')
+          PY
+      - name: Download the two build targets separately
+        shell: bash
         run: |
-          ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
-          python3 scripts/jarvis_manifest_contract.py --target headunit
-          ./gradlew --no-daemon :carplay-common:testDebugUnitTest --tests com.shilapi.xcertplay.AccessibilityServiceAvailabilityTest --tests com.shilapi.xcertplay.UsbPermissionSetupTest --tests com.shilapi.xcertplay.UsbAutoConfirmServiceTest --tests com.shilapi.xcertplay.WheelKeyPermissionSetupTest --tests com.shilapi.xcertplay.WheelSiriWindowTest
-      - name: Build phone APK and run Android lint
-        if: matrix.target == 'phone'
+          set -euo pipefail
+          gh run download "$CARLINK_RUN_ID" --name "Jarvis-phone-$CARLINK_SOURCE_SHA" --dir phone
+          gh run download "$CARLINK_RUN_ID" --name "Jarvis-headunit-$CARLINK_SOURCE_SHA" --dir headunit
+          (cd phone && sha256sum --check SHA256SUMS.txt)
+          (cd headunit && sha256sum --check SHA256SUMS.txt)
+      - name: Assemble verified APKs and corresponding source
+        shell: bash
         run: |
-          ./gradlew --no-daemon -Pjarvis.phoneOnly=true :jarvis-phone:assembleDebug :jarvis-phone:lintDebug
-          python3 scripts/jarvis_manifest_contract.py --target phone
-      - name: Prepare artifacts with source and checksums
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, shutil, zipfile
+          from pathlib import Path
+
+          def source_tree(path):
+              with zipfile.ZipFile(path) as archive:
+                  names = [entry.filename for entry in archive.infolist() if not entry.is_dir()]
+                  assert len(names) == len(set(names)), 'Duplicate source entries'
+                  assert all(name.startswith('carlink-ai-jarvis/') and '..' not in Path(name).parts for name in names), 'Invalid source path'
+                  return {name: hashlib.sha256(archive.read(name)).hexdigest() for name in names}
+
+          assert source_tree('phone/corresponding-source.zip') == source_tree('headunit/corresponding-source.zip'), 'Phone and central source differ'
+          for name in ('LICENSE-AGPL-3.0.txt', 'JARVIS-CREDITS.md'):
+              assert Path('phone', name).read_bytes() == Path('headunit', name).read_bytes(), 'License or credits differ'
+          out = Path('dist')
+          out.mkdir()
+          shutil.copyfile('phone/CarLink-Celular-Samsung.apk', out / 'CarLink-Celular-Samsung.apk')
+          shutil.copyfile('headunit/CarLink-Central-Multimidia.apk', out / 'CarLink-Central-Multimidia.apk')
+          for name in ('corresponding-source.zip', 'LICENSE-AGPL-3.0.txt', 'JARVIS-CREDITS.md'):
+              shutil.copyfile(Path('headunit', name), out / name)
+          names = ('CarLink-Celular-Samsung.apk', 'CarLink-Central-Multimidia.apk', 'corresponding-source.zip', 'LICENSE-AGPL-3.0.txt', 'JARVIS-CREDITS.md')
+          digests = {name: hashlib.sha256((out / name).read_bytes()).hexdigest() for name in names}
+          (out / 'SHA256SUMS.txt').write_text(''.join(f'{digests[name]}  {name}\n' for name in names))
+          digests['SHA256SUMS.txt'] = hashlib.sha256((out / 'SHA256SUMS.txt').read_bytes()).hexdigest()
+          release = json.load(open('draft-release.json'))
+          existing = {asset['name']: asset for asset in release['assets']}
+          assert set(existing).issubset(digests), 'Unexpected existing assets; refusing to overwrite'
+          pending = []
+          for name, digest in digests.items():
+              if name in existing:
+                  assert existing[name].get('digest') == 'sha256:' + digest, 'Existing asset differs; refusing to overwrite'
+              else:
+                  pending.append(name)
+          Path('pending-assets.txt').write_text(''.join(name + '\n' for name in pending))
+          Path('expected-digests.json').write_text(json.dumps(digests))
+          print('Both APKs, source, license, credits and aggregate checksums verified')
+          PY
+      - name: Attach files without publishing or overwriting different assets
+        shell: bash
         run: |
-          mkdir -p dist
-          if [ '${{ matrix.target }}' = headunit ]; then
-            cp app/build/outputs/apk/debug/*.apk dist/CarLink-Central-Multimidia.apk
-          else
-            cp jarvis-phone/build/outputs/apk/debug/*.apk dist/CarLink-Celular-Samsung.apk
-          fi
-          git archive --format=zip --prefix=carlink-ai-jarvis/ HEAD > dist/corresponding-source.zip
-          cp LICENSE dist/LICENSE-AGPL-3.0.txt
-          cp JARVIS-CREDITS.md dist/
-          (cd dist && sha256sum *.apk corresponding-source.zip > SHA256SUMS.txt)
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Jarvis-${{ matrix.target }}-${{ github.sha }}
-          path: carlink-build/dist/
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: verification-reports-${{ matrix.target }}
-          path: |
-            carlink-build/jarvis-core/build/reports/tests/
-            carlink-build/app/build/reports/tests/
-            carlink-build/jarvis-phone/build/reports/lint-results-debug.html
-          if-no-files-found: ignore
+          set -euo pipefail
+          while IFS= read -r asset; do
+            gh release upload "$CARLINK_TAG" "dist/$asset"
+          done < pending-assets.txt
+          gh api "repos/$GH_REPO/releases/$CARLINK_RELEASE_ID" > uploaded-release.json
+          python3 - <<'PY'
+          import json, os
+          expected = json.load(open('expected-digests.json'))
+          release = json.load(open('uploaded-release.json'))
+          assert release['draft'] is True, 'Draft must not be published by this workflow'
+          assets = {asset['name']: asset for asset in release['assets']}
+          assert set(assets) == set(expected), 'Unexpected uploaded asset set'
+          for name, digest in expected.items():
+              assert assets[name].get('state') == 'uploaded', 'Incomplete asset'
+              assert assets[name].get('digest') == 'sha256:' + digest, 'Uploaded asset checksum mismatch'
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('## CarLink: arquivos anexados ao rascunho\n\n')
+              summary.write('Os dois APKs e a fonte foram verificados e anexados. A release continua em rascunho para revisão final.\n\n')
+              for name in expected:
+                  summary.write(f'- `{name}`\n')
+          print('All six files uploaded; release remains a draft')
+          PY
