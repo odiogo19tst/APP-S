@@ -19,8 +19,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: odiogo19tst/APP-S
-      CARLINK_RUN_ID: '41749719337'
-      CARLINK_SOURCE_SHA: 5ddf4291559d3f4b7d2d1d2931bf20b9d9512b3e
+      CARLINK_RUN_ID: '41751040527'
+      CARLINK_SOURCE_SHA: 2b6d2b7ebdfda7f97aab966709bb6be1fe58db3d
       CARLINK_RELEASE_ID: '433386446'
       CARLINK_TAG: carlink-apks-2026-11-04
     steps:
