@@ -96,7 +96,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = providers.gradleProperty("carlink.debugApplicationIdSuffix").get()
-            versionNameSuffix = "-hud-test"
+            versionNameSuffix = "-jarvis-test-0.1.1"
             ndk { abiFilters += armAbis + "x86_64" }
         }
         release {

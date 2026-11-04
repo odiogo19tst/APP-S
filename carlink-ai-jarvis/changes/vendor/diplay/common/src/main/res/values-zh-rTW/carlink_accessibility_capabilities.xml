@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CarLink: host capability unavailable; do not offer absent accessibility automation. -->
+<resources>
+    <string name="carlink_accessibility_unavailable">此版本不包含無障礙自動操作。請使用觸控，並在 Android 中確認 USB 存取權限。</string>
+</resources>

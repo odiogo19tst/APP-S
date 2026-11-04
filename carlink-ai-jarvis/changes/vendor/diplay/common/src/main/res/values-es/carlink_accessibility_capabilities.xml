@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CarLink: host capability unavailable; do not offer absent accessibility automation. -->
+<resources>
+    <string name="carlink_accessibility_unavailable">Esta edición no incluye automatización de accesibilidad. Usa los controles táctiles y confirma el acceso USB en Android.</string>
+</resources>

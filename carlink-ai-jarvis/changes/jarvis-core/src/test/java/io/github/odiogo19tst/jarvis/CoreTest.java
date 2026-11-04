@@ -42,6 +42,7 @@ public class CoreTest {
         assertEquals("MAPS",Protocol.command("Abrir mapas"));
         assertEquals("UNKNOWN",Protocol.command("apagar falhas"));
         assertEquals("UNKNOWN",Protocol.command("execute rm -rf"));
-        assertEquals("CLICK com.spotify.music:id/play",Protocol.command("acionar com.spotify.music:id/play"));
+        for(String removed:new String[]{"início","inicio","tela inicial","voltar","ler tela","acionar com.spotify.music:id/play"})
+            assertEquals("Removed screen command: "+removed,"UNKNOWN",Protocol.command(removed));
     }
 }

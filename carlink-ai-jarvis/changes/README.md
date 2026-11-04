@@ -12,9 +12,18 @@ Fork de desenvolvimento independente para `odiogo19tst`, baseado em
 [F-e-n-y-x/CarLink](https://github.com/F-e-n-y-x/CarLink), revisão
 `cfba71424d04b33c6b62f873766af2564c1d177e`. AGPL-3.0 e créditos preservados.
 
-**Protótipo, ainda sem validação na multimídia Android 11/2 GB.** Mantém a projeção
+**Teste 0.1.1, ainda sem validação física na multimídia Android 11/2 GB.**
+
+- `CarLink-Celular-Samsung.apk`: instalar no celular.
+- `CarLink-Central-Multimidia.apk`: instalar na central do carro.
+
+Sem leitura/cliques de tela, atalhos globais de volante por Acessibilidade,
+confirmação automática USB ou instalação de outros APKs. Mantenha o Play Protect
+ativado; assinatura de teste não implica aprovação Google.
+
+ Mantém a projeção
 original e adiciona sessão Jarvis na central, companheiro Samsung para voz/TTS,
-comandos limitados offline, acessibilidade com aprovação local e OBD2 somente leitura.
+comandos limitados e OBD2 somente leitura, sem serviços de Acessibilidade.
 Não inclui LLM, visão livre da tela ou garantia de compatibilidade com o volante.
 
 - [Configuração, arquitetura, segurança e limitações Jarvis](docs/JARVIS.md)
@@ -25,7 +34,8 @@ O workflow desta edição adiciona GitHub Actions; o texto upstream abaixo descr
 o projeto original e seus releases, não os builds Jarvis. Não envie problemas
 específicos desta edição para o mantenedor original. As alterações desta edição
 estão em `app/.../jarvis`, `jarvis-core`, `jarvis-phone`, configuração, manifesto,
-nome do aplicativo e documentação; os motores vendor permanecem intactos.
+nome do aplicativo e documentação. Ajustes mínimos de disponibilidade dos serviços opcionais
+DiPlay estão identificados em docs/VENDOR_CHANGES.md.
 
 ---
 

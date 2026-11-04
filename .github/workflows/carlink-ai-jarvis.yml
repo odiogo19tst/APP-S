@@ -46,20 +46,26 @@ jobs:
         run: |
           chmod +x gradlew
           python3 scripts/resource_collisions.py --check
+          python3 -m unittest discover -s scripts/tests -p test_jarvis_manifest_contract.py
           ./gradlew --no-daemon -Pjarvis.phoneOnly=true :jarvis-core:test
       - name: Build head unit APK and run upstream app tests
         if: matrix.target == 'headunit'
-        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
+        run: |
+          ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
+          python3 scripts/jarvis_manifest_contract.py --target headunit
+          ./gradlew --no-daemon :carplay-common:testDebugUnitTest --tests com.shilapi.xcertplay.AccessibilityServiceAvailabilityTest --tests com.shilapi.xcertplay.UsbPermissionSetupTest --tests com.shilapi.xcertplay.UsbAutoConfirmServiceTest --tests com.shilapi.xcertplay.WheelKeyPermissionSetupTest --tests com.shilapi.xcertplay.WheelSiriWindowTest
       - name: Build phone APK and run Android lint
         if: matrix.target == 'phone'
-        run: ./gradlew --no-daemon -Pjarvis.phoneOnly=true :jarvis-phone:assembleDebug :jarvis-phone:lintDebug
+        run: |
+          ./gradlew --no-daemon -Pjarvis.phoneOnly=true :jarvis-phone:assembleDebug :jarvis-phone:lintDebug
+          python3 scripts/jarvis_manifest_contract.py --target phone
       - name: Prepare artifacts with source and checksums
         run: |
           mkdir -p dist
           if [ '${{ matrix.target }}' = headunit ]; then
-            cp app/build/outputs/apk/debug/*.apk dist/CarLink-AI-Jarvis-headunit-debug.apk
+            cp app/build/outputs/apk/debug/*.apk dist/CarLink-Central-Multimidia.apk
           else
-            cp jarvis-phone/build/outputs/apk/debug/*.apk dist/Jarvis-Samsung-debug.apk
+            cp jarvis-phone/build/outputs/apk/debug/*.apk dist/CarLink-Celular-Samsung.apk
           fi
           git archive --format=zip --prefix=carlink-ai-jarvis/ HEAD > dist/corresponding-source.zip
           cp LICENSE dist/LICENSE-AGPL-3.0.txt

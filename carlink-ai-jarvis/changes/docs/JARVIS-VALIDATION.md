@@ -1,42 +1,43 @@
-# Registro de validação desta revisão
+# Validação da revisão de permissões 0.1.1
 
-Data: 2 de novembro de 2026. Ambiente Windows, sem central Android, Samsung ou
-adaptador OBD conectado a esta sessão.
+Revisão de 4 de novembro de 2026. Não houve instalação nem execução de APK nos
+aparelhos do usuário nesta sessão.
 
-Verificações concluídas:
+## Evidência inicial
 
-- `scripts/resource_collisions.py --check`: 72 colisões já reconhecidas pelo
-  original, **0 não revisadas**.
-- JUnit 4.13.2/JDK 17, classes `jarvis-core`: **5 testes passaram**. Abrangem
-  expiração e revogação da trava, fórmulas OBD/DTC, respostas ausentes/ambíguas,
-  limite das mensagens e rejeição de comandos fora da gramática.
-- `:jarvis-core:test` também passou pelo Gradle, com 5 testes, zero falhas/erros.
-- `-Pjarvis.phoneOnly=true :jarvis-phone:assembleDebug :jarvis-phone:lintDebug`:
-  **BUILD SUCCESSFUL**. Lint: **No issues found**. APK do Samsung gerado.
-- Assinatura debug do APK verificada por `apksigner` (esquema v2); pacote
-  `io.github.odiogo19tst.jarvis.phone`, minSdk 30, targetSdk 37. Isso não equivale
-  a instalação/teste no Samsung nem a assinatura de produção.
-- Novas classes Java da central e do Samsung compiladas com `javac` JDK 25 e
-  `android.jar` APIs 36 e 37.0. Sem erros; avisos de APIs de compatibilidade obsoletas.
-  Isso é verificação de tipos, não montagem/instalação de APK.
-- Licença e motores `vendor/` preservados sem alterações.
+O print do Samsung mostra o bloqueio de instalação pelo Play Protect para o APK
+antigo chamado “CarLink AI — Jarvis Edition”, que pertence à central. O manifesto
+da central declarava JarvisAccessibility e herdava WheelKeyService e
+UsbAutoConfirmService dos motores. O APK Samsung não declarava Acessibilidade.
 
-Na primeira tentativa de instalação das ferramentas, `platforms;android-37` não
-foi encontrado. A consulta ao catálogo oficial mostrou a identificação correta
-`platforms;android-37.0`; o workflow foi corrigido para esse pacote.
+A [orientação oficial do Google](https://developers.google.com/android/play-protect/warning-dev-guidance)
+associa essa categoria de bloqueio à instalação externa com certas capacidades
+sensíveis, entre elas Acessibilidade. Isso sustenta a remoção de capacidades;
+não permite garantir que este seja o único sinal considerado pelo Play Protect.
 
-Não executados: instalação e testes instrumentados, Android Auto em hardware,
-reconexão sem fio, concorrência de áudio/microfone, recepção real do volante,
-consumo de RAM da central, validação de um ELM e veículo reais. A ausência desses
-testes impede classificar a edição como pronta para uso diário.
+O APK antigo da central teve assinatura v2 validada com a biblioteca oficial
+Android apksig, sem erros, certificado Android Debug. O checksum confere com o
+arquivo incluído no pacote. Essa verificação é de integridade; não atesta ausência
+de malware nem explica sozinha o bloqueio. O APK antigo não é a entrega corrigida.
 
-A montagem completa da central não foi concluída: a instalação local de NDKs
-ficou incompleta, sem `source.properties`; a configuração nativa retornou CXX1101.
-O workflow instala as duas versões explicitamente em ambiente Linux. Ele precisa
-de uma execução bem-sucedida no GitHub antes de ser considerado validado em CI.
-Os testes Kotlin do app original, incluindo a expectativa de URL de diagnóstico
-ajustada para o fork, ainda dependem dessa configuração completa e não foram rodados.
+## Correção e verificações
 
-A publicação não ocorreu. O conector não oferece criar/forkar repositórios e o
-navegador recusou GitHub por uma permissão salva. Nenhum comando de envio foi
-executado contra o repositório original.
+- Removidos do manifesto final os três serviços de Acessibilidade e a permissão
+  de instalar outros pacotes, inclusive declarações herdadas.
+- Retirados do código Jarvis os comandos início/voltar/ler tela/cliques.
+- Serviços opcionais herdados ausentes não provocam autorização/restauração,
+  conexão ADB ou botões de ativação.
+- Pacotes Android preservados; nomes e arquivos distinguem central e celular.
+- Testes do contrato de permissões e verificação de colisões de recursos passaram.
+- Compilação, lint, testes Android e inspeção dos manifestos/APKs corrigidos devem
+  ser registrados a partir do resultado da execução desta revisão. A configuração
+  do workflow não equivale a build aprovado.
+
+## Limites
+
+Sem teste físico de instalação/Play Protect, Android Auto, volante, áudio/microfone,
+ELM327, veículo, reconexão, RAM ou temperatura. Não se declara aprovação Google,
+certificação, segurança total ou prontidão para uso diário.
+
+Os APKs corrigidos são builds de teste com chave de depuração, sem identidade de
+assinatura de produção. Não desative proteções do Android para instalar.

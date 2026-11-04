@@ -37,7 +37,7 @@ public final class PhoneActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         LinearLayout l=new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); l.setPadding(24,24,24,24);
-        status=new TextView(this); status.setText("Jarvis • Samsung\nConfigure estacionado. Deixe este app aberto durante o protótipo."); l.addView(status);
+        status=new TextView(this); status.setText("CarLink • Celular Samsung\nVersão de teste. Configure estacionado. Deixe este app aberto durante o protótipo."); l.addView(status);
         headMac=new EditText(this); headMac.setHint("MAC Bluetooth da multimídia pareada"); l.addView(headMac);
         obdMac=new EditText(this); obdMac.setHint("MAC do ELM327 Bluetooth clássico pareado"); l.addView(obdMac);
         preferOffline=new CheckBox(this); preferOffline.setText(io.github.odiogo19tst.jarvis.phone.R.string.prefer_offline); preferOffline.setChecked(true); l.addView(preferOffline);
@@ -49,7 +49,7 @@ public final class PhoneActivity extends Activity {
         button(l,"Falar",this::listen);
         button(l,"Ler falhas",()->obdCommand("DTC"));
         button(l,"PARAR",this::stopRemote);
-        TextView help=new TextView(this); help.setText("Comandos: início, voltar, abrir mapas, abrir spotify, ler tela, rotação, temperatura, velocidade, falhas, parar.\nÁudio: selecione a saída do carro no Android. Fonte e créditos: github.com/odiogo19tst/APP-S • AGPL-3.0"); l.addView(help);
+        TextView help=new TextView(this); help.setText("Instale este app no celular; o APK Central Multimídia pertence ao aparelho do carro.\nComandos: abrir mapas, abrir spotify, rotação, temperatura, velocidade, falhas, parar. Sem leitura ou cliques de tela.\nÁudio: selecione a saída do carro no Android. Fonte e créditos: github.com/odiogo19tst/APP-S • AGPL-3.0"); l.addView(help);
         ScrollView scroll=new ScrollView(this); scroll.addView(l); setContentView(scroll);
         tts=new TextToSpeech(this,result->{ ttsReady=result==TextToSpeech.SUCCESS; if(ttsReady) {
             tts.setLanguage(new Locale("pt","BR"));

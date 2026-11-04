@@ -6,8 +6,8 @@ android {
         applicationId = "io.github.odiogo19tst.jarvis.phone"
         minSdk = 30
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0-dev"
+        versionCode = 2
+        versionName = "0.1.1-dev"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

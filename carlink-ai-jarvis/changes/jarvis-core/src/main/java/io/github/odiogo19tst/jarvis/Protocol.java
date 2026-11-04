@@ -26,19 +26,14 @@ public final class Protocol {
     public static String command(String speech) {
         String s = speech.trim().toLowerCase(java.util.Locale.ROOT);
         switch (s) {
-            case "início": case "inicio": case "tela inicial": return "HOME";
-            case "voltar": return "BACK";
             case "abrir mapas": return "MAPS";
             case "abrir spotify": return "SPOTIFY";
-            case "ler tela": return "SCREEN";
             case "parar": case "cancelar": return "STOP";
             case "rotação": case "rotacao": return "RPM";
             case "temperatura": return "TEMP";
             case "velocidade": return "SPEED";
             case "falhas": return "DTC";
             default:
-                // A view ID explicitly approved on the head unit; never free-form shell/intent code.
-                if (s.matches("acionar [a-z0-9_.]+:id/[a-z0-9_]+")) return "CLICK " + s.substring(8);
                 return "UNKNOWN";
         }
     }

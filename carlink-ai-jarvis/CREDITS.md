@@ -1,6 +1,8 @@
 # Créditos e origem — CarLink AI, Jarvis Edition
 
-Modificações de desenvolvimento de 2 de novembro de 2026 para odiogo19tst.
+Modificações de desenvolvimento de 2 e 4 de novembro de 2026 para odiogo19tst.
+A revisão de 4 de novembro retira serviços de Acessibilidade do APK e adiciona
+guards de disponibilidade em pequenos hooks DiPlay, descritos em docs/VENDOR_CHANGES.md.
 Esta edição é independente e experimental; não é uma versão oficial de F-e-n-y-x.
 
 - Base: [F-e-n-y-x/CarLink](https://github.com/F-e-n-y-x/CarLink), commit

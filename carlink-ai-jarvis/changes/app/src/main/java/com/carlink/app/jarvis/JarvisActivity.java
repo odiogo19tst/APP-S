@@ -7,7 +7,6 @@ import android.bluetooth.*;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.media.session.*;
-import android.provider.Settings;
 import android.view.KeyEvent;
 import android.widget.*;
 import java.io.*;
@@ -22,8 +21,7 @@ public final class JarvisActivity extends Activity {
     private volatile boolean running;
     private MediaSession media;
     private TextView status;
-    private EditText peer, ids;
-    private volatile String approvedIds="";
+    private EditText peer;
     private long lastPlay;
     private volatile int generation;
     private long pendingPoll=-1, pollSentAt;
@@ -40,12 +38,10 @@ public final class JarvisActivity extends Activity {
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
         LinearLayout layout=new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(24,24,24,24);
-        status=new TextView(this); status.setText("Jarvis • desenvolvimento\nPare o carro para configurar. Sem LLM local; voz no Samsung."); layout.addView(status);
+        status=new TextView(this); status.setText("Jarvis • Central Multimídia\nVersão de teste. Pare o carro para configurar. Voz e OBD no Samsung; sem leitura ou cliques de tela."); layout.addView(status);
         peer=new EditText(this); peer.setHint("MAC Bluetooth do Samsung pareado"); layout.addView(peer);
-        ids=new EditText(this); ids.setHint("IDs de controles aprovados, separados por espaço (opcional)"); layout.addView(ids);
         button(layout,"Permissões Bluetooth",()->{ if(Build.VERSION.SDK_INT>=31) requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT},1); });
         button(layout,"Escolher Samsung já pareado",this::choosePeer);
-        button(layout,"Ativar acessibilidade manualmente",()->startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         button(layout,"Iniciar sessão com Samsung",()->start());
         button(layout,"Estou estacionado • liberar por 2 minutos",()->{
             if(running) { JarvisState.GATE.approveParked(JarvisState.now()); show("Aprovação temporária. Ainda exige velocidade OBD zero recente."); }
@@ -76,8 +72,7 @@ public final class JarvisActivity extends Activity {
         boolean bonded=false;
         for(BluetoothDevice d:adapter.getBondedDevices()) if(d.getAddress().equals(mac)) bonded=true;
         if(!bonded) { show("Pareie o Samsung nas configurações Android primeiro."); return; }
-        approvedIds=ids.getText().toString().trim();
-        running=true; JarvisState.GATE.stop(); JarvisState.session=this;
+        running=true; JarvisState.GATE.stop();
         final int epoch=++generation;
         media=new MediaSession(this,"Jarvis explicit session");
         media.setCallback(new MediaSession.Callback() {
@@ -134,10 +129,7 @@ public final class JarvisActivity extends Activity {
             try { startActivity(i); send("SAY Aplicativo aberto."); } catch(RuntimeException e) { send("SAY Android recusou abrir o aplicativo."); }
             return;
         }
-        if(cmd.equals("HOME") || cmd.equals("BACK") || cmd.equals("SCREEN") || cmd.startsWith("CLICK ")) {
-            JarvisAccessibility a=JarvisState.accessibility;
-            send("SAY "+(a==null?"Ative a acessibilidade manualmente.":a.operate(cmd,approvedIds)));
-        } else send("SAY Comando não permitido.");
+        send("SAY Comando não permitido. Esta edição não lê nem controla outras telas.");
     }
     private void listen() {
         long now=JarvisState.now(); if(now-lastPlay<1000) return; lastPlay=now;
@@ -155,11 +147,11 @@ public final class JarvisActivity extends Activity {
         } catch(RejectedExecutionException e) { stop(); }
     }
     private void stop() {
-        generation++; running=false; main.removeCallbacks(expire); main.removeCallbacks(telemetry); pendingPoll=-1; JarvisState.GATE.stop(); JarvisState.session=null;
+        generation++; running=false; main.removeCallbacks(expire); main.removeCallbacks(telemetry); pendingPoll=-1; JarvisState.GATE.stop();
         try { if(socket!=null) socket.close(); } catch(IOException ignored) {} socket=null;
         try { if(server!=null) server.close(); } catch(IOException ignored) {} server=null;
         if(media!=null) { media.release(); media=null; }
-        show("Sessão parada. Acessibilidade sem autorização para operar.");
+        show("Sessão parada.");
     }
     @Override public boolean dispatchKeyEvent(KeyEvent k) {
         if(running && (k.getKeyCode()==KeyEvent.KEYCODE_MEDIA_PLAY || k.getKeyCode()==KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)) {
