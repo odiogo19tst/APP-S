@@ -26,6 +26,7 @@ toggle.addEventListener('click',()=>timer===null?start():stop());
 bpm.addEventListener('change',()=>{bpm.value=tempo();if(timer!==null)start();});
 tap.addEventListener('click',()=>{const now=performance.now();taps=taps.filter(t=>now-t<3000);taps.push(now);if(taps.length>=2){const intervals=taps.slice(1).map((t,i)=>t-taps[i]);const avg=intervals.reduce((a,b)=>a+b,0)/intervals.length;bpm.value=Math.max(30,Math.min(240,Math.round(60000/avg)));if(timer!==null)start();}});
 function songBpm(){const i=Number(selector.value);if(selector.value===''||!Array.isArray(window.songs))return;const song=window.songs[i];if(!song)return;const sign=String(song.timeSignature??song.meter??song.compasso??'');if([...meter.options].some(o=>o.value===sign)){meter.value=sign;lights=drawLights();}const n=Number(song.bpm??song.tempo);if(Number.isFinite(n)&&n>=30&&n<=240){bpm.value=n;if(timer!==null)start();}}
+document.addEventListener('graue:live-state',event=>{const detail=event.detail||{};const nextMeter=String(detail.meter||'4/4');const nextBpm=Number(detail.bpm);let changed=false;if([...meter.options].some(o=>o.value===nextMeter)&&meter.value!==nextMeter){meter.value=nextMeter;lights=drawLights();changed=true;}if(Number.isFinite(nextBpm)&&nextBpm>=30&&nextBpm<=240&&tempo()!==Math.round(nextBpm)){bpm.value=Math.round(nextBpm);changed=true;}if(changed&&timer!==null)start();else if(changed)stop();});
 selector.addEventListener('change',songBpm);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
 songBpm();

@@ -772,6 +772,7 @@
   $x('gx-song-cat').textContent=song.category||'Repertório local';
   $x('gx-key').textContent=hasRealSong?M.names[root]:'—';$x('gx-scale').textContent=hasRealSong?(minor?'Menor':'Maior'):'Nenhuma música selecionada';
   $x('gx-bpm').textContent=$x('tempo')?.value||'72';
+  document.dispatchEvent(new CustomEvent('graue:live-state',{detail:{title:hasRealSong?song.title:null,bpm:Number($x('tempo')?.value)||72,meter:String(song?.timeSignature||song?.meter||song?.compasso||'4/4'),key:hasRealSong?M.names[root]:null,transpose:transposeSteps}}));
   $x('gx-next-chord').textContent=hasRealSong?(song.chords?.[(idx+1)%song.chords.length]||'—'):'—';
   $x('gx-section').textContent=hasRealSong?'Acorde '+String(idx+1):'Aguardando cifra';
   $x('gx-progress-bar').style.width=((idx+1)/Math.max(1,song.chords.length)*100)+'%';
