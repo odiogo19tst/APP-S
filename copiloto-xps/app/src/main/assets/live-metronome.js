@@ -1,13 +1,13 @@
 (()=>{
 'use strict';
-const stage=document.getElementById('stage'), selector=document.getElementById('liveSong');
+const stage=document.querySelector('#gx-shell [data-gx-screen="stage"]')||document.getElementById('stage'), selector=document.getElementById('gx-live-song-select')||document.getElementById('liveSong');
 if(!stage||!selector)return;
 const style=document.createElement('style');
 style.textContent='.graue-metronome{margin:12px 0;padding:12px;border:1px solid #40516b;border-radius:12px;background:#101827;color:#f8fafc}.graue-metronome .metro-head,.graue-metronome .metro-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.graue-metronome .metro-head{justify-content:space-between}.graue-metronome .metro-lights{display:grid;grid-template-columns:repeat(var(--metro-count,4),minmax(0,1fr));gap:8px;margin:12px 0}.graue-metronome .metro-light{height:34px;border-radius:8px;background:#334155;opacity:.45;transition:background 65ms,opacity 65ms}.graue-metronome .metro-light.first.active{background:#f43f5e;opacity:1;box-shadow:0 0 14px #f43f5e}.graue-metronome .metro-light.other.active{background:#38bdf8;opacity:1;box-shadow:0 0 14px #38bdf8}.graue-metronome input{width:76px}.graue-metronome button{min-width:76px}.graue-metronome small{color:#cbd5e1}';
 document.head.append(style);
 const panel=document.createElement('section');panel.className='graue-metronome';panel.setAttribute('aria-label','Metrônomo visual');
 panel.innerHTML='<div class="metro-head"><strong>Metrônomo visual</strong><small>Vermelho: início · Azul: demais pulsações</small></div><div class="metro-lights" aria-hidden="true"></div><div class="metro-controls"><label>Compasso <select id="metroMeter"><option>2/2</option><option>2/4</option><option>3/4</option><option selected>4/4</option><option>5/4</option><option>6/4</option><option>7/4</option><option>3/8</option><option>5/8</option><option>6/8</option><option>7/8</option><option>9/8</option><option>11/8</option><option>12/8</option><option>15/8</option><option>4/2</option><option>3/2</option></select></label><label>BPM <input id="metroBpm" type="number" min="30" max="240" value="90" inputmode="numeric"></label><button id="metroToggle" type="button">Iniciar</button><button id="metroTap" type="button">Tap tempo</button><button id="metroMute" type="button" aria-pressed="false">🔊 Som ligado</button><small id="metroState" aria-live="polite">Parado · 4/4</small></div>';
-selector.closest('label').insertAdjacentElement('afterend',panel);
+const anchor=document.querySelector('#gx-shell .gx-stage-summary')||selector.closest('label');anchor.insertAdjacentElement('afterend',panel);
 const meter=panel.querySelector('#metroMeter'),mute=panel.querySelector('#metroMute'),lightsBox=panel.querySelector('.metro-lights');
 let muted=false;
 mute.addEventListener('click',()=>{muted=!muted;mute.setAttribute('aria-pressed',String(muted));mute.textContent=muted?'🔇 Mudo':'🔊 Som ligado';});
