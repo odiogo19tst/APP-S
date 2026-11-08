@@ -49,7 +49,7 @@ jobs:
             --ks-pass file:"$RUNNER_TEMP/graue.pass" --key-pass file:"$RUNNER_TEMP/graue.pass" \
             --out Graue-XPS-v1.30.1-SIGNED.apk unsigned/app-debug-unsigned.apk
           "$APKSIGNER" verify --verbose --print-certs Graue-XPS-v1.30.1-SIGNED.apk | tee signature-check.txt
-          grep -qi '0236ff9f602daad39c90b66fcf7bedc363dd511e8d4f2f51b6181081aa127f' signature-check.txt
+          grep -qi '0236ff9f602daa3ad99c90b66fcf7bedc363dd511e8d4f2f51b6181081aa127f' signature-check.txt
           rm -f "$RUNNER_TEMP/graue.jks" "$RUNNER_TEMP/graue.pass"
       - uses: actions/upload-artifact@v4
         with:
