@@ -901,3 +901,14 @@ body:not(.light) #gx-shell .gx-cifra-text{color:#e8f0fc}
 body:not(.light) #gx-shell .gx-paper-actions{background:#1a2940;border-color:#33465f}
 body.light #gx-shell .gx-paper{background:#fff;color:#13202b}
 body.light #gx-shell .gx-cifra-text{color:#222e3a}
+
+/* Palco mobile: compact metronome without affecting other app screens. */
+#gx-shell [data-gx-screen="stage"] .graue-metronome{min-width:0;max-width:100%;box-sizing:border-box;overflow:hidden}
+#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-head strong{font-size:clamp(15px,3.8vw,19px)!important;line-height:1.25}
+#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-head small{font-size:11px;line-height:1.3}
+#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls{display:flex;align-items:end;gap:7px}
+#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls label{display:flex;flex-direction:column;gap:3px;flex:0 1 auto;min-width:0;font-size:12px}
+#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls input,#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls select{box-sizing:border-box;width:90px;max-width:100%;min-height:40px;font-size:14px}
+#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls button{min-width:0;min-height:40px;padding:7px 10px;font-size:12px;flex:1 1 auto}
+#gx-shell [data-gx-screen="stage"] .graue-metronome #metroState{flex:1 0 100%;font-size:11px}
+@media(max-width:700px){#gx-shell [data-gx-screen="stage"] .graue-metronome{margin:8px 0;padding:9px}#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-head{align-items:start}#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-head small{flex:1 1 100%}#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls button{flex:1 1 calc(33% - 8px)}#gx-shell.gx-live-mode .gx-stage-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}#gx-shell.gx-live-mode .gx-stage-summary>*{min-width:0}#gx-shell.gx-live-mode .gx-live-score{font-size:clamp(16px,4vw,20px);max-height:52dvh}}
