@@ -886,3 +886,18 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell .gx-cifra-shift{display:grid;grid-template-columns:30px minmax(52px,1fr) 30px;gap:3px;align-items:center}
 #gx-shell .gx-cifra-shift button{min-width:0;width:30px;padding:4px}
 #gx-shell .gx-cifra-shift select{min-width:52px;width:100%;padding:5px 3px;font-size:14px}
+
+
+/* A cifra local acompanha o tema global; não altera o site externo do Cifra Club. */
+body:not(.light) #gx-shell .gx-paper{background:#111b2a;color:#e9f1fb;border:1px solid #33465f}
+body:not(.light) #gx-shell .gx-cifra-head{background:#1a2940;border-color:#33465f}
+body:not(.light) #gx-shell .gx-cifra-head b{color:#f1f7ff}
+body:not(.light) #gx-shell .gx-cifra-head small{color:#b5c6db!important}
+body:not(.light) #gx-shell .gx-cifra-head button{background:#263c59;color:#8bd0ff}
+body:not(.light) #gx-shell .gx-paper-copy h2{color:#f1f7ff}
+body:not(.light) #gx-shell .gx-paper-copy>span{color:#b6c9df}
+body:not(.light) #gx-shell .gx-paper-copy>p{color:#a6b9ce}
+body:not(.light) #gx-shell .gx-cifra-text{color:#e8f0fc}
+body:not(.light) #gx-shell .gx-paper-actions{background:#1a2940;border-color:#33465f}
+body.light #gx-shell .gx-paper{background:#fff;color:#13202b}
+body.light #gx-shell .gx-cifra-text{color:#222e3a}
