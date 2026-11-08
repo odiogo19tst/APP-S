@@ -912,3 +912,23 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls button{min-width:0;min-height:40px;padding:7px 10px;font-size:12px;flex:1 1 auto}
 #gx-shell [data-gx-screen="stage"] .graue-metronome #metroState{flex:1 0 100%;font-size:11px}
 @media(max-width:700px){#gx-shell [data-gx-screen="stage"] .graue-metronome{margin:8px 0;padding:9px}#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-head{align-items:start}#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-head small{flex:1 1 100%}#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls button{flex:1 1 calc(33% - 8px)}#gx-shell.gx-live-mode .gx-stage-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}#gx-shell.gx-live-mode .gx-stage-summary>*{min-width:0}#gx-shell.gx-live-mode .gx-live-score{font-size:clamp(16px,4vw,20px);max-height:52dvh}}
+
+/* Stage information architecture: song -> performance actions -> score -> pulse -> sounds -> assist. */
+#gx-shell [data-gx-screen="stage"]{display:none;flex-direction:column;gap:10px;min-width:0}
+#gx-shell [data-gx-screen="stage"].on{display:flex}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-summary{order:10;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-actions{order:20;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap{order:30;margin:0}
+#gx-shell [data-gx-screen="stage"]>.graue-metronome{order:40;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-zone:not(.gx-stage-prep-only){order:50;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-silent-advisor{order:60;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-assist{order:70;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-played-feedback{order:80;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-prep-only{order:90;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-footer{order:100;margin:0}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>button{min-width:0;min-height:44px}
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap{min-width:0;overflow:hidden}
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap .gx-live-score{width:100%;box-sizing:border-box}
+#gx-shell.gx-live-mode [data-gx-screen="stage"]>.gx-live-score-wrap{border-color:#3b829f}
+@media(max-width:700px){#gx-shell [data-gx-screen="stage"]{gap:8px}#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>button{flex:1 1 calc(33% - 8px);font-size:12px;padding:8px 6px}#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>.gx-transpose{flex:1 1 100%;justify-content:center}#gx-shell [data-gx-screen="stage"]>.gx-stage-summary{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell [data-gx-screen="stage"]>.gx-stage-summary>.gx-current{grid-column:1/-1}}
