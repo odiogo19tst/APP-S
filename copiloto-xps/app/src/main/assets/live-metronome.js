@@ -15,7 +15,7 @@ const signature=()=>{const [n,d]=meter.value.split('/').map(Number);return {n,d,
 function drawLights(){const {n}=signature();lightsBox.style.setProperty('--metro-count',String(n));lightsBox.replaceChildren();for(let i=0;i<n;i++){const light=document.createElement('span');light.className='metro-light '+(i===0?'first':'other');lightsBox.append(light);}return [...lightsBox.children];}
 let lights=drawLights();
 function clickMidi(index){if(muted)return;if(!window.Native||typeof window.Native.padHit!=='function')return;try{window.Native.padHit(10,index===0?37:42,index===0?105:65);}catch(_){/* Sem dispositivo: visual continua */}}
-const bpm=panel.querySelector('#metroBpm'),toggle=panel.querySelector('#metroToggle'),tap=panel.querySelector('#metroTap'),state=panel.querySelector('#metroState'),;
+const bpm=panel.querySelector('#metroBpm'),toggle=panel.querySelector('#metroToggle'),tap=panel.querySelector('#metroTap'),state=panel.querySelector('#metroState');
 let timer=null,beat=0,next=0,taps=[];
 function stop(){if(timer!==null)clearTimeout(timer);timer=null;beat=0;lights.forEach(x=>x.classList.remove('active'));toggle.textContent='Iniciar';state.textContent='Parado · '+meter.value;}
 function tempo(){let v=Number(bpm.value);return Number.isFinite(v)?Math.max(30,Math.min(240,Math.round(v))):90;}
