@@ -1,0 +1,60 @@
+name: Grauê XPS — assinar APK permanente
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate signing secrets
+        env:
+          KEY_B64: ${{ secrets.GRAUE_XPS_KEYSTORE_BASE64 }}
+          KEY_PASS: ${{ secrets.GRAUE_XPS_KEYSTORE_PASSWORD }}
+        run: |
+          test -n "$KEY_B64" || { echo "::error::Missing GRAUE_XPS_KEYSTORE_BASE64"; exit 1; }
+          test -n "$KEY_PASS" || { echo "::error::Missing GRAUE_XPS_KEYSTORE_PASSWORD"; exit 1; }
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android build tools
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-$ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
+      - name: Download original unsigned APK artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fLsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/13066482600/zip" -o unsigned.zip
+          unzip -o unsigned.zip -d unsigned
+          test -f unsigned/app-debug-unsigned.apk
+      - name: Sign and verify
+        env:
+          KEY_B64: ${{ secrets.GRAUE_XPS_KEYSTORE_BASE64 }}
+          KEY_PASS: ${{ secrets.GRAUE_XPS_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$KEY_B64" | base64 -d > "$RUNNER_TEMP/graue.jks"
+          unset KEY_B64
+          BT="$ANDROID_HOME/build-tools"
+          APKSIGNER="$(find "$BT" -maxdepth 2 -type f -name apksigner | sort -V | tail -1)"
+          test -n "$APKSIGNER"
+          printf '%s' "$KEY_PASS" > "$RUNNER_TEMP/graue.pass"
+          unset KEY_PASS
+          "$APKSIGNER" sign --ks "$RUNNER_TEMP/graue.jks" --ks-key-alias graue-xps \
+            --ks-pass file:"$RUNNER_TEMP/graue.pass" --key-pass file:"$RUNNER_TEMP/graue.pass" \
+            --out Graue-XPS-v1.30.1-SIGNED.apk unsigned/app-debug-unsigned.apk
+          "$APKSIGNER" verify --verbose --print-certs Graue-XPS-v1.30.1-SIGNED.apk | tee signature-check.txt
+          grep -qi '0236ff9f602daad39c90b66fcf7bedc363dd511e8d4f2f51b6181081aa127f' signature-check.txt
+          rm -f "$RUNNER_TEMP/graue.jks" "$RUNNER_TEMP/graue.pass"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Graue-XPS-v1.30.1-SIGNED
+          path: |
+            Graue-XPS-v1.30.1-SIGNED.apk
+            signature-check.txt
+          retention-days: 30
