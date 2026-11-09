@@ -47,10 +47,10 @@ assert.equal(ctx.window.XPS_EFFECTS[21],'Rotary');assert.equal(ctx.window.XPS_EF
 console.log('Share: plain chords, ChordPro, link-only rejection and effect catalog passed');
 
 vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/live.js','utf8'),ctx);
-// Bank selector and nine placeholders must never recall Performance parts.
+// Bank selector and all ten physical FAVORITE placeholders must never recall Performance parts.
 const quick=els.liveQuickFavorites;
 assert.equal(quick.children[0].children[0].children[0].children.length,10);
-assert.equal(quick.children[1].children.length,9);
+assert.equal(quick.children[1].children.length,10);
 assert(quick.children[1].children.every(b=>b.disabled));
 assert.equal(els.liveConnection.textContent,'Favoritos ainda não lidos');
 const beforeBank=calls.filter(c=>c[0]==='selectTone'||c[0]==='edit').length;
