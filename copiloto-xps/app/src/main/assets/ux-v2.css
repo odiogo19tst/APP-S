@@ -985,3 +985,14 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 @media(prefers-reduced-motion:reduce){
   #gx-shell [data-gx-screen="stage"] button{transition:none!important;animation:none!important}
 }
+
+/* Grauê 1.30.3: painel de 10 favoritos físicos por banco, legível no celular. */
+#gx-shell [data-gx-screen="stage"] .stage-favorite-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+#gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot{min-width:0;min-height:76px;padding:7px 2px;gap:4px;border-radius:10px}
+#gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot strong{font-size:clamp(18px,4.7vw,25px)}
+#gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot small{font-size:10px;line-height:1.2;overflow-wrap:break-word;max-width:100%}
+#gx-shell [data-gx-screen="stage"] .stage-favorite-bank{max-width:100%;min-width:0}
+@media(orientation:landscape) and (max-height:520px){
+ #gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot{min-height:62px}
+ #gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot strong{font-size:20px}
+}
