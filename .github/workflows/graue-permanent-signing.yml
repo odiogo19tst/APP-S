@@ -1,0 +1,72 @@
+name: Graue XPS - Assinatura Permanente
+on:
+  workflow_call:
+    secrets:
+      GRAUE_XPS_KEYSTORE_BASE64:
+        required: false
+      GRAUE_XPS_KEYSTORE_PASSWORD:
+        required: false
+permissions:
+  contents: read
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verificar secrets privados
+        env:
+          KEY_B64: ${{ secrets.GRAUE_XPS_KEYSTORE_BASE64 }}
+          KEY_PASS: ${{ secrets.GRAUE_XPS_KEYSTORE_PASSWORD }}
+        run: |
+          test -n "$KEY_B64" || { echo "::error::Configure o secret GRAUE_XPS_KEYSTORE_BASE64 (JKS em base64)"; exit 1; }
+          test -n "$KEY_PASS" || { echo "::error::Configure o secret GRAUE_XPS_KEYSTORE_PASSWORD"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: Graue-XPS-UNSIGNED
+          path: unsigned
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - run: sdkmanager 'build-tools;35.0.0'
+      - name: Alinhar, assinar, validar certificado e packageId
+        env:
+          KEY_B64: ${{ secrets.GRAUE_XPS_KEYSTORE_BASE64 }}
+          KEY_PASS: ${{ secrets.GRAUE_XPS_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          KS="$RUNNER_TEMP/graue-release.jks"
+          PASS="$RUNNER_TEMP/graue-release.pass"
+          trap 'rm -f "$KS" "$PASS"' EXIT
+          printf '%s' "$KEY_B64" | base64 -d > "$KS"
+          printf '%s' "$KEY_PASS" > "$PASS"
+          unset KEY_B64 KEY_PASS
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          APK="$(find unsigned -type f -name '*.apk' -print -quit)"
+          test -n "$APK" || { echo "::error::APK unsigned nao encontrado"; exit 1; }
+          "$TOOLS/zipalign" -f -p 4 "$APK" aligned.apk
+          "$TOOLS/apksigner" sign --ks "$KS" --ks-key-alias graue-xps \
+            --ks-pass "file:$PASS" --key-pass "file:$PASS" \
+            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
+            --out Graue-XPS-SIGNED.apk aligned.apk
+          "$TOOLS/apksigner" verify --min-sdk-version 26 --verbose --print-certs Graue-XPS-SIGNED.apk > assinatura-verificada.txt
+          EXPECTED='0236ff9f602daa3ad99c90b66fcf7bedc363dd511e8d4f2f51b6181081aa127f'
+          tr -d ':' < assinatura-verificada.txt | grep -qi "$EXPECTED" || {
+            echo "::error::Certificado diferente da chave permanente"; exit 1;
+          }
+          "$TOOLS/aapt" dump badging Graue-XPS-SIGNED.apk | grep "^package:" | head -1 > versao-pacote.txt
+          grep -q "name='br.com.dodigital.copilotoxps'" versao-pacote.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Graue-XPS-SIGNED-${{ github.run_number }}
+          path: |
+            Graue-XPS-SIGNED.apk
+            assinatura-verificada.txt
+            versao-pacote.txt
+          if-no-files-found: error
+          retention-days: 30
