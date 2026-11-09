@@ -92,9 +92,9 @@ console.log('Show: legacy toggle retired; browser entry, panic and effect contro
 // A Performance response must not be relabeled as a physical Favorite read.
 ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:9':zone,readAt:Date.now()});
 assert.equal(els.liveConnection.textContent,'MIDI lido · favoritos pendentes');
-assert.equal(els.liveQuickFavorites.children[1].children.length,9);
+assert.equal(els.liveQuickFavorites.children[1].children.length,10);
 assert(els.liveQuickFavorites.children[1].children.every(b=>b.disabled));
-console.log('Stage: banks 0–9, nine Favorite buttons, no synthetic names or MIDI on bank selection passed');
+console.log('Stage: banks 0–9, ten Favorite buttons, no synthetic names or MIDI on bank selection passed');
 
 for(const file of ['mfx-params.js','advanced.js','sequencer.js'])vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/'+file,'utf8'),ctx);
 assert.equal(ctx.window.XPS_MFX_PARAMS.length,79);assert.equal(ctx.window.XPS_MFX_PARAMS[1][0].id,'equalizer-loFreq');assert(ctx.window.XPS_MFX_PARAMS[21][0].id.startsWith('rotary-'));assert(ctx.window.XPS_MFX_PARAMS[78][0].id.startsWith('sympatheticResonance-'));
