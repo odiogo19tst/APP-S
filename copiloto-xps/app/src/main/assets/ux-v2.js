@@ -113,7 +113,7 @@
  const friendlyNote=midi=>Number.isInteger(midi)&&midi>=0&&midi<=127?M.names[midi%12]+String(Math.floor(midi/12)-1):'—';
  let usbConnected=false;
  const switchTab=name=>{if(liveMode&&name!=='stage'){notify('Saia do Ao Vivo para configurar ou editar. Sua música continua selecionada.');return;}active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();if(name==='backups'&&window.Native?.listBackups)window.Native.listBackups();};
- const setLiveMode=enabled=>{liveMode=!!enabled;shell.classList.toggle('gx-live-mode',liveMode);$x('gx-show-mode').textContent=liveMode?'← Sair do Ao Vivo':'▶ Entrar no Ao Vivo';$x('gx-show-mode').setAttribute('aria-pressed',String(liveMode));if(liveMode)switchTab('stage');window.Native?.showMode?.(liveMode);syncStage();};
+ const setLiveMode=enabled=>{liveMode=!!enabled;shell.classList.toggle('gx-live-mode',liveMode);$x('gx-show-mode').textContent=liveMode?'← Sair do Ao Vivo':'▶ Entrar no Ao Vivo';$x('gx-show-mode').setAttribute('aria-pressed',String(liveMode));if(liveMode){switchTab('stage');if(!stageScoreOpen)$x('gx-live-score-toggle').click();renderStageSongOptions();}else{const scrollButton=$x('gx-stage-scroll-toggle');if(scrollButton&&scoreScrolling)scrollButton.click();}window.Native?.showMode?.(liveMode);syncStage();};
  tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');$x('gx-show-mode').onclick=()=>setLiveMode(!liveMode);
  const openLegacy=tab=>{if(liveMode){notify('Saia do Ao Vivo para abrir os editores.');return;}document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
@@ -158,7 +158,7 @@
  $x('gx-edit-fav').onclick=()=>{switchTab('sound');soundSection='favorites';showSoundPanel();};
  $x('gx-connect').onclick=connect;$x('gx-read').onclick=read;$x('gx-arm').onclick=arm;
  $x('gx-live-score-toggle').onclick=()=>{stageScoreOpen=!stageScoreOpen;$x('gx-live-score').hidden=!stageScoreOpen;$x('gx-stage-scroll').hidden=!stageScoreOpen;$x('gx-live-score-toggle').textContent=stageScoreOpen?'▤ Ocultar cifra':'▤ Mostrar cifra no palco';$x('gx-live-score-toggle').setAttribute('aria-expanded',String(stageScoreOpen));};
- $x('gx-live-song-select').onchange=()=>{const selected=$x('gx-live-song-select').value;if(selected==='')return;const i=Number(selected);if(!Number.isInteger(i)||i<0||i>=songs.length)return;selectedIndex=i;transposeSteps=0;select(songs[i]);renderSongs();renderRepertoire();syncStage();};
+ $x('gx-live-song-select').onchange=()=>{const selected=$x('gx-live-song-select').value;if(selected==='')return;const i=Number(selected);if(!Number.isInteger(i)||i<0||i>=songs.length)return;selectedIndex=i;transposeSteps=0;select(songs[i]);renderSongs();renderRepertoire();syncStage();if(liveMode){const score=$x('gx-live-score');if(score)score.scrollTop=0;}};
  $x('gx-search').oninput=renderSongs;
  shell.querySelectorAll('[data-gx-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.gxFilter;shell.querySelectorAll('[data-gx-filter]').forEach(x=>x.classList.toggle('on',x===b));renderSongs();});
  $x('gx-add-song').onclick=()=>openLegacy('songs');
@@ -772,6 +772,7 @@
   $x('gx-song-cat').textContent=song.category||'Repertório local';
   $x('gx-key').textContent=hasRealSong?M.names[root]:'—';$x('gx-scale').textContent=hasRealSong?(minor?'Menor':'Maior'):'Nenhuma música selecionada';
   $x('gx-bpm').textContent=$x('tempo')?.value||'72';
+  document.dispatchEvent(new CustomEvent('graue:live-state',{detail:{title:hasRealSong?song.title:null,bpm:Number($x('tempo')?.value)||72,meter:String(song?.timeSignature||song?.meter||song?.compasso||'4/4'),key:hasRealSong?M.names[root]:null,transpose:transposeSteps}}));
   $x('gx-next-chord').textContent=hasRealSong?(song.chords?.[(idx+1)%song.chords.length]||'—'):'—';
   $x('gx-section').textContent=hasRealSong?'Acorde '+String(idx+1):'Aguardando cifra';
   $x('gx-progress-bar').style.width=((idx+1)/Math.max(1,song.chords.length)*100)+'%';
