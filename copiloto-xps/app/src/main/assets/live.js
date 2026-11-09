@@ -44,8 +44,8 @@ function refreshPerformanceQuick(){
   bank.onchange=()=>{const value=Number(bank.value);if(!Number.isInteger(value)||value<0||value>9)return;stageFavoriteBank=value;saved.stageFavoriteBank=value;persist();refreshPerformanceQuick();};
   label.append(bank);heading.append(label);
   const current=document.createElement('span');current.className='stage-favorite-current';current.textContent='Em uso no XPS: não confirmado';heading.append(current);container.append(heading);
-  const grid=document.createElement('div');grid.className='stage-favorite-grid';grid.setAttribute('role','group');grid.setAttribute('aria-label','Nove favoritos do banco '+stageFavoriteBank);
-  for(let i=1;i<=9;i++){
+  const grid=document.createElement('div');grid.className='stage-favorite-grid';grid.setAttribute('role','group');grid.setAttribute('aria-label','Dez favoritos do banco '+stageFavoriteBank);
+  for(let i=0;i<=9;i++){
    const button=document.createElement('button');button.className='stage-favorite-slot';button.disabled=true;
    const number=document.createElement('strong');number.textContent=String(i).padStart(2,'0');
    const name=document.createElement('small');name.textContent='Ainda não lido';
