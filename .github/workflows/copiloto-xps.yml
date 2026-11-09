@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   push:
     branches: ['feat/copiloto-xps']
-    paths: ['copiloto-xps/**', '.github/workflows/copiloto-xps.yml']
+    paths: ['copiloto-xps/**', '.github/workflows/copiloto-xps.yml', '.github/workflows/graue-permanent-signing.yml']
 permissions:
   contents: read
 jobs:
