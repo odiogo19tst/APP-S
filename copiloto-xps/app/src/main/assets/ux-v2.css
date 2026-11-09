@@ -966,3 +966,22 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell [data-gx-screen="stage"]>.graue-metronome .metro-lights{max-height:56px!important}
 #gx-shell [data-gx-screen="stage"]>.gx-zone,#gx-shell [data-gx-screen="stage"]>.gx-silent-advisor,#gx-shell [data-gx-screen="stage"]>.gx-assist{border-radius:var(--stage-radius);min-width:0}
 @media(min-width:760px){#gx-shell [data-gx-screen="stage"]>.gx-stage-summary{grid-template-columns:minmax(220px,2fr) repeat(4,minmax(0,1fr))}#gx-shell [data-gx-screen="stage"]>.gx-stage-summary>.gx-current{grid-column:auto}}
+
+/* 1.30.2: consistent touch targets and accessibility in the live stage. */
+#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>button,
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap button,
+#gx-shell [data-gx-screen="stage"] .graue-metronome button{touch-action:manipulation;transition:filter .12s ease,box-shadow .12s ease}
+#gx-shell [data-gx-screen="stage"] button:focus-visible,
+#gx-shell [data-gx-screen="stage"] select:focus-visible,
+#gx-shell [data-gx-screen="stage"] input:focus-visible{outline:3px solid #63c7ef!important;outline-offset:2px}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>button:active,
+#gx-shell [data-gx-screen="stage"] .graue-metronome button:active{filter:brightness(1.15)}
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap .gx-live-score{overflow-x:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+@media(orientation:landscape) and (max-height:520px){
+  #gx-shell [data-gx-screen="stage"]{--stage-space:7px;--stage-control:42px}
+  #gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap .gx-live-score{max-height:62dvh}
+  #gx-shell [data-gx-screen="stage"]>.graue-metronome{padding:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  #gx-shell [data-gx-screen="stage"] button{transition:none!important;animation:none!important}
+}
