@@ -1,10 +1,10 @@
 name: Grauê XPS - Copiloto Musical
 on:
   pull_request:
-    paths: ['copiloto-xps/**', 'graue-api-worker/**', '.github/workflows/copiloto-xps.yml']
+    paths: ['copiloto-xps/**', 'graue-api-worker/**', '.github/workflows/copiloto-xps.yml', '.github/workflows/graue-permanent-signing.yml']
   workflow_dispatch:
   push:
-    branches: ['feat/copiloto-xps']
+    branches: ['feat/copiloto-xps', 'main']
     paths: ['copiloto-xps/**', '.github/workflows/copiloto-xps.yml', '.github/workflows/graue-permanent-signing.yml']
 permissions:
   contents: read
@@ -53,7 +53,7 @@ jobs:
           if-no-files-found: error
 
   sign:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/copiloto-xps'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/feat/copiloto-xps' || github.ref == 'refs/heads/main')
     needs: build
     permissions:
       contents: read
