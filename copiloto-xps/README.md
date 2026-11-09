@@ -1,4 +1,25 @@
-# Copiloto XPS 0.7.2 — prévia funcional Android
+# Grauê XPS 1.30.3 — candidato a atualização Android
+
+Pacote `br.com.dodigital.copilotoxps`, `versionCode 48`. Atualiza a versão 1.30.2 (código 47) sem apagar dados **quando assinada com o mesmo keystore permanente**. Nunca use o APK unsigned de CI como instalador. A assinatura automática depende dos secrets privados configurados no GitHub Actions.
+
+### Correções desta entrega
+- Repertório e configurações preservam campos de outros módulos quando qualquer painel salva dados. Não apaga novas preferências desconhecidas.
+- A cifra abre visível no Palco e continua recolhível. A rolagem é opcional; entrar no Ao Vivo mantém acesso direto à cifra.
+- O painel de FAVORITE agora mostra dez posições (0–9) em cada um dos dez bancos, sem esconder a posição 0. Posições do Roland **ainda não confirmadas por leitura/backup** permanecem desativadas, sem simular importação.
+- A abertura USB-MIDI protege contra pedidos simultâneos de conexão e dispositivos removidos durante a abertura.
+- Teste de regressão específico incluído no CI; compilação/lint Android continuam obrigatórios.
+
+### Limites de validação
+- O fluxo automático de assinatura requer configurar `GRAUE_XPS_KEYSTORE_BASE64` e `GRAUE_XPS_KEYSTORE_PASSWORD` como GitHub Actions Secrets. O JKS e senha nunca devem ser versionados.
+- Não há licença para redistribuir automaticamente modelos neurais de terceiros. O Jarvis Musical offline continua exigindo modelo .task compatível instalado e testado no aparelho, ou opera no modo determinístico.
+- Os FAVORITE físicos 0–9, áudio real, comunicação SysEx, MFX e latência só podem ser certificados com o Roland XPS-10 conectado a um celular Android. Testes de CI não substituem essa prova.
+- Sincronização oficial Louve/Cifra Club e acompanhamento polifônico ao vivo dependem de APIs/permissões e pesquisa complementar.
+
+Consulte `RELEASE-CHECKLIST.md` para critérios de aceitação no aparelho.
+
+---
+
+## Histórico técnico: Copiloto XPS 0.7.2 — prévia funcional Android
 
 Aplicativo para acompanhar um Roland XPS-10 por MIDI USB e analisar o ambiente pelo microfone. Não processa o áudio do PA; comandos MIDI e pads podem alterar ou produzir som no teclado. Android 8+; alvo de teste físico: Samsung S25 FE.
 
