@@ -14,26 +14,36 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Verificar secrets privados
+        id: signing_ready
         env:
           KEY_B64: ${{ secrets.GRAUE_XPS_KEYSTORE_BASE64 }}
           KEY_PASS: ${{ secrets.GRAUE_XPS_KEYSTORE_PASSWORD }}
         run: |
-          test -n "$KEY_B64" || { echo "::error::Configure o secret GRAUE_XPS_KEYSTORE_BASE64 (JKS em base64)"; exit 1; }
-          test -n "$KEY_PASS" || { echo "::error::Configure o secret GRAUE_XPS_KEYSTORE_PASSWORD"; exit 1; }
+          if [ -n "$KEY_B64" ] && [ -n "$KEY_PASS" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::APK unsigned disponivel; assinatura automatica depende de configurar os dois secrets privados."
+          fi
       - uses: actions/download-artifact@v4
+        if: steps.signing_ready.outputs.enabled == 'true'
         with:
           name: Graue-XPS-UNSIGNED
           path: unsigned
       - uses: actions/setup-java@v4
+        if: steps.signing_ready.outputs.enabled == 'true'
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        if: steps.signing_ready.outputs.enabled == 'true'
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - run: sdkmanager 'build-tools;35.0.0'
+        if: steps.signing_ready.outputs.enabled == 'true'
       - name: Alinhar, assinar, validar certificado e packageId
+        if: steps.signing_ready.outputs.enabled == 'true'
         env:
           KEY_B64: ${{ secrets.GRAUE_XPS_KEYSTORE_BASE64 }}
           KEY_PASS: ${{ secrets.GRAUE_XPS_KEYSTORE_PASSWORD }}
@@ -62,6 +72,7 @@ jobs:
           "$TOOLS/aapt" dump badging Graue-XPS-SIGNED.apk | grep "^package:" | head -1 > versao-pacote.txt
           grep -q "name='br.com.dodigital.copilotoxps'" versao-pacote.txt
       - uses: actions/upload-artifact@v4
+        if: steps.signing_ready.outputs.enabled == 'true'
         with:
           name: Graue-XPS-SIGNED-${{ github.run_number }}
           path: |
