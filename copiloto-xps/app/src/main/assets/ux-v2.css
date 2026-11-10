@@ -1109,5 +1109,5 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell .gx-synth-ai button{min-height:44px;border-radius:9px;padding:9px 12px}
 #gx-shell .gx-synth-ai button:disabled{opacity:.45}
 #gx-shell .gx-synth-ai button:last-child{background:#185a6b;color:#fff}
-#gx-shell .gx-synth-ai-status{overflow-wrap:anywhere}
+#gx-shell .gx-synth-ai-status{overflow-wrap:break-word;word-break:normal}
 @media(max-width:390px){#gx-shell .gx-synth-quick{grid-template-columns:1fr}#gx-shell .gx-synth-tabs button{flex:1 1 75px}}
