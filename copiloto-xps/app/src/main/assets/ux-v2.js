@@ -11,7 +11,7 @@
  '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não conectado</small></span><button id="gx-unified-usb" class="gx-usb-main">Conectar USB</button><button id="gx-midi-refresh" class="gx-midi-refresh" aria-label="Atualizar entradas e saídas MIDI" title="Atualizar entrada e saída MIDI">↻ <span>Atualizar MIDI</span></button><button id="gx-show-mode" class="gx-live-toggle" type="button" aria-pressed="false">▶ Entrar no Ao Vivo</button><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
  '<nav class="gx-nav" aria-label="Áreas do aplicativo"><button data-gx-tab="stage" class="on">Palco</button><button data-gx-tab="repertoire">Repertório</button><button data-gx-tab="sound">Sons</button><button data-gx-tab="drums">DrumPads</button><button data-gx-tab="coach">Copiloto</button><button data-gx-tab="backups">Backups</button><button data-gx-tab="settings">Ajustes</button></nav>',
  '<div class="gx-screen on" data-gx-screen="stage">',
- '<div class="gx-stage-summary"><section class="gx-current gx-panel"><small>● TOCANDO AGORA</small><strong id="gx-song-name">Selecione uma música</strong><span id="gx-song-cat">Seu repertório</span><small id="gx-stage-rig-info" class="gx-stage-rig-info">🎹 Teclado: sem setup associado</small><label class="gx-live-song-chooser">Escolher música<select id="gx-live-song-select" aria-label="Escolher música para tocar no palco"><option value="">Selecione uma música</option></select></label><div class="gx-progress"><i id="gx-progress-bar"></i></div></section>',
+ '<div class="gx-stage-summary"><section class="gx-current gx-panel"><small>● TOCANDO AGORA</small><strong id="gx-song-name">Selecione uma música</strong><span id="gx-song-cat">Seu repertório</span><small id="gx-stage-rig-info" class="gx-stage-rig-info">🎹 Teclado: sem setup associado</small><small id="gx-stage-health" class="gx-stage-health" role="status">Repertório e USB: verificando…</small><button id="gx-stage-reapply-rig" class="gx-stage-reapply-rig" type="button" disabled>↻ Reaplicar setup da música</button><label class="gx-live-song-chooser">Escolher música<select id="gx-live-song-select" aria-label="Escolher música para tocar no palco"><option value="">Selecione uma música</option></select></label><div class="gx-progress"><i id="gx-progress-bar"></i></div></section>',
  '<section class="gx-panel gx-mini"><small>TOM</small><strong id="gx-key">—</strong><span id="gx-scale">Referência</span></section>',
  '<section class="gx-panel gx-mini"><small>ANDAMENTO</small><strong id="gx-bpm">72</strong><span>BPM • 4/4</span></section>',
  '<section class="gx-panel gx-mini"><small>SEÇÃO ATUAL</small><strong id="gx-section">Em execução</strong></section>',
@@ -58,6 +58,13 @@
  const screens=[...shell.querySelectorAll('[data-gx-screen]')],tabs=[...shell.querySelectorAll('[data-gx-tab]')];
  let active='stage',filter='all',section='cifra',soundSection='tones',selectedIndex=-1,partPage=0,transposeSteps=0;
  let liveMode=false,stageScoreOpen=true;
+ const activeSongIndex=()=>{
+  if(selectedIndex>=0&&selectedIndex<songs.length&&songs[selectedIndex]?.title===song?.title)return selectedIndex;
+  const matches=songs.map((entry,i)=>entry?.title===song?.title?i:-1).filter(i=>i>=0);
+  return matches.length===1?matches[0]:-1;
+ };
+ const activeSongEntry=()=>{const at=activeSongIndex();return at>=0?songs[at]:null;};
+ const activeRigToken=()=>{const at=activeSongIndex();return at>=0?'song:'+at+':'+song?.title:'no-selected-song';};
  let lastAudio=null,hw={},connected=false,recording=false,notesHistory=[],keyName='—',lastCh='—';
  let backupRows=[],backupSelection=new Set();
  let silentDismissedKey='',silentToneIndex=0,silentPending=false,silentSuggested=null,silentMusicKey='';
@@ -133,7 +140,7 @@
   rigRunner?.cancel();
   if(!rigApi)return;
   const planned=rigApi.normalize(entry?.keyboardSetup);
-  if(planned&&planned.auto&&usbConnected)rigRunner?.prepare(planned,entry.title);
+  if(planned&&planned.auto&&usbConnected)rigRunner?.prepare(planned,activeRigToken());
   const sender=window.Native&&typeof window.Native.selectPerformance==='function'
     ?(number,user)=>window.Native.selectPerformance(number,user):null;
   const result=rigApi.activate(entry,usbConnected,sender);
@@ -178,7 +185,15 @@
  $x('gx-start').onclick=()=>{if(!playing)callOld('play');switchTab('stage');sync();};
  $x('gx-pause').onclick=()=>{if(playing)callOld('play');sync();};
  $x('gx-score-next').onclick=()=>{callOld('nextBtn');syncStage();};
- $x('gx-next').onclick=()=>{const at=songs.findIndex(s=>s.title===song.title);if(songs.length>1){selectedIndex=(at+1+songs.length)%songs.length;select(songs[selectedIndex]);transposeSteps=0;sync();}else{notify('Adicione outra música ao repertório para usar Próxima música.');}};
+ $x('gx-next').onclick=()=>{const at=activeSongIndex();if(songs.length>1){const next=(at+1+songs.length)%songs.length;selectRepertoireSong(songs[next],next);sync();}else{notify('Adicione outra música ao repertório para usar Próxima música.');}};
+ $x('gx-stage-reapply-rig').onclick=()=>{
+  const entry=activeSongEntry();
+  if(!entry){notify('Selecione uma música específica no repertório antes de reaplicar.');return;}
+  const preset=rigApi?.normalize(entry.keyboardSetup);
+  if(!usbConnected){notify('USB desconectado. Conecte o XPS-10 e toque Reaplicar setup.');return;}
+  if(!preset||!preset.auto){notify('Esta música não possui troca automática habilitada.');return;}
+  applySavedSongRig(entry);
+ };
  $x('gx-panic').onclick=()=>{if(confirm('Enviar All Notes Off e soltar sustain nos 16 canais MIDI? Isso pode interromper o som do teclado.'))callOld('livePanic');};
  $x('gx-down').onclick=()=>{callOld('down');transposeSteps--;sync();};
  $x('gx-up').onclick=()=>{callOld('up');transposeSteps++;sync();};
@@ -241,7 +256,7 @@
   if(+field.value>+field.max)field.value=field.max;
  };
  $x('gx-song-rig-save').onclick=()=>{
-  const entry=songs.find(item=>item&&item.title===song?.title);
+  const entry=activeSongEntry();
   if(!entry||!rigApi){notify('Salve a música no repertório antes de associar o teclado.');return;}
   try{
    const raw={type:$x('gx-song-rig-type').value,number:Number($x('gx-song-rig-number').value),auto:$x('gx-song-rig-auto').checked};
@@ -257,7 +272,7 @@
   option.textContent='Parte '+(p+1);$x('gx-song-tone-part').append(option);
  }
  $x('gx-song-tone-save').onclick=()=>{
-  const entry=songs.find(item=>item&&item.title===song?.title);
+  const entry=activeSongEntry();
   const rig=rigApi?.normalize(entry?.keyboardSetup);
   if(!entry||!rig){notify('Primeiro salve a música e vincule uma Performance USER ou PRESET.');return;}
   const levels={};
@@ -279,7 +294,7 @@
   }catch(error){$x('gx-song-tone-status').textContent=error.message;}
  };
  $x('gx-song-tone-clear').onclick=()=>{
-  const entry=songs.find(item=>item&&item.title===song?.title),rig=rigApi?.normalize(entry?.keyboardSetup);
+  const entry=activeSongEntry(),rig=rigApi?.normalize(entry?.keyboardSetup);
   if(!entry||!rig)return;
   const updated=rigApi.assign(entry,{...rig,tones:null});
   songs[songs.indexOf(entry)]=updated;song.keyboardSetup=updated.keyboardSetup;
@@ -287,7 +302,7 @@
   notify('Níveis dos Tones removidos desta música; a Performance foi preservada.');
  };
  $x('gx-song-rig-clear').onclick=()=>{
-  const entry=songs.find(item=>item&&item.title===song?.title);
+  const entry=activeSongEntry();
   if(!entry||!rigApi)return;
   const at=songs.indexOf(entry);songs[at]=rigApi.assign(entry,null);song.keyboardSetup=null;
   persist();renderSongRig(true);renderSongs();syncStage();
@@ -297,7 +312,7 @@
   const option=document.createElement('option');option.value=String(i);option.textContent='Parte '+(i+1);$x('gx-song-brain-part').append(option);
  }
  $x('gx-song-rig-capture').onclick=()=>{
-  const entry=songs.find(item=>item&&item.title===song?.title),rig=rigApi?.normalize(entry?.keyboardSetup);
+  const entry=activeSongEntry(),rig=rigApi?.normalize(entry?.keyboardSetup);
   if(!entry||!rig)return notify('Primeiro salve a música e vincule uma Performance.');
   if(!usbConnected)return notify('Conecte o XPS-10 para guardar os parâmetros reais.');
   try{
@@ -604,7 +619,7 @@
  $x('gx-perf-next').onclick=()=>{perfPage=Math.min(userPerformances?7:0,perfPage+1);renderPerformanceBanks();};
  renderPerformanceBanks();
  const songFavoriteSet=()=>new Set(Array.isArray(saved.songFavorites)?saved.songFavorites:[]);
- function renderStageSongOptions(){const dropdown=$x('gx-live-song-select');const catalog=songs.map((entry,i)=>i+':'+S(entry?.title)).join('|');if(dropdown.dataset.catalog!==catalog){dropdown.replaceChildren();songs.forEach((entry,i)=>{if(!entry)return;const option=document.createElement('option');option.value=String(i);option.textContent=S(entry.title||'Música '+(i+1));dropdown.append(option);});dropdown.dataset.catalog=catalog;}const current=songs.findIndex(entry=>entry&&entry.title===song?.title);if(current>=0)dropdown.value=String(current);else dropdown.selectedIndex=-1;}
+ function renderStageSongOptions(){const dropdown=$x('gx-live-song-select');const catalog=songs.map((entry,i)=>i+':'+S(entry?.title)).join('|');if(dropdown.dataset.catalog!==catalog){dropdown.replaceChildren();songs.forEach((entry,i)=>{if(!entry)return;const option=document.createElement('option');option.value=String(i);option.textContent=S(entry.title||'Música '+(i+1));dropdown.append(option);});dropdown.dataset.catalog=catalog;}const current=activeSongIndex();if(current>=0)dropdown.value=String(current);else dropdown.selectedIndex=-1;}
  function renderSongs(){renderStageSongOptions();
   const box=$x('gx-songs'),q=$x('gx-search').value.trim().toLowerCase(),favs=songFavoriteSet();box.replaceChildren();
   let items=songs.map((s,i)=>({s,i})).filter(({s})=>(S(s.title)+' '+S(s.category)+' '+S(s.root)).toLowerCase().includes(q));
@@ -613,7 +628,7 @@
   if(filter==='recent')items=items.slice(-12).reverse();
   if(!items.length){let p=document.createElement('p');p.className='gx-empty';p.textContent='Nenhuma música encontrada. Abra o Cifra Club e importe uma cifra.';box.append(p);}
   items.forEach(({s,i})=>{
-   let row=document.createElement('div');row.className='gx-song-row'+(song.title===s.title?' active':'');
+   let row=document.createElement('div');row.className='gx-song-row'+(i===activeSongIndex()?' active':'');
    let pick=document.createElement('button'),star=document.createElement('button');
    pick.className='gx-song-pick';let title=document.createElement('strong');title.textContent=s.title;let sub=document.createElement('small');sub.textContent=s.category||'Sem categoria';pick.append(title,sub);
    pick.onclick=()=>selectRepertoireSong(s,i);
@@ -623,8 +638,8 @@
   });
  }
  function renderSongRig(force){
-  const panel=$x('gx-song-rig'),entry=songs.find(item=>item&&item.title===song?.title);
-  const key=entry?entry.title:'';
+  const panel=$x('gx-song-rig'),entry=activeSongEntry();
+  const key=entry?String(activeSongIndex())+':'+entry.title:'';
   if(!force&&panel.dataset.songKey===key)return;
   panel.dataset.songKey=key;
   const savedRig=rigApi?.normalize(entry?.keyboardSetup);
@@ -937,12 +952,21 @@
  function syncStage(){
   $x('gx-score-key').value=String(root);$x('gx-stage-score-key').value=String(root);
   const score=$x('gx-live-score'),scoreText=GraueLouve.cleanScoreText(S(song?.text||'')).trim()||'Cifra não disponível. Importe no menu Repertório, fora do Modo Ao Vivo.';if(score.textContent!==scoreText)score.textContent=scoreText;
-  const stageDropdown=$x('gx-live-song-select');const matchingSong=songs.findIndex(entry=>entry&&entry.title===song?.title);if(matchingSong>=0&&stageDropdown.value!==String(matchingSong))stageDropdown.value=String(matchingSong);
-  const hasRealSong=songs.some(m=>m&&m.title===song.title);
+  const stageDropdown=$x('gx-live-song-select');const matchingSong=activeSongIndex();if(matchingSong>=0&&stageDropdown.value!==String(matchingSong))stageDropdown.value=String(matchingSong);
+  const hasRealSong=matchingSong>=0;
   $x('gx-song-name').textContent=hasRealSong?song.title:'Selecione uma música do repertório';
   $x('gx-song-cat').textContent=song.category||'Repertório local';
   const rig=rigApi?.normalize(song?.keyboardSetup);
   $x('gx-stage-rig-info').textContent=rigSelectionStatus|| (rig?'🎹 '+(rig.type==='user'?'USER ':'PRESET ')+String(rig.number).padStart(3,'0')+(rig.auto?' · automático':' · manual'):'🎹 Teclado: sem setup associado');
+  const responseOK=usbConnected&&Number(hw?.validSysexPackets||0)>0&&Array.isArray(hw?.['setup:0']);
+  const showHealth=$x('gx-stage-health');
+  showHealth.textContent=!hasRealSong?'Escolha uma música do repertório para começar.':
+   !usbConnected?'Modo cifra disponível · USB desconectado: mudança de timbre manual.':
+   !responseOK?'USB conectado · aguardando leitura SysEx do XPS-10; timbre não confirmado.':
+   !rig?'Roland respondeu SysEx · música sem Performance vinculada.':
+   rig.auto?'Roland respondeu SysEx · Performance vinculada; confira o visor antes de tocar.':
+   'Roland respondeu SysEx · troca manual configurada.';
+  $x('gx-stage-reapply-rig').disabled=!hasRealSong||!usbConnected||!rig?.auto;
   $x('gx-key').textContent=hasRealSong?M.names[root]:'—';$x('gx-scale').textContent=hasRealSong?(minor?'Menor':'Maior'):'Nenhuma música selecionada';
   $x('gx-bpm').textContent=$x('tempo')?.value||'72';
   document.dispatchEvent(new CustomEvent('graue:live-state',{detail:{title:hasRealSong?song.title:null,bpm:Number($x('tempo')?.value)||72,meter:String(song?.timeSignature||song?.meter||song?.compasso||'4/4'),key:hasRealSong?M.names[root]:null,transpose:transposeSteps}}));
@@ -970,14 +994,14 @@
   $x('gx-note-history').textContent=notesHistory.length?notesHistory.join('  •  '):'Aguardando notas reais…';
   $x('gx-tip-text').textContent=v&&v.root>=0?'Tom sugerido: '+M.names[v.root]+(v.mode===1?' menor':' maior')+'. Confira a resolução e os acordes tocados antes de confirmar.':'O tom maior ou menor pode ser ambíguo com poucas notas. Use MIDI para os acordes e microfone para a voz; a análise de áudio ainda é experimental.';
  }
- function sync(){syncStage();renderSongs();renderRepertoire();renderFavorites();renderMixer();renderCoach();$x('gx-usb').textContent=hw['setup:0']?'● XPS-10 lido':usbConnected?'● MIDI conectado':'● USB desligado';}
+ function sync(){syncStage();renderSongs();renderRepertoire();renderFavorites();renderMixer();renderCoach();$x('gx-usb').textContent=usbConnected&&hw['setup:0']?'● XPS-10 lido':usbConnected?'● MIDI conectado':'● USB desligado';}
  // Recepção passiva: os dados provêm dos serviços originais; a interface nunca simula notas, status nem conexão.
  const prior=window.receive;
  window.receive=(kind,data)=>{
   prior(kind,data);
   if(kind==='hardware')hw=data||{};
   if(kind==='hardwarePhysical')hw=data||hw;
-  const runStatus=rigRunner?.receive(kind,data,hw,song?.title);
+  const runStatus=rigRunner?.receive(kind,data,hw,activeRigToken());
   if(runStatus?.status==='requested')updateRigStatus('🎹 Performance lida · '+runStatus.count+' parâmetros solicitados; aguardando confirmação SysEx');
   if(runStatus?.status==='parts-requested')updateRigStatus('🎹 Ajustes da Performance solicitados · aguardando leitura antes dos Tones.');
   if(runStatus?.status==='tones-requested')updateRigStatus('🎹 '+runStatus.count+' Tone(s) solicitados via CC80–83 · confira o som no XPS-10; sem readback de tone.');
@@ -1089,6 +1113,8 @@
    $x('gx-unified-usb').classList.toggle('connected',usbConnected);
    $x('gx-usb').textContent=usbConnected?'● MIDI conectado':'● USB desconectado';
    $x('gx-device-state').textContent=usbConnected?'● MIDI conectado · aguardando resposta SysEx':'● USB desconectado';
+   if(!usbConnected){hw={};rigRunner?.cancel();if(activeSongEntry())updateRigStatus('🎹 USB desconectado · cifra continua disponível; use Reaplicar setup ao reconectar.');}
+   syncStage();
   }
   if(kind==='answer'){
     if(silentPending){
