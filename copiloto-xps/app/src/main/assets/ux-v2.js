@@ -252,6 +252,48 @@
   persist();renderSongRig(true);renderSongs();syncStage();
   notify('Vínculo removido. Esta música não trocará a Performance.');
  };
+ for(let i=0;i<16;i++){
+  const option=document.createElement('option');option.value=String(i);option.textContent='Parte '+(i+1);$x('gx-song-brain-part').append(option);
+ }
+ $x('gx-song-rig-capture').onclick=()=>{
+  const entry=songs.find(item=>item&&item.title===song?.title),rig=rigApi?.normalize(entry?.keyboardSetup);
+  if(!entry||!rig)return notify('Primeiro salve a música e vincule uma Performance.');
+  if(!usbConnected)return notify('Conecte o XPS-10 para guardar os parâmetros reais.');
+  try{
+   const parts=brainApi.capture(hw),updated=rigApi.assign(entry,{...rig,parts});
+   songs[songs.indexOf(entry)]=updated;song.keyboardSetup=updated.keyboardSetup;
+   persist();renderSongRig(true);renderSongs();syncStage();
+   notify('Parâmetros verificados de '+parts.length+' partes guardados na música. Não gravou USER.');
+  }catch(error){$x('gx-song-rig-capture-info').textContent=error.message;notify(error.message);}
+ };
+ $x('gx-song-brain-plan').onclick=()=>{
+  preparedBrainPlan=null;$x('gx-song-brain-apply').disabled=true;
+  try{
+   const part=Number($x('gx-song-brain-part').value);
+   const plan=brainApi.suggest($x('gx-song-brain-request').value,part,hw);
+   const preview=$x('gx-song-brain-preview');
+   preview.textContent=plan.description+(plan.commands.length?' · '+plan.commands.map(x=>brainApi.PARAMETERS[Object.keys(brainApi.PARAMETERS).find(k=>brainApi.PARAMETERS[k].offset===x.offset)].label+': '+x.value).join(' / '):' · sem modificações');
+   if(!plan.supported||!plan.commands.length)return;
+   preparedBrainPlan=plan.commands;
+   $x('gx-song-brain-apply').disabled=false;
+  }catch(error){$x('gx-song-brain-preview').textContent=error.message;}
+ };
+ $x('gx-song-brain-apply').onclick=()=>{
+  if(!preparedBrainPlan)return;
+  if(!usbConnected||!window.Native?.editHardware){notify('Conecte o XPS-10 antes de aplicar.');return;}
+  try{
+   const byPart=new Map();
+   for(const cmd of preparedBrainPlan){
+    if(!byPart.has(cmd.index))byPart.set(cmd.index,{part:cmd.index,values:{}});
+    byPart.get(cmd.index).values[cmd.offset]=cmd.value;
+   }
+   const commands=brainApi.diff(hw,[...byPart.values()]);
+   preparedBrainPlan=null;$x('gx-song-brain-apply').disabled=true;
+   if(!commands.length)return notify('Os parâmetros já correspondem à leitura do XPS-10.');
+   window.Native.editHardware(JSON.stringify(commands));
+   $x('gx-song-brain-preview').textContent='Alteração solicitada: aguarde a releitura e confira no teclado antes de guardar na música.';
+  }catch(error){$x('gx-song-brain-preview').textContent=error.message;}
+ };
  $x('gx-transpose-minus').onclick=()=>{callOld('down');transposeSteps--;sync();};
  $x('gx-transpose-cifra').onclick=()=>{callOld('up');transposeSteps++;sync();};
  for(const id of ['gx-score-key','gx-stage-score-key']){
