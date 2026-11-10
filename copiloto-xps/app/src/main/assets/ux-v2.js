@@ -252,6 +252,40 @@
    notify('Setup salvo nesta música. A seleção futura carregará a Performance pelo USB.');
   }catch(error){$x('gx-song-rig-status').textContent=error.message;}
  };
+ for(let p=0;p<16;p++){
+  const option=document.createElement('option');option.value=String(p);
+  option.textContent='Parte '+(p+1);$x('gx-song-tone-part').append(option);
+ }
+ $x('gx-song-tone-save').onclick=()=>{
+  const entry=songs.find(item=>item&&item.title===song?.title);
+  const rig=rigApi?.normalize(entry?.keyboardSetup);
+  if(!entry||!rig){notify('Primeiro salve a música e vincule uma Performance USER ou PRESET.');return;}
+  const levels={};
+  for(let tone=1;tone<=4;tone++){
+   const value=$x('gx-song-tone-'+tone).value.trim();
+   if(value==='')continue;
+   if(!/^[0-9]{1,3}$/.test(value)||Number(value)>127){
+    $x('gx-song-tone-status').textContent='Tone '+tone+': use um número inteiro entre 0 e 127.';return;
+   }
+   levels[tone]=Number(value);
+  }
+  const tones=brainApi?.cleanTonePreset({part:Number($x('gx-song-tone-part').value),levels});
+  if(!tones){$x('gx-song-tone-status').textContent='Preencha ao menos um Tone com valor válido.';return;}
+  try{
+   const updated=rigApi.assign(entry,{...rig,tones});
+   songs[songs.indexOf(entry)]=updated;song.keyboardSetup=updated.keyboardSetup;
+   persist();renderSongRig(true);renderSongs();syncStage();
+   notify('Níveis de '+Object.keys(tones.levels).length+' Tone(s) salvos para esta música.');
+  }catch(error){$x('gx-song-tone-status').textContent=error.message;}
+ };
+ $x('gx-song-tone-clear').onclick=()=>{
+  const entry=songs.find(item=>item&&item.title===song?.title),rig=rigApi?.normalize(entry?.keyboardSetup);
+  if(!entry||!rig)return;
+  const updated=rigApi.assign(entry,{...rig,tones:null});
+  songs[songs.indexOf(entry)]=updated;song.keyboardSetup=updated.keyboardSetup;
+  persist();renderSongRig(true);renderSongs();syncStage();
+  notify('Níveis dos Tones removidos desta música; a Performance foi preservada.');
+ };
  $x('gx-song-rig-clear').onclick=()=>{
   const entry=songs.find(item=>item&&item.title===song?.title);
   if(!entry||!rigApi)return;
@@ -601,6 +635,16 @@
   $x('gx-song-rig-save').disabled=!entry;
   $x('gx-song-rig-clear').disabled=!entry||!savedRig;
   $x('gx-song-rig-capture-info').textContent=savedRig?.parts?.length?'🎹 '+savedRig.parts.length+' partes salvas com parâmetros reais · configuração da música':'Nenhum parâmetro de parte vinculado. Leia o XPS-10 e capture durante o ensaio.';
+  const tonePreset=savedRig?.tones;
+  $x('gx-song-tone-part').value=String(tonePreset?.part??0);
+  for(let tone=1;tone<=4;tone++){
+   $x('gx-song-tone-'+tone).value=tonePreset?.levels?.[tone]===undefined?'':String(tonePreset.levels[tone]);
+  }
+  $x('gx-song-tone-save').disabled=!entry||!savedRig;
+  $x('gx-song-tone-clear').disabled=!entry||!tonePreset;
+  $x('gx-song-tone-status').textContent=tonePreset?
+   'Salvo na parte '+(tonePreset.part+1)+' · '+Object.keys(tonePreset.levels).length+' Tone(s) por CC80–83; sem leitura de volta.':
+   'Nenhum nível salvo. Preencha somente os Tones que deseja configurar no culto.';
   $x('gx-song-rig-status').textContent=!entry?'Salve uma música antes de configurar o teclado.':savedRig
    ?'Vinculada a '+(savedRig.type==='user'?'USER ':'PRESET ')+String(savedRig.number).padStart(3,'0')+(savedRig.auto?' · automática':' · manual')
    :'Nenhum setup salvo. Escolha o banco e a posição utilizada no Roland.';
