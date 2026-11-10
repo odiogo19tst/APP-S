@@ -594,6 +594,24 @@ public class MainActivity extends Activity {
     emit("status","CC"+controller+" enviado ao canal "+channel+" (Tone "+tone+"). Confira ouvindo o XPS-10: o valor não possui readback SysEx nesta versão.");
    });
   }
+  /** Vibrato offsets (CC76/77/78) of the Performance Part; NOT per-Tone LFO editing. */
+  @JavascriptInterface public void partVibrato(int part,int controller,int value){
+   runOnUiThread(()->{
+    if(part<0||part>=16||controller<76||controller>78||value<0||value>127){
+     emit("status","Vibrato inválido: parte 1–16, CC76–78, valor 0–127.");return;
+    }
+    if(!armed||midi==null||!midi.isConnected()){
+     emit("status","Conecte o Roland via USB para ajustar o Vibrato da Performance.");return;
+    }
+    int channel=xps.isolatedToneChannel(part);
+    if(channel<1||channel>16){emit("status","Vibrato bloqueado: canal da parte compartilhado ou sem leitura SysEx.");return;}
+    boolean sent=midi.send(0xB0+channel-1,controller,value);
+    if(sent){
+     try{emit("partVibratoSent",new JSONObject().put("part",part).put("cc",controller).put("value",value));}catch(Exception ignored){}
+     emit("status","Vibrato CC"+controller+" enviado à parte "+(part+1)+". Confirme ouvindo o XPS-10.");
+    }else emit("status","Falha ao enviar Vibrato MIDI; instrumento não confirmado.");
+   });
+  }
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
   @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
   @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
