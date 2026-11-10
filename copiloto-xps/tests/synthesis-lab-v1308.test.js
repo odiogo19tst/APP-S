@@ -60,4 +60,32 @@ assert(activity.includes('emit("patchPlanAnswer"'),'Planning responses must be s
 assert(!read('synthesis-lab.js').includes('XpsProtocol.packet('),'UI must not generate raw SysEx');
 assert(read('index.html').indexOf('synthesis-lab.js')>read('index.html').indexOf('patch-four-tones.js'));
 const ux=read('ux-v2.js');assert(ux.includes('data-gx-sound="patch"'),'Synthesis Lab must stay in Sound tab');
+class FakeElement{
+ constructor(tag,doc){this.tagName=tag;this.ownerDocument=doc;this.children=[];this.dataset={};this.value='';this.textContent='';this.hidden=false;this.disabled=false;this.attrs={};this.classList={toggle:()=>{}};}
+ append(...children){this.children.push(...children);}
+ prepend(...children){this.children.unshift(...children);}
+ replaceChildren(...children){this.children=[...children];}
+ setAttribute(name,value){this.attrs[name]=value;}
+}
+const fakeDoc={
+ createElement(tag){return new FakeElement(tag,fakeDoc);},
+ querySelector(){return null;},
+ getElementById(){return null;}
+};
+const target=new FakeElement('div',fakeDoc);
+target.append(new FakeElement('section',fakeDoc));
+let commands=[];
+const instance=lab.build(target,{observe:active=>commands.push(['observe',active]),plan:t=>commands.push(['plan',t]),edit:t=>commands.push(['edit',t]),tone:t=>commands.push(['tone',t])});
+assert.equal(instance.getState().group,'TVA');
+const tabs=target.children[0];assert.equal(tabs.children.length,9);
+tabs.children[1].onclick();assert.equal(instance.getState().group,'WG');
+tabs.children[3].onclick();assert.equal(instance.getState().group,'TVF');
+instance.receive('xpsConnection',true);instance.receive('hardware',hw);
+assert.equal(instance.getState().connected,true);
+assert.equal(instance.getState().liveSeen,true);
+instance.receive('patchObserveState',true);instance.receive('patchProbe',packet(10,[70]));
+assert.equal(instance.probe.state().count,1);
+assert.equal(commands.length,0,'A leitura e a navegação nunca enviam MIDI');
+instance.receive('hardwareReset',true);
+assert.equal(instance.getState().liveSeen,false);
 console.log('Grauê Synthesis Lab: 9 sections, valid packets, before/after comparison, offline LLM plans and SysEx firewall PASS');
