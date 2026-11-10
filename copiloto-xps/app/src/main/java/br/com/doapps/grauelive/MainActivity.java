@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
    mergeUserToneCache((JSONArray)d);
   }
  }});
-  liveLooper=new MidiLooper((s,n,v)->midi!=null&&midi.isConnected()&&midi.send(s,n,v));
+  liveLooper=new MidiLooper((status,note,velocity)->midi!=null&&midi.isConnected()&&midi.send(status,note,velocity));
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
  emit("status",t);
  if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
