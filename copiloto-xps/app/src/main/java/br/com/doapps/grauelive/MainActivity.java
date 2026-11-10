@@ -536,6 +536,30 @@ public class MainActivity extends Activity {
   // Compatibility: connection is the only switch; no separate MIDI activation.
   armed=midi!=null&&midi.isConnected();emit("armed",armed);
  });}
+  /** Patch Tone TVA levels through documented CC80..83. Not confirmed by SysEx readback. */
+  @JavascriptInterface public void toneLevel(int part,int tone,int value){
+   runOnUiThread(()->{
+    if(part<0||part>15||tone<1||tone>4||value<0||value>127){
+     emit("status","Tone inválido: selecione parte 1–16, tone 1–4 e nível 0–127.");return;
+    }
+    if(!armed||midi==null||!midi.isConnected()){
+     emit("status","Conecte o XPS-10 via USB-MIDI antes de editar os tones.");return;
+    }
+    int channel=xps.isolatedToneChannel(part);
+    if(channel<1||channel>16){
+     emit("status","CC do tone bloqueado: leia todas as partes e use um canal MIDI exclusivo para esta parte. Canais compartilhados podem alterar mais de um som.");return;
+    }
+    int controller=79+tone;
+    if(!midi.send(0xB0+channel-1,controller,value)){
+     emit("status","Falha no envio CC do tone. A configuração não foi confirmada.");return;
+    }
+    try{emit("toneLevelSent",new JSONObject()
+       .put("part",part).put("tone",tone).put("channel",channel)
+       .put("controller",controller).put("value",value));}
+    catch(Exception ignored){}
+    emit("status","CC"+controller+" enviado ao canal "+channel+" (Tone "+tone+"). Confira ouvindo o XPS-10: o valor não possui readback SysEx nesta versão.");
+   });
+  }
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
   @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
   @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
