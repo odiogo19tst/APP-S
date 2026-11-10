@@ -37,5 +37,5 @@ assert(usb.includes('if(opening)return'),'Prevent duplicate concurrent USB port 
 assert(usb.includes('opening&&openingId==info.getId()'),'Disconnected pending USB must invalidate open');
 assert(usb.includes('if(request!=generation)'),'Stale Android open callback must not steal the session');
 assert(usb.includes('opening=false;openingId=-1'),'Reset opening state on disconnect or completion');
-assert(/versionCode\s+48/.test(gradle),'The new APK must upgrade versionCode 47');
+assert(/versionCode\s+(\d+)/.test(gradle)&&Number(gradle.match(/versionCode\s+(\d+)/)[1])>=48,'The APK must keep an upgrade versionCode of at least 48');
 console.log('Grauê v1.30.3: music persistence, visible score, 100 physical slots, USB race guards and version upgrade PASS');
