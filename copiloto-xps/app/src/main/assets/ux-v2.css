@@ -1038,3 +1038,15 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell .gx-matrix-status{display:block;margin-top:12px;min-height:25px;font-size:12px;color:#c8e4f4;line-height:1.4}
 @media(max-width:650px){#gx-shell .gx-matrix-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell .gx-matrix-head button{flex:1 1 auto}}
 @media(orientation:landscape) and (min-width:700px){#gx-shell .gx-matrix-grid{grid-template-columns:repeat(8,minmax(0,1fr))}#gx-shell .gx-matrix-strip{padding:8px}#gx-shell .gx-matrix-strip strong{font-size:13px}}
+
+/* 1.30.6: preparação musical, snapshot SysEx e planejador de alterações com auditoria. */
+#gx-shell #gx-song-rig-capture{min-height:44px;background:#125179;color:#fff;border:1px solid #377b9e;border-radius:9px;padding:9px 12px;text-align:center;white-space:normal}
+#gx-shell .gx-song-brain-tools{margin-top:6px;padding:10px;background:#0a2333;border:1px solid #3c6e87;border-radius:11px}
+#gx-shell .gx-song-brain-tools summary{cursor:pointer;font-weight:700;min-height:40px;display:flex;align-items:center;gap:6px}
+#gx-shell .gx-song-brain-tools>small{display:block;font-size:11px;line-height:1.45;margin:7px 0;color:#bcd7e6}
+#gx-shell .gx-song-brain-tools label{display:flex;flex-direction:column;margin:9px 0;gap:5px}
+#gx-shell .gx-song-brain-tools select,#gx-shell .gx-song-brain-tools input{min-height:44px;max-width:100%;background:#112c3f;border:1px solid #517f95;color:#fff;border-radius:8px;padding:8px}
+#gx-shell .gx-song-brain-tools button{min-height:44px;width:100%;border-radius:8px;margin-top:6px;padding:8px 12px;white-space:normal}
+#gx-shell #gx-song-brain-apply{background:#176b58;color:#fff}
+#gx-shell .gx-song-brain-tools button:disabled{opacity:.45}
+#gx-shell #gx-song-brain-preview{font-size:12px;line-height:1.45;color:#e6f8ff;overflow-wrap:break-word;margin:8px 0}
