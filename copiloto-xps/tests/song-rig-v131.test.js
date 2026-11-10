@@ -18,10 +18,11 @@ assert.equal(rig.activate(rig.assign(user,{type:'preset',number:2,auto:false}),t
 assert.equal(rig.activate(rig.assign(user,null),true,()=>{throw Error('Unlinked song must never send');}).status,'not-configured');
 assert.throws(()=>rig.assign(user,{type:'preset',number:32}),/Performance inválida/);
 // Song normalization must preserve a verified rig rather than silently strip it on editing.
-const app=read('app.js'),from=app.indexOf('function clamp('),to=app.indexOf('function select(s)');
-assert(from>=0&&to>from,'Normalization source missing');
+const app=read('app.js'),from=app.indexOf('function readKeyboardSetup('),to=app.indexOf('function select(s)');
+const clamp=app.slice(app.indexOf('function clamp('),app.indexOf("$('tempo').onchange"));
+assert(from>=0&&to>from&&clamp.includes('function clamp('),'Normalization source missing');
 const ctxt={M:{parse:()=>({})},Math};vm.createContext(ctxt);
-vm.runInContext(app.slice(from,to),ctxt,{timeout:1000});
+vm.runInContext(clamp+'\n'+app.slice(from,to),ctxt,{timeout:1000});
 const cleaned=vm.runInContext('normalize('+JSON.stringify(user)+')',ctxt);
 assert.equal(cleaned.keyboardSetup.type,'user');
 assert.equal(cleaned.keyboardSetup.number,6);
