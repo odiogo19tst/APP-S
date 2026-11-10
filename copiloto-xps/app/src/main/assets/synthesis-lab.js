@@ -54,6 +54,8 @@
   for(const op of data.operations){
    if(!op||typeof op!=='object'||Array.isArray(op)||!Number.isInteger(op.part)||op.part<0||op.part>=16)
     throw Error('A IA propôs uma parte inválida.');
+   const allowedKeys=op.kind==='part'?['kind','part','field','value']:op.kind==='tone'?['kind','part','tone','level']:[];
+   if(Object.keys(op).some(k=>!allowedKeys.includes(k)))throw Error('A IA incluiu campos não autorizados na proposta.');
    if(op.kind==='part'){
     if(typeof op.field!=='string'||!Object.prototype.hasOwnProperty.call(brain.PARAMETERS,op.field))
       throw Error('A IA tentou usar um parâmetro desconhecido.');
@@ -90,6 +92,16 @@
    const b=mk('button',null,key);b.type='button';b.dataset.synthGroup=key;
    b.onclick=()=>{group=key;render();};tabs.append(b);
   }
+  const selection=mk('label','gx-synth-part-select','Parte analisada');
+  const partSelect=mk('select');partSelect.setAttribute('aria-label','Parte a preparar no laboratório de síntese');
+  for(let i=0;i<16;i++){const op=mk('option',null,'Parte '+(i+1));op.value=String(i);partSelect.append(op);}
+  partSelect.onchange=()=>{
+   part=Number(partSelect.value);
+   const other=doc.querySelector?.('#gx-patch-four-tones select[aria-label="Parte de Performance dos quatro tones"]');
+   if(other){other.value=String(part);other.onchange?.();}
+   render();
+  };
+  selection.append(partSelect);
   const detail=mk('section','gx-synth-detail'),probePanel=mk('details','gx-synth-capture');
   const captureSummary=mk('summary',null,'Diagnóstico SysEx · descobrir parâmetros com o Roland');
   const lead=mk('p',null,'Somente captura de mensagens DT1 válidas enviadas pelo XPS-10. Para comparar, observe um valor, marque “Antes”, mude apenas um controle no teclado, e marque “Depois”. Sem leitura anterior do mesmo endereço, não há diferença demonstrável.');
@@ -135,7 +147,7 @@
    }catch(e){prepared=null;apply.disabled=true;aiStatus.textContent=e.message;}
   };
   ai.append(aiTitle,aiInfo,aiRequest,ask,aiStatus,apply);
-  container.prepend(tabs);container.append(detail,probePanel,ai);
+  container.prepend(tabs,selection);container.append(detail,probePanel,ai);
   function renderProbe(){
    const state=probe.state();start.disabled=!connected||observing;stop.disabled=!observing;
    before.disabled=!state.observed;after.disabled=!state.baseline;
@@ -199,7 +211,11 @@
     try{
      prepared=parsePlan(proposal,hw,connected&&liveSeen,busy,brain,patch);
      apply.disabled=false;
-     aiStatus.textContent='Proposta validada: '+prepared.description+'. Confira antes de aplicar.';
+     const ops=JSON.parse(proposal.trim().replace(/^\x60\x60\x60(?:json)?\s*/i,'').replace(/\s*\x60\x60\x60$/,'')).operations;
+     const details=ops.map(o=>o.kind==='tone'
+      ?'Parte '+(o.part+1)+' / Tone '+o.tone+' / TVA Level = '+o.level
+      :'Parte '+(o.part+1)+' / '+o.field+' = '+o.value).join('; ');
+     aiStatus.textContent='Proposta validada: '+details+'. '+prepared.description+'. Confira os valores antes de aplicar.';
     }catch(e){apply.disabled=true;aiStatus.textContent=e.message;}
    }
   }
