@@ -1111,3 +1111,16 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell .gx-synth-ai button:last-child{background:#185a6b;color:#fff}
 #gx-shell .gx-synth-ai-status{overflow-wrap:break-word;word-break:normal}
 @media(max-width:390px){#gx-shell .gx-synth-quick{grid-template-columns:1fr}#gx-shell .gx-synth-tabs button{flex:1 1 75px}}
+
+/* Grauê 1.30.9: preparação dos níveis TVA de quatro tones por música. */
+#gx-shell .gx-song-tone-presets{border:1px solid #427791;background:#0b2535;border-radius:10px;padding:10px;margin:10px 0}
+#gx-shell .gx-song-tone-presets summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+#gx-shell .gx-song-tone-presets>small{display:block;color:#c8e1ed;font-size:12px;line-height:1.5;margin:7px 0}
+#gx-shell .gx-song-tone-presets>label{display:flex;flex-direction:column;gap:5px;margin:10px 0}
+#gx-shell .gx-song-tone-presets select{min-height:44px;border:1px solid #5586a2;background:#14364d;color:#fff;border-radius:8px;padding:8px}
+#gx-shell .gx-song-tone-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#gx-shell .gx-song-tone-values label{display:flex;flex-direction:column;gap:6px;min-width:0}
+#gx-shell .gx-song-tone-values input{width:100%;min-width:0;min-height:44px;background:#0c2b40;color:#fff;border:1px solid #487991;border-radius:8px;padding:8px}
+#gx-shell .gx-song-tone-presets .gx-song-rig-actions button{min-height:44px;white-space:normal}
+#gx-shell .gx-song-tone-presets button:disabled{opacity:.45}
+@media(max-width:480px){#gx-shell .gx-song-tone-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
