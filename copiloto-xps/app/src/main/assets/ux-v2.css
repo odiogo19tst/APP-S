@@ -996,3 +996,19 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
  #gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot{min-height:62px}
  #gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot strong{font-size:20px}
 }
+
+/* Preparação da música: vínculo Performance USER/PRESET. Edição fora do modo Ao Vivo. */
+#gx-shell .gx-song-rig{display:flex;flex-direction:column;gap:8px;background:#0d283a;border:1px solid #366784;border-radius:12px;padding:12px;margin:10px 0;color:#e9f6ff}
+#gx-shell .gx-song-rig>strong{font-size:15px}
+#gx-shell .gx-song-rig>small,#gx-shell .gx-song-rig label{font-size:12px;line-height:1.45}
+#gx-shell .gx-song-rig label{display:flex;flex-direction:column;gap:5px}
+#gx-shell .gx-song-rig select,#gx-shell .gx-song-rig input[type=number]{width:100%;height:42px;min-width:0;background:#102e42;border:1px solid #4c849d;color:#fff;border-radius:8px;padding:8px}
+#gx-shell .gx-song-rig .gx-song-rig-auto{display:flex;flex-direction:row;align-items:center;gap:9px;font-size:12px}
+#gx-shell .gx-song-rig-auto input{width:18px;height:18px;flex-shrink:0}
+#gx-shell .gx-song-rig-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#gx-shell .gx-song-rig-actions button{border-radius:9px;min-height:44px;min-width:0;white-space:normal}
+#gx-shell #gx-song-rig-save{background:#185e92;color:#fff}
+#gx-shell .gx-song-rig-actions button:disabled{opacity:.45}
+#gx-shell .gx-stage-rig-info{display:block;margin-top:7px;font-size:12px;line-height:1.35;color:#bbe5fa}
+#gx-shell.gx-live-mode .gx-song-rig{display:none}
+@media(max-width:420px){#gx-shell .gx-song-rig-actions{grid-template-columns:1fr}}
