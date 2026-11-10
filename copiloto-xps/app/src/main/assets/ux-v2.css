@@ -1012,3 +1012,29 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell .gx-stage-rig-info{display:block;margin-top:7px;font-size:12px;line-height:1.35;color:#bbe5fa}
 #gx-shell.gx-live-mode .gx-song-rig{display:none}
 @media(max-width:420px){#gx-shell .gx-song-rig-actions{grid-template-columns:1fr}}
+
+/* Grauê Performance Matrix: 16-part synthesis controls, grouped and readable at rehearsal. */
+#gx-shell .gx-sound-center.gx-matrix-active>.gx-panel:not(.gx-performance-matrix){display:none!important}
+#gx-shell .gx-performance-matrix{min-width:0;padding:16px}
+#gx-shell .gx-matrix-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+#gx-shell .gx-matrix-title{flex:1 1 220px;display:grid;gap:5px}
+#gx-shell .gx-matrix-title strong{font-size:19px;letter-spacing:.01em}
+#gx-shell .gx-matrix-title small{font-size:12px;opacity:.85}
+#gx-shell .gx-matrix-head button{min-height:44px;padding:9px 12px;border-radius:9px}
+#gx-shell .gx-matrix-toolbar{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:18px 0 10px;flex-wrap:wrap}
+#gx-shell .gx-matrix-toolbar>label{display:flex;flex-direction:column;gap:5px;flex:1 1 150px;font-size:13px}
+#gx-shell .gx-matrix-toolbar select{width:100%;min-height:44px;padding:8px;color:#f1f8fc;background:#102e42;border:1px solid #44758b;border-radius:9px}
+#gx-shell .gx-matrix-pages{display:flex;gap:7px}
+#gx-shell .gx-matrix-pages button{min-height:44px;padding:8px 12px;border-radius:9px}
+#gx-shell .gx-matrix-pages button.on{background:#175e92;border-color:#64afd7;color:#fff}
+#gx-shell .gx-matrix-info{font-size:12px;line-height:1.5;color:#bbdaeb;margin:5px 0 12px}
+#gx-shell .gx-matrix-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#gx-shell .gx-matrix-strip{display:grid;align-content:start;gap:7px;min-width:0;border:1px solid #3a6277;background:#10293c;border-radius:11px;padding:12px}
+#gx-shell .gx-matrix-strip strong{font-size:15px}
+#gx-shell .gx-matrix-strip small{font-size:11px;color:#c0d7e3}
+#gx-shell .gx-matrix-strip output{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+#gx-shell .gx-matrix-strip input[type=range]{width:100%;min-width:0;touch-action:pan-y;min-height:28px}
+#gx-shell .gx-matrix-strip input:disabled{opacity:.45}
+#gx-shell .gx-matrix-status{display:block;margin-top:12px;min-height:25px;font-size:12px;color:#c8e4f4;line-height:1.4}
+@media(max-width:650px){#gx-shell .gx-matrix-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell .gx-matrix-head button{flex:1 1 auto}}
+@media(orientation:landscape) and (min-width:700px){#gx-shell .gx-matrix-grid{grid-template-columns:repeat(8,minmax(0,1fr))}#gx-shell .gx-matrix-strip{padding:8px}#gx-shell .gx-matrix-strip strong{font-size:13px}}
