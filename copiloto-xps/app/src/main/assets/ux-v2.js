@@ -994,7 +994,7 @@
   $x('gx-note-history').textContent=notesHistory.length?notesHistory.join('  •  '):'Aguardando notas reais…';
   $x('gx-tip-text').textContent=v&&v.root>=0?'Tom sugerido: '+M.names[v.root]+(v.mode===1?' menor':' maior')+'. Confira a resolução e os acordes tocados antes de confirmar.':'O tom maior ou menor pode ser ambíguo com poucas notas. Use MIDI para os acordes e microfone para a voz; a análise de áudio ainda é experimental.';
  }
- function sync(){syncStage();renderSongs();renderRepertoire();renderFavorites();renderMixer();renderCoach();$x('gx-usb').textContent=hw['setup:0']?'● XPS-10 lido':usbConnected?'● MIDI conectado':'● USB desligado';}
+ function sync(){syncStage();renderSongs();renderRepertoire();renderFavorites();renderMixer();renderCoach();$x('gx-usb').textContent=usbConnected&&hw['setup:0']?'● XPS-10 lido':usbConnected?'● MIDI conectado':'● USB desligado';}
  // Recepção passiva: os dados provêm dos serviços originais; a interface nunca simula notas, status nem conexão.
  const prior=window.receive;
  window.receive=(kind,data)=>{
@@ -1113,6 +1113,8 @@
    $x('gx-unified-usb').classList.toggle('connected',usbConnected);
    $x('gx-usb').textContent=usbConnected?'● MIDI conectado':'● USB desconectado';
    $x('gx-device-state').textContent=usbConnected?'● MIDI conectado · aguardando resposta SysEx':'● USB desconectado';
+   if(!usbConnected){hw={};rigRunner?.cancel();if(activeSongEntry())updateRigStatus('🎹 USB desconectado · cifra continua disponível; use Reaplicar setup ao reconectar.');}
+   syncStage();
   }
   if(kind==='answer'){
     if(silentPending){
