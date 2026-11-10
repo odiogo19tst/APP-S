@@ -188,13 +188,59 @@
      detail.append(row);
     }else if(group==='Vel/Key'){
      const p=hw['part:'+part],chan=Array.isArray(p)?p[0]:null,zone=hw['zone:'+chan];
-     if(Array.isArray(zone)&&zone.length>=14)
-       detail.append(mk('p',null,'Zona da Performance (não do Tone): '+zone[12]+' até '+zone[13]+' · '+(zone[1]?'ativa':'inativa')));
-     else detail.append(mk('p',null,'Zona não lida. Não será inventada.'));
+     const ready=connected&&liveSeen&&!busy&&brain.isPerformance(hw)&&
+       Number.isInteger(chan)&&chan>=0&&chan<16&&Array.isArray(zone)&&zone.length>=14;
+     if(!ready)detail.append(mk('p',null,'Zona da Performance ainda não lida. Não será inventada.'));
+     else{
+      detail.append(mk('p',null,'Zona da Performance (canal '+(chan+1)+'), diferente de Vel/Key interno dos Tones.'));
+      const row=mk('div','gx-synth-quick');
+      const makeInput=(labelText,current)=>{
+       const label=mk('label',null,labelText),input=mk('input');input.type='number';input.min='0';input.max='127';
+       input.value=String(current);label.append(input);row.append(label);return input;
+      };
+      const low=makeInput('Nota inicial (0–127)',zone[12]),high=makeInput('Nota final (0–127)',zone[13]);
+      const button=mk('button',null,'Aplicar faixa de teclas temporária');
+      button.onclick=()=>{
+       try{
+        const latest=hw['zone:'+chan];
+        if(!connected||!liveSeen||busy||!Array.isArray(latest)||latest.length<14)throw Error('Leia novamente o teclado antes de alterar.');
+        if(!/^[0-9]{1,3}$/.test(low.value)||!/^[0-9]{1,3}$/.test(high.value))throw Error('Notas devem ser inteiros de 0 a 127.');
+        const lo=Number(low.value),hi=Number(high.value);
+        if(lo<0||hi>127||lo>hi)throw Error('A nota inicial precisa ser menor ou igual à final.');
+        const edits=[];
+        if(latest[12]!==lo)edits.push({section:'zone',index:chan,offset:12,value:lo});
+        if(latest[13]!==hi)edits.push({section:'zone',index:chan,offset:13,value:hi});
+        if(!edits.length){aiStatus.textContent='A faixa já corresponde à leitura real.';return;}
+        transport.edit?.(edits);aiStatus.textContent='Faixa enviada temporariamente; aguardando confirmação SysEx.';
+       }catch(e){aiStatus.textContent=e.message;}
+      };
+      detail.append(row,button);
+     }
     }else if(group==='MFX'){
      const b=mk('button',null,'Abrir Editor avançado de efeitos');b.onclick=()=>doc.getElementById('gx-advanced')?.click();detail.append(b);
     }else if(group==='LFO'){
-     detail.append(mk('p',null,'Vibrato por parte (CC76–78) pode ser controlado no módulo de Performance; edição de LFO1/LFO2 do Tone aguarda confirmação do mapa SysEx.'));
+     detail.append(mk('p',null,'Vibrato da Performance (CC76–78), diferente dos LFO1/LFO2 individuais dos Tones. Só enviar com canal exclusivo e leitura do teclado.'));
+     const gate=patch.safeChannel(hw,part,connected&&liveSeen,busy);
+     const row=mk('div','gx-synth-quick'),p=hw['part:'+part];
+     for(const [cc,labelText,offset] of [[76,'Velocidade do vibrato',34],[77,'Intensidade do vibrato',35],[78,'Atraso do vibrato',36]]){
+      const label=mk('label',null,labelText+' · CC'+cc);
+      const input=mk('input');input.type='number';input.min='0';input.max='127';input.placeholder='—';
+      const observed=Array.isArray(p)&&Number.isInteger(p[offset])&&p[offset]>=0&&p[offset]<=127;
+      input.value=observed?String(p[offset]):'';
+      const button=mk('button',null,'Enviar CC'+cc);button.disabled=!gate.enabled||!observed;
+      button.onclick=()=>{
+       try{
+        const fresh=patch.safeChannel(hw,part,connected&&liveSeen,busy);
+        if(!fresh.enabled)throw Error(fresh.reason);
+        if(!/^[0-9]{1,3}$/.test(input.value)||Number(input.value)>127)throw Error('Use valor de 0 a 127.');
+        button.disabled=true;
+        transport.vibrato?.({part,cc,value:Number(input.value)});
+        aiStatus.textContent='Vibrato CC'+cc+' enviado; aguardando leitura. A alteração é por parte, não por Tone.';
+       }catch(e){aiStatus.textContent=e.message;}
+      };
+      label.append(input,button);row.append(label);
+     }
+     detail.append(row);
     }
    }
    renderProbe();
@@ -231,7 +277,8 @@
     observe:enabled=>scope.Native?.observePatch?.(enabled),
     plan:text=>scope.Native?.planPatch?.(text),
     edit:commands=>scope.Native?.editHardware?.(JSON.stringify(commands)),
-    tone:c=>scope.Native?.toneLevel?.(c.part,c.tone,c.value)
+    tone:c=>scope.Native?.toneLevel?.(c.part,c.tone,c.value),
+    vibrato:c=>scope.Native?.partVibrato?.(c.part,c.cc,c.value)
    };
    const instance=build(target,transport);
    const prev=scope.receive;
