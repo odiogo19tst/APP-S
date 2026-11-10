@@ -98,7 +98,40 @@
   }
   return {description,commands:targets,supported:true};
  }
- const api={PARAMETERS,cleanParts,isPerformance,capture,diff,suggest};
+ function createRunner(sendEdits){
+  let pending=null;
+  function prepare(rig,title){
+   pending=null;
+   if(!rig||!Array.isArray(rig.parts)||!rig.parts.length||rig.auto===false)return false;
+   const parts=cleanParts(rig.parts);
+   if(!parts||!parts.length)return false;
+   pending={type:rig.type,number:rig.number,parts,title:String(title||''),ack:false,readStarted:false,started:Date.now()};
+   return true;
+  }
+  function receive(kind,data,hw,currentTitle){
+   if(!pending)return null;
+   if(currentTitle!==pending.title){pending=null;return {status:'cancelled'};}
+   if(kind==='xpsConnection'&&!data){pending=null;return {status:'disconnected'};}
+   if(kind==='hardwareReset'){pending=null;return {status:'reset'};}
+   if(kind==='performanceSelected'){
+    if(data&&data.index===pending.number&&!!data.user===(pending.type==='user'))pending.ack=true;
+    return null;
+   }
+   if(kind==='hardwareBusy'&&data===true&&pending.ack){pending.readStarted=true;return null;}
+   if(kind!=='hardware'||!pending.ack||!pending.readStarted)return null;
+   const task=pending;pending=null;
+   if(!hw||!Number.isFinite(hw.readAt)||hw.readAt<task.started)return {status:'stale'};
+   try{
+    const commands=diff(hw,task.parts);
+    if(!commands.length)return {status:'unchanged',count:0};
+    if(typeof sendEdits!=='function')return {status:'unsupported'};
+    sendEdits(commands);
+    return {status:'requested',count:commands.length};
+   }catch(e){return {status:'blocked',message:e.message};}
+  }
+  return {prepare,receive,cancel:()=>{pending=null;},isPending:()=>!!pending};
+ }
+ const api={PARAMETERS,cleanParts,isPerformance,capture,diff,suggest,createRunner};
  if(scope)scope.GraueSetupBrain=api;
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:null);
