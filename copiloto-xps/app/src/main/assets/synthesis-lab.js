@@ -84,7 +84,7 @@
   if(!container)return null;
   const doc=container.ownerDocument;
   const mk=(tag,cls,text)=>{const el=doc.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;};
-  const original=[...container.children],brain=scope.GraueSetupBrain,patch=scope.GrauePatchFourTones;
+  const original=[...container.children],brain=scope?.GraueSetupBrain||(typeof require==='function'?require('./setup-brain.js'):null),patch=scope?.GrauePatchFourTones||(typeof require==='function'?require('./patch-four-tones.js'):null);
   let hw={},connected=false,busy=false,liveSeen=false,observing=false,group='TVA',part=0,awaiting=false,proposal='',prepared=null;
   const probe=createProbe();
   const tabs=mk('nav','gx-synth-tabs');tabs.setAttribute('aria-label','Módulos internos do Patch');
@@ -157,7 +157,7 @@
      probe.events().map(e=>e.hex+' · '+e.bytes+' bytes (sem comparação)').join('\n');
   }
   function render(){
-   tabs.children.forEach(b=>b.classList.toggle('on',b.dataset.synthGroup===group));
+   [...tabs.children].forEach(b=>b.classList.toggle('on',b.dataset.synthGroup===group));
    original.forEach(el=>{el.hidden=group!=='TVA';});
    detail.replaceChildren();
    if(group!=='TVA'){
