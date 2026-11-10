@@ -21,7 +21,7 @@
     const same=previous&&raw&&raw.type===previous.type&&Number(raw.number)===previous.number;
     const preserving=same&&raw.parts===undefined&&Array.isArray(previous.parts)?{...raw,parts:previous.parts}:raw;
     const value=normalize(preserving);
-    if(raw!==null&&!value)throw new Error('Performance ou snapshot inválido. USER 1–128 ou PRESET 1–16.');
+    if(raw!==null&&!value)throw new Error('Performance inválida ou snapshot não reconhecido. USER 1–128 ou PRESET 1–16.');
     return {...song,keyboardSetup:value};
   }
   function activate(song,connected,send){
