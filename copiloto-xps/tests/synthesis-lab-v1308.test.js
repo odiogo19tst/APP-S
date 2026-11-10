@@ -56,6 +56,10 @@ assert(controller.includes('msb<0x11||msb>0x1f'),'Never expose user bank packets
 assert(controller.includes('patchObserveCount>=100'),'Observation must be bounded');
 assert(activity.includes('public void observePatch(boolean enabled)'),'Native toggle missing');
 assert(activity.includes('public void planPatch(String context)'),'Offline Gemma bridge missing');
+assert(activity.includes('public void partVibrato(int part,int controller,int value)'),'Documented CC76-78 native bridge missing');
+assert(activity.includes('xps.isolatedToneChannel(part)'),'Part vibrato must not affect shared MIDI channels');
+assert(read('synthesis-lab.js').includes("{section:'zone',index:chan,offset:12,value:lo}"),'Key Zone editing must be constrained to Performance zone');
+assert(read('synthesis-lab.js').includes('transport.vibrato?.({part,cc,value:Number(input.value)})'),'Vibrato controls must use dedicated native bridge');
 assert(activity.includes('emit("patchPlanAnswer"'),'Planning responses must be separate from normal chat');
 assert(!read('synthesis-lab.js').includes('XpsProtocol.packet('),'UI must not generate raw SysEx');
 assert(read('index.html').indexOf('synthesis-lab.js')>read('index.html').indexOf('patch-four-tones.js'));
@@ -75,17 +79,33 @@ const fakeDoc={
 const target=new FakeElement('div',fakeDoc);
 target.append(new FakeElement('section',fakeDoc));
 let commands=[];
-const instance=lab.build(target,{observe:active=>commands.push(['observe',active]),plan:t=>commands.push(['plan',t]),edit:t=>commands.push(['edit',t]),tone:t=>commands.push(['tone',t])});
+const instance=lab.build(target,{observe:active=>commands.push(['observe',active]),plan:t=>commands.push(['plan',t]),edit:t=>commands.push(['edit',t]),tone:t=>commands.push(['tone',t]),vibrato:t=>commands.push(['vibrato',t])});
 assert.equal(instance.getState().group,'TVA');
 const tabs=target.children[0];assert.equal(tabs.children.length,9);
 tabs.children[1].onclick();assert.equal(instance.getState().group,'WG');
 tabs.children[3].onclick();assert.equal(instance.getState().group,'TVF');
+const zone=Array(27).fill(0);zone[12]=20;zone[13]=100;hw['zone:0']=zone;
 instance.receive('xpsConnection',true);instance.receive('hardware',hw);
 assert.equal(instance.getState().connected,true);
 assert.equal(instance.getState().liveSeen,true);
 instance.receive('patchObserveState',true);instance.receive('patchProbe',packet(10,[70]));
 assert.equal(instance.probe.state().count,1);
 assert.equal(commands.length,0,'A leitura e a navegação nunca enviam MIDI');
+tabs.children[4].onclick();
+const detail=target.children[3],zoneRow=detail.children[3],zoneApply=detail.children[4];
+zoneRow.children[0].children[0].value='21';
+zoneRow.children[1].children[0].value='90';
+zoneApply.onclick();
+assert.deepEqual(commands[0],['edit',[
+ {section:'zone',index:0,offset:12,value:21},
+ {section:'zone',index:0,offset:13,value:90}
+]]);
+tabs.children[5].onclick();
+const vibratoRow=target.children[3].children[3];
+vibratoRow.children[0].children[0].value='88';
+vibratoRow.children[0].children[1].onclick();
+assert.deepEqual(commands[1],['vibrato',{part:0,cc:76,value:88}]);
+assert.equal(commands.length,2,'Only musician clicks may send MIDI');
 instance.receive('hardwareReset',true);
 assert.equal(instance.getState().liveSeen,false);
 console.log('Grauê Synthesis Lab: 9 sections, valid packets, before/after comparison, offline LLM plans and SysEx firewall PASS');
