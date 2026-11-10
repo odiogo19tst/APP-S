@@ -60,3 +60,16 @@ A IA **não cria** endereço SysEx ou parâmetro que o instrumento não aceite. 
 - [ ] Registro da função como disponível para planejamento da IA
 
 **Prioridade atual definida pelo músico:** estudar e controlar o próprio XPS-10. **Não priorizar** uso como hub universal para controladores externos, loja/download de timbres ou clone visual do editor de Eddie.
+
+## Marco v1.30.8 — laboratório de síntese e roteamento supervisionado
+
+O **Grauê agora possui uma tela de navegação para os nove grupos** vistos no editor antigo: PCH, WG, TVA, TVF, Vel/Key, LFO, MTX, Ctrl e MFX. **Grupo visível não significa edição completa habilitada.**
+
+- **Já editáveis por caminhos conhecidos:** nível individual TVA de quatro tones via CC80–83; cutoff/ressonância por **Performance Part** com SysEx previamente lido; edição detalhada de MFX no editor já existente.
+- **Pesquisa sem escrita:** observar passivamente mensagens DT1 com checksum válido da região temporária de Patch, no máximo 100 pacotes por sessão, usando "Antes/Depois" para encontrar mudanças de endereços reais transmitidas pelo teclado. Isso exige conectar o XPS-10 e ativar *Tx Edit Data* quando disponível. Endereços observados precisam de comparação com a implementação MIDI 2014 para ganhar semântica de parâmetro.
+- **Gemma offline:** o app pergunta ao modelo instalado e recebe uma proposta JSON. O planejador rejeita ações fora de um catálogo limitado de parâmetros, dados MIDI sem leitura, valores fora de faixa, envio misto de CC e SysEx, endereços desconhecidos ou duplicação. **Só o músico executa** por botão. Resultado de envio não prova alteração acústica.
+- **Ainda pendente:** mapear e testar escrita e readback dos parâmetros *por tone* de WG, TVA Envelope, TVF, Vel/Key, LFO e Matrix. Não assumir a estrutura de outro Roland nem do XPS-10X. O MIDI Implementation original tem 29 páginas; há evidência de grupos e parâmetros, mas ainda falta recuperar e cotejar todos os endereços/tamanhos para habilitar sua edição.
+- O laboratório não captura áudio nem manda os dados ao serviço externo; a proposta do modelo usa Gemma local. Não há Test Mode nem escrita em USER.
+
+Referências de especificação: Roland XPS-10 MIDI Implementation, 1/abril/2014, Model ID 00 00 3A, seção "3. Parameter Address Map". Página de suporte oficial: https://www.roland.com/global/support/by_product/xps-10/owners_manuals/ . Prévia pública de sumário por páginas: https://www.seekmanuals.com/manual/roland-xr-20-roland-xr-20-midi-implementation-user-guide.html (a página tem título incorreto XR-20, mas conteúdo identificado como XPS-10).
+

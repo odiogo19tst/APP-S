@@ -537,6 +537,32 @@ public class MainActivity extends Activity {
   armed=midi!=null&&midi.isConnected();emit("armed",armed);
  });}
   /** Patch Tone TVA levels through documented CC80..83. Not confirmed by SysEx readback. */
+  /** Opt-in passive SysEx learning; does not send a parameter write. */
+  @JavascriptInterface public void observePatch(boolean enabled){
+   runOnUiThread(()->{
+    if(enabled&&(midi==null||!midi.isConnected())){emit("status","Conecte o Roland XPS-10 antes de observar edições SysEx.");return;}
+    xps.observePatch(enabled);
+   });
+  }
+  /** Offline Gemma action suggestions, isolated from normal Jarvis replies.
+   * This method returns an untrusted JSON proposal as text, NEVER hardware commands.
+   */
+  @JavascriptInterface public void planPatch(String context){
+   if(context==null||context.length()<5||context.length()>1700){
+    emit("patchPlanAnswer","Pedido inválido ou extenso demais.");return;
+   }
+   final String prompt=JarvisMusicalProfile.buildPatchPlanPrompt(context,
+     getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));
+   worker.execute(()->{
+    try{
+     if(llm==null){File model=new File(getFilesDir(),"model.task");
+      if(!model.exists())throw new IOException("Gemma offline não instalada. Instale em Ajustes ou use os controles manuais.");
+      llm=openModel(model);
+     }
+     emit("patchPlanAnswer",llm.generateResponse(prompt));
+    }catch(Exception e){emit("patchPlanAnswer","IA offline indisponível: "+e.getMessage());}
+   });
+  }
   @JavascriptInterface public void toneLevel(int part,int tone,int value){
    runOnUiThread(()->{
     if(part<0||part>15||tone<1||tone>4||value<0||value>127){
@@ -558,6 +584,25 @@ public class MainActivity extends Activity {
        .put("controller",controller).put("value",value));}
     catch(Exception ignored){}
     emit("status","CC"+controller+" enviado ao canal "+channel+" (Tone "+tone+"). Confira ouvindo o XPS-10: o valor não possui readback SysEx nesta versão.");
+   });
+  }
+  /** Vibrato offsets (CC76/77/78) of the Performance Part; NOT per-Tone LFO editing. */
+  @JavascriptInterface public void partVibrato(int part,int controller,int value){
+   runOnUiThread(()->{
+    if(part<0||part>=16||controller<76||controller>78||value<0||value>127){
+     emit("status","Vibrato inválido: parte 1–16, CC76–78, valor 0–127.");return;
+    }
+    if(!armed||midi==null||!midi.isConnected()){
+     emit("status","Conecte o Roland via USB para ajustar o Vibrato da Performance.");return;
+    }
+    int channel=xps.isolatedToneChannel(part);
+    if(channel<1||channel>16){emit("status","Vibrato bloqueado: canal da parte compartilhado ou sem leitura SysEx.");return;}
+    boolean sent=midi.send(0xB0+channel-1,controller,value);
+    if(sent){
+     try{emit("partVibratoSent",new JSONObject().put("part",part).put("cc",controller).put("value",value));}catch(Exception ignored){}
+     emit("status","Vibrato CC"+controller+" enviado à parte "+(part+1)+". Confirme ouvindo o XPS-10.");
+     new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.readWhenIdle(20);},550);
+    }else emit("status","Falha ao enviar Vibrato MIDI; instrumento não confirmado.");
    });
   }
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}

@@ -1079,3 +1079,35 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell .gx-patch-future summary{font-weight:650;cursor:pointer}
 @media(max-width:720px){#gx-shell .gx-patch-tone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:390px){#gx-shell .gx-patch-tone-grid{grid-template-columns:1fr}}
+
+/* Grauê 1.30.8: síntese por grupos do XPS-10, monitor SysEx passivo e planejamento offline */
+#gx-shell .gx-patch-four-tones>[hidden]{display:none!important}
+#gx-shell .gx-synth-tabs{display:flex;flex-wrap:wrap;gap:6px;position:relative}
+#gx-shell .gx-synth-tabs button{min-height:42px;border:1px solid #477c9a;border-radius:9px;background:#0e2e43;padding:7px 10px;color:#d3e8f5;font-weight:650}
+#gx-shell .gx-synth-tabs button.on{background:#17699d;color:#fff;border-color:#79c3e8}
+#gx-shell .gx-synth-part-select{display:flex;flex-direction:column;gap:6px;max-width:240px;font-size:12px;color:#bed8e9}
+#gx-shell .gx-synth-part-select select{min-height:44px;background:#15364e;border:1px solid #537f9d;border-radius:9px;color:#fff;padding:8px}
+#gx-shell .gx-synth-detail{background:#0d2739;border:1px solid #3c647d;border-radius:11px;padding:13px;line-height:1.5}
+#gx-shell .gx-synth-detail h3{font-size:17px;margin:0 0 8px}
+#gx-shell .gx-synth-detail h4{font-size:14px;margin:8px 0}
+#gx-shell .gx-synth-detail p{font-size:12px;line-height:1.55;color:#c9dfec;margin:6px 0}
+#gx-shell .gx-synth-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#gx-shell .gx-synth-quick label{display:flex;flex-direction:column;gap:8px;font-size:12px;min-width:0}
+#gx-shell .gx-synth-quick input{min-height:44px;min-width:0;border-radius:8px;border:1px solid #507d93;color:#fff;background:#143249;padding:8px}
+#gx-shell .gx-synth-quick button{min-height:44px;border-radius:8px}
+#gx-shell .gx-synth-capture{border:1px solid #4d7c92;border-radius:11px;background:#0c2638;padding:13px}
+#gx-shell .gx-synth-capture summary{cursor:pointer;font-weight:650;min-height:28px}
+#gx-shell .gx-synth-capture p{font-size:12px;color:#c6dfed;line-height:1.55}
+#gx-shell .gx-synth-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+#gx-shell .gx-synth-actions button{min-height:44px;border-radius:8px;padding:8px;flex:1 1 115px}
+#gx-shell .gx-synth-actions button:disabled{opacity:.45}
+#gx-shell .gx-synth-raw{width:100%;min-height:95px;resize:vertical;background:#071d2e;border:1px solid #3b6680;border-radius:8px;color:#d5ecf8;font:12px monospace;padding:10px}
+#gx-shell .gx-synth-ai{display:flex;flex-direction:column;gap:9px;border:1px solid #387a99;border-radius:11px;background:#0c293f;padding:13px}
+#gx-shell .gx-synth-ai h3{font-size:17px;margin:0}
+#gx-shell .gx-synth-ai p{font-size:12px;line-height:1.6;margin:2px 0;color:#c8e2f1}
+#gx-shell .gx-synth-ai textarea{width:100%;min-height:65px;resize:vertical;background:#122f46;border:1px solid #52819a;border-radius:8px;padding:10px;color:#fff}
+#gx-shell .gx-synth-ai button{min-height:44px;border-radius:9px;padding:9px 12px}
+#gx-shell .gx-synth-ai button:disabled{opacity:.45}
+#gx-shell .gx-synth-ai button:last-child{background:#185a6b;color:#fff}
+#gx-shell .gx-synth-ai-status{overflow-wrap:break-word;word-break:normal}
+@media(max-width:390px){#gx-shell .gx-synth-quick{grid-template-columns:1fr}#gx-shell .gx-synth-tabs button{flex:1 1 75px}}
