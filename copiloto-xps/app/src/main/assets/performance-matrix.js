@@ -33,7 +33,7 @@
  }
  function build(container,device){
   if(!container)return null;
-  let hw={},connected=false,busy=false,parameter='level',page=0;
+  let hw={},connected=false,busy=false,pending=false,parameter='level',page=0;
   const document=container.ownerDocument;
   const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
   const header=make('div','gx-matrix-head');
@@ -41,7 +41,7 @@
   title.append(make('strong',null,'PERFORMANCE · 16 PARTES'),make('small',null,'Parâmetros temporários por parte, sem gravar USER'));
   const read=make('button',null,'↻ Ler XPS-10');read.type='button';
   const undo=make('button',null,'↶ Desfazer última edição');undo.type='button';
-  read.onclick=()=>device.read?.();
+  read.onclick=()=>{pending=false;device.read?.();};
   undo.onclick=()=>device.undo?.();
   header.append(title,read,undo);
   const toolbar=make('div','gx-matrix-toolbar');
@@ -69,7 +69,7 @@
     const out=make('output',null,value===null?'—':String(parameter==='mfx'?value+1:value));
     const slider=make('input');slider.type='range';slider.min=String(def.min);slider.max=String(def.max);slider.step='1';slider.value=String(value===null?def.min:value);
     slider.setAttribute('aria-label',def.name+' da parte '+(part+1));
-    slider.disabled=value===null||!connected||busy||hw['setup:0']?.[0]!==1;
+    slider.disabled=value===null||!connected||busy||pending||hw['setup:0']?.[0]!==1;
     slider.oninput=()=>{out.textContent=String(parameter==='mfx'?Number(slider.value)+1:slider.value);};
     slider.onchange=()=>{
      try{
@@ -77,9 +77,9 @@
       if(!instruction)return;
       if(typeof device.apply!=='function')throw Error('Ponte de edição MIDI indisponível.');
       // Prevent repeated edits until native readback updates the last observed snapshot.
-      slider.disabled=true;status.textContent='Enviando '+def.name+' da parte '+(part+1)+'; aguardando confirmação do XPS-10…';
+      pending=true;slider.disabled=true;status.textContent='Enviando '+def.name+' da parte '+(part+1)+'; aguardando confirmação do XPS-10…';
       device.apply(instruction);
-     }catch(err){status.textContent=err.message;render();}
+     }catch(err){pending=false;render();status.textContent=err.message;}
     };
     card.append(name,channel,out,slider);grid.append(card);
    }
@@ -90,10 +90,10 @@
   select.onchange=()=>{parameter=select.value;render();};
   p1.onclick=()=>{page=0;render();};p2.onclick=()=>{page=1;render();};
   function receive(kind,data){
-   if(kind==='xpsConnection'){connected=!!data;render();}
+   if(kind==='xpsConnection'){connected=!!data;if(!connected)pending=false;render();}
    if(kind==='hardwareBusy'){busy=!!data;render();}
-   if(kind==='hardware'||kind==='hardwarePhysical'){hw=data&&typeof data==='object'?data:{};render();}
-   if(kind==='hardwareReset'){hw={};busy=false;render();}
+   if(kind==='hardware'||kind==='hardwarePhysical'){pending=false;hw=data&&typeof data==='object'?data:{};render();}
+   if(kind==='hardwareReset'){hw={};busy=false;pending=false;render();}
   }
   render();
   return {receive,render,getState:()=>({connected,busy,parameter,page})};
