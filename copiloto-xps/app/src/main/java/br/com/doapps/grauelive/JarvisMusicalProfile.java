@@ -11,7 +11,7 @@ public final class JarvisMusicalProfile {
  public static final int MAX_REQUEST=2400;
  public static String cleanNotes(String notes){
   if(notes==null)return "";
-  String s=notes.replace('\u0000',' ').trim();
+  String s=notes.replace((char)0,' ').trim();
   return s.substring(0,Math.min(MAX_NOTES,s.length()));
  }
  /** Structured offline suggestions only; NO actions, no raw SysEx, and no claims of execution.
