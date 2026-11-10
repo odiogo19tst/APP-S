@@ -1050,3 +1050,32 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell #gx-song-brain-apply{background:#176b58;color:#fff}
 #gx-shell .gx-song-brain-tools button:disabled{opacity:.45}
 #gx-shell #gx-song-brain-preview{font-size:12px;line-height:1.45;color:#e6f8ff;overflow-wrap:break-word;margin:8px 0}
+
+/* 1.30.7 — 4 Tones Patch TVA Level (CC80–83, XPS-10 original) */
+#gx-shell .gx-sound-center.gx-patch-active>.gx-panel:not(.gx-patch-four-tones){display:none!important}
+#gx-shell .gx-patch-four-tones{min-width:0;padding:16px;display:flex;flex-direction:column;gap:12px}
+#gx-shell .gx-patch-four-tones[hidden]{display:none!important}
+#gx-shell .gx-patch-four-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+#gx-shell .gx-patch-four-header>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+#gx-shell .gx-patch-four-header h3{font-size:18px;margin:0;color:#eaf7ff}
+#gx-shell .gx-patch-four-header small{font-size:12px;color:#bfd5e5}
+#gx-shell .gx-patch-four-header button{min-height:44px;border-radius:9px;padding:9px 11px}
+#gx-shell .gx-patch-part-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#gx-shell .gx-patch-part-picker label{font-size:12px;display:flex;flex-direction:column;gap:5px;flex:0 1 185px}
+#gx-shell .gx-patch-part-picker select{width:100%;min-height:44px;color:#e8f4ff;background:#112d40;border:1px solid #407d94;border-radius:8px;padding:8px}
+#gx-shell .gx-patch-name{flex:1;min-width:150px;font-size:12px;line-height:1.4;color:#c2dfed}
+#gx-shell .gx-patch-four-status{margin:0;padding:9px;border-radius:8px;background:#0c263a;font-size:12px;color:#d8effa;line-height:1.5}
+#gx-shell .gx-patch-tone-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+#gx-shell .gx-patch-tone-card{display:flex;flex-direction:column;gap:9px;border:1px solid #3b6d83;border-radius:10px;background:#0d283b;padding:12px;min-width:0}
+#gx-shell .gx-patch-tone-card>strong{font-size:17px}
+#gx-shell .gx-patch-tone-card>small{color:#bfd9e8;font-size:12px}
+#gx-shell .gx-patch-tone-card label{display:flex;flex-direction:column;gap:6px;font-size:12px}
+#gx-shell .gx-patch-tone-card input{min-height:44px;max-width:100%;width:100%;background:#17354c;border:1px solid #56869a;border-radius:8px;color:#fff;padding:8px;font-size:17px}
+#gx-shell .gx-patch-tone-card button{min-height:44px;padding:8px;border-radius:8px;white-space:normal}
+#gx-shell .gx-patch-tone-card button:disabled{opacity:.45}
+#gx-shell .gx-patch-tone-feedback{font-size:11px;min-height:30px;overflow-wrap:break-word}
+#gx-shell .gx-patch-four-note,#gx-shell .gx-patch-future{color:#c7e1ef;font-size:12px;line-height:1.55;margin:0}
+#gx-shell .gx-patch-future{border:1px solid #3d7086;border-radius:9px;padding:10px}
+#gx-shell .gx-patch-future summary{font-weight:650;cursor:pointer}
+@media(max-width:720px){#gx-shell .gx-patch-tone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:390px){#gx-shell .gx-patch-tone-grid{grid-template-columns:1fr}}
