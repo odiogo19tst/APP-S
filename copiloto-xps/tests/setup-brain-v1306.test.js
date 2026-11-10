@@ -67,8 +67,8 @@ const html=src('index.html'),ui=src('ux-v2.js');
 assert(html.indexOf('setup-brain.js')<html.indexOf('app.js'),'Brain must load before data normalization');
 for(const id of ['gx-song-rig-capture','gx-song-brain-plan','gx-song-brain-apply','gx-song-brain-preview'])
  assert(ui.includes('id="'+id+'"'),'Missing UI '+id);
-assert(ui.includes('rigRunner?.prepare(planned,entry.title)'),'One-touch setup must register readback task');
-assert(ui.includes("rigRunner?.receive(kind,data,hw,song?.title)"),'MIDI return must be used to trigger setup');
+assert(ui.includes('rigRunner?.prepare(planned,activeRigToken())'),'One-touch setup must register a song-specific readback task');
+assert(ui.includes("rigRunner?.receive(kind,data,hw,activeRigToken())"),'MIDI response must be tied to the selected song, not title alone');
 assert(ui.includes('brainApi.capture(hw)'),'Capture must use observed MIDI snapshot');
 assert(ui.includes('brainApi.diff(hw,'),'Manual brain suggestions must be validated before editing');
 const app=src('app.js');assert(app.includes('GraueSetupBrain.cleanParts(c.parts)'),'App must retain saved snapshots in normalized repertoire');
