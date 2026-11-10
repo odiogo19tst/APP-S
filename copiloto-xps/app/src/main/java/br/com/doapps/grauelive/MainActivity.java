@@ -609,6 +609,7 @@ public class MainActivity extends Activity {
     if(sent){
      try{emit("partVibratoSent",new JSONObject().put("part",part).put("cc",controller).put("value",value));}catch(Exception ignored){}
      emit("status","Vibrato CC"+controller+" enviado à parte "+(part+1)+". Confirme ouvindo o XPS-10.");
+     new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.readWhenIdle(20);},550);
     }else emit("status","Falha ao enviar Vibrato MIDI; instrumento não confirmado.");
    });
   }
