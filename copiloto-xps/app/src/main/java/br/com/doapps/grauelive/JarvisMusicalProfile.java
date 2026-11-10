@@ -18,7 +18,7 @@ public final class JarvisMusicalProfile {
   * Separate from conversational prompting to keep the low-resource model on JSON.
   */
  public static String buildPatchPlanPrompt(String observedContext,String musicianNotes){
-  String context=observedContext==null?"":observedContext.trim().replace('\u0000',' ');
+  String context=observedContext==null?"":observedContext.trim().replace((char)0,' ');
   if(context.length()>1400)context=context.substring(0,1400);
   String notes=cleanNotes(musicianNotes);
   StringBuilder p=new StringBuilder(2600);
