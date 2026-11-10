@@ -35,6 +35,24 @@
   }
   return out.sort((a,b)=>a.part-b.part);
  }
+ /**
+  * Four Tone levels per one Performance Part, explicitly entered at rehearsal.
+  * These CC80..83 values have no Tone SysEx readback in the current app.
+  * No more than four commands per one-touch song selection.
+  */
+ function cleanTonePreset(raw){
+  if(raw===null)return null;
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+     !isNum(raw.part)||raw.part<0||raw.part>15||
+     !raw.levels||typeof raw.levels!=='object'||Array.isArray(raw.levels))return null;
+  const levels={};
+  for(const [tone,value] of Object.entries(raw.levels)){
+   if(!/^[1-4]$/.test(tone)||!isNum(value)||value<0||value>127)return null;
+   levels[tone]=value;
+  }
+  if(!Object.keys(levels).length)return null;
+  return {part:raw.part,levels};
+ }
  function isPerformance(hw){
   return !!hw&&Array.isArray(hw['setup:0'])&&hw['setup:0'][0]===1&&Number(hw.validSysexPackets)>0;
  }
@@ -98,40 +116,69 @@
   }
   return {description,commands:targets,supported:true};
  }
- function createRunner(sendEdits){
+ function createRunner(sendEdits,sendTones){
   let pending=null;
   function prepare(rig,title){
    pending=null;
-   if(!rig||!Array.isArray(rig.parts)||!rig.parts.length||rig.auto===false)return false;
-   const parts=cleanParts(rig.parts);
-   if(!parts||!parts.length)return false;
-   pending={type:rig.type,number:rig.number,parts,title:String(title||''),ack:false,readStarted:false,started:Date.now()};
+   if(!rig||rig.auto===false)return false;
+   const parts=Array.isArray(rig.parts)?cleanParts(rig.parts):[];
+   const tones=rig.tones===undefined?null:cleanTonePreset(rig.tones);
+   if((!parts||!parts.length)&&!tones)return false;
+   if(rig.tones!==undefined&&!tones)return false;
+   pending={type:rig.type,number:rig.number,parts:parts||[],tones,
+     title:String(title||''),phase:'select',ack:false,busyAfterAck:false,started:Date.now(),expected:null};
    return true;
+  }
+  function startTones(task,hw){
+   if(!task.tones)return {status:'unchanged',count:0};
+   if(!isPerformance(hw))return {status:'blocked',message:'Performance não confirmada no Roland.'};
+   if(typeof sendTones!=='function')return {status:'unsupported'};
+   const plans=Object.entries(task.tones.levels).map(([tone,value])=>({
+    part:task.tones.part,tone:Number(tone),value}));
+   // The injected implementation must validate channel exclusivity for ALL
+   // proposed tone CCs before sending any. Native also rechecks each send.
+   sendTones(plans,hw);
+   return {status:'tones-requested',count:plans.length};
   }
   function receive(kind,data,hw,currentTitle){
    if(!pending)return null;
    if(currentTitle!==pending.title){pending=null;return {status:'cancelled'};}
    if(kind==='xpsConnection'&&!data){pending=null;return {status:'disconnected'};}
    if(kind==='hardwareReset'){pending=null;return {status:'reset'};}
-   if(kind==='performanceSelected'){
+   if(kind==='performanceSelected'&&pending.phase==='select'){
     if(data&&data.index===pending.number&&!!data.user===(pending.type==='user'))pending.ack=true;
     return null;
    }
-   if(kind==='hardwareBusy'&&data===true&&pending.ack){pending.readStarted=true;return null;}
-   if(kind!=='hardware'||!pending.ack||!pending.readStarted)return null;
-   const task=pending;pending=null;
-   if(!hw||!Number.isFinite(hw.readAt)||hw.readAt<task.started)return {status:'stale'};
+   if(kind==='hardwareBusy'&&data===true&&pending.ack){
+    pending.busyAfterAck=true;return null;
+   }
+   if(kind!=='hardware'||!pending.ack||!pending.busyAfterAck)return null;
+   const task=pending;
+   if(!hw||!Number.isFinite(hw.readAt)||hw.readAt<task.started){
+    pending=null;return {status:'stale'};
+   }
    try{
-    const commands=diff(hw,task.parts);
-    if(!commands.length)return {status:'unchanged',count:0};
-    if(typeof sendEdits!=='function')return {status:'unsupported'};
-    sendEdits(commands);
-    return {status:'requested',count:commands.length};
-   }catch(e){return {status:'blocked',message:e.message};}
+    if(task.phase==='await-part-readback'){
+     pending=null;
+     const remaining=diff(hw,task.parts);
+     if(remaining.length)return {status:'blocked',message:'Alterações das partes não confirmadas. Tons não enviados.'};
+     return startTones(task,hw);
+    }
+    const commands=task.parts.length?diff(hw,task.parts):[];
+    if(commands.length){
+     if(typeof sendEdits!=='function'){pending=null;return {status:'unsupported'};}
+     task.phase='await-part-readback';
+     task.busyAfterAck=false;
+     sendEdits(commands);
+     return {status:'parts-requested',count:commands.length};
+    }
+    pending=null;
+    return startTones(task,hw);
+   }catch(e){pending=null;return {status:'blocked',message:e.message};}
   }
   return {prepare,receive,cancel:()=>{pending=null;},isPending:()=>!!pending};
  }
- const api={PARAMETERS,cleanParts,isPerformance,capture,diff,suggest,createRunner};
+ const api={PARAMETERS,cleanParts,cleanTonePreset,isPerformance,capture,diff,suggest,createRunner};
  if(scope)scope.GraueSetupBrain=api;
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:null);
