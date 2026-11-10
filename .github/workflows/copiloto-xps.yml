@@ -51,6 +51,16 @@ jobs:
           name: Graue-XPS-UNSIGNED
           path: copiloto-xps/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+      # Temporary private CI bundle: official Android signing tool, no signing key.
+      # Enables signing the APK locally without ever uploading the user's JKS.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Graue-Local-Signing-Tools
+          path: |
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/zipalign
+          if-no-files-found: error
+          retention-days: 1
 
   sign:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/feat/copiloto-xps' || github.ref == 'refs/heads/main')
