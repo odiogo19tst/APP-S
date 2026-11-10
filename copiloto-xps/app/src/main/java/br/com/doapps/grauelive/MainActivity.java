@@ -551,15 +551,7 @@ public class MainActivity extends Activity {
    if(context==null||context.length()<5||context.length()>1700){
     emit("patchPlanAnswer","Pedido inválido ou extenso demais.");return;
    }
-   final String prompt=JarvisMusicalProfile.buildPrompt(
-     "PLANEJADOR DE SYNTH XPS-10. Só responda JSON válido, sem Markdown, com a forma: "
-     +"{\"operations\":[{\"kind\":\"part\",\"part\":0,\"field\":\"attack\",\"value\":90}]} "
-     +"ou {\"operations\":[{\"kind\":\"tone\",\"part\":0,\"tone\":1,\"level\":90}]}. "
-     +"Use no máximo 6 operações. Campos de parte permitidos: level,cutoff,resonance,attack,release,decay,mfx. "
-     +"Tone somente level 0..127. IDs de partes 0..15; tones 1..4. Não invente endereços SysEx. "
-     +"Não executar, não gravar USER, não prometer confirmação. "
-     +"Se o pedido não puder ser realizado, responda {\"operations\":[]}. "
-     +"CONTEXTO OBSERVADO E PEDIDO: "+context,
+   final String prompt=JarvisMusicalProfile.buildPatchPlanPrompt(context,
      getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));
    worker.execute(()->{
     try{
