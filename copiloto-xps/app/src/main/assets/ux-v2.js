@@ -111,18 +111,26 @@
  };
 
  const friendlyNote=midi=>Number.isInteger(midi)&&midi>=0&&midi<=127?M.names[midi%12]+String(Math.floor(midi/12)-1):'—';
- let usbConnected=false,rigSelectionStatus='';
- const rigApi=window.GraueSongRig;
+ let usbConnected=false,rigSelectionStatus='',preparedBrainPlan=null;
+ const rigApi=window.GraueSongRig,brainApi=window.GraueSetupBrain;
+ const rigRunner=brainApi?.createRunner(commands=>{
+  if(!window.Native?.editHardware)throw Error('Ponte SysEx indisponível.');
+  window.Native.editHardware(JSON.stringify(commands));
+ });
  function updateRigStatus(text){
   rigSelectionStatus=text;
   const status=$x('gx-stage-rig-info');
   if(status)status.textContent=text;
  }
  function applySavedSongRig(entry){
+  rigRunner?.cancel();
   if(!rigApi)return;
+  const planned=rigApi.normalize(entry?.keyboardSetup);
+  if(planned&&planned.auto&&usbConnected)rigRunner?.prepare(planned,entry.title);
   const sender=window.Native&&typeof window.Native.selectPerformance==='function'
     ?(number,user)=>window.Native.selectPerformance(number,user):null;
   const result=rigApi.activate(entry,usbConnected,sender);
+  if(result.status!=='requested')rigRunner?.cancel();
   if(result.status==='not-configured'){updateRigStatus('🎹 Teclado: sem setup associado');return;}
   const name=(result.rig.type==='user'?'USER ':'PRESET ')+String(result.rig.number).padStart(3,'0');
   if(result.status==='manual'){updateRigStatus('🎹 '+name+' · troca manual');return;}
@@ -541,6 +549,7 @@
   $x('gx-song-rig-auto').checked=savedRig?.auto!==false;
   $x('gx-song-rig-save').disabled=!entry;
   $x('gx-song-rig-clear').disabled=!entry||!savedRig;
+  $x('gx-song-rig-capture-info').textContent=savedRig?.parts?.length?'🎹 '+savedRig.parts.length+' partes salvas com parâmetros reais · configuração da música':'Nenhum parâmetro de parte vinculado. Leia o XPS-10 e capture durante o ensaio.';
   $x('gx-song-rig-status').textContent=!entry?'Salve uma música antes de configurar o teclado.':savedRig
    ?'Vinculada a '+(savedRig.type==='user'?'USER ':'PRESET ')+String(savedRig.number).padStart(3,'0')+(savedRig.auto?' · automática':' · manual')
    :'Nenhum setup salvo. Escolha o banco e a posição utilizada no Roland.';
@@ -872,6 +881,12 @@
  window.receive=(kind,data)=>{
   prior(kind,data);
   if(kind==='hardware')hw=data||{};
+  if(kind==='hardwarePhysical')hw=data||hw;
+  const runStatus=rigRunner?.receive(kind,data,hw,song?.title);
+  if(runStatus?.status==='requested')updateRigStatus('🎹 Performance lida · '+runStatus.count+' parâmetros solicitados; aguardando confirmação SysEx');
+  if(runStatus?.status==='unchanged')updateRigStatus('🎹 Setup já corresponde à leitura do teclado');
+  if(runStatus?.status==='blocked'||runStatus?.status==='stale'){updateRigStatus('🎹 Setup não aplicado · '+(runStatus.message||'leitura desatualizada'));notify('Setup da música não aplicado: '+(runStatus.message||'faça nova leitura do XPS-10'));}
+  if(runStatus?.status==='disconnected'||runStatus?.status==='reset')updateRigStatus('🎹 USB desconectado · setup preservado para a próxima seleção');
   if(kind==='hardwareReset')hw={};
   if(kind==='mic')recording=!!data;
   if(kind==='audio'){lastAudio=data;if(Number.isInteger(data.midi)&&data.midi>=0){const n=friendlyNote(data.midi);if(notesHistory.at(-1)!==n)notesHistory=[...notesHistory,n].slice(-9);}}
