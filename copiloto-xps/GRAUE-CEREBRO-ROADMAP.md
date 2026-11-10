@@ -2,6 +2,12 @@
 
 Documento de continuidade do projeto. **Visão de produto e critérios**, não declaração de implementação pronta. Não reiniciar os módulos existentes; desenvolver sobre `feat/copiloto-xps` e preservar o applicationId e o keystore permanente.
 
+## Referência funcional detalhada das capturas do Eddie
+
+**Inventário obrigatório de funções:** [INVENTARIO-EDITOR-EDDIE-2026-11-10.md](INVENTARIO-EDITOR-EDDIE-2026-11-10.md).
+
+As capturas enviadas em 10/11/2026 documentam as opções PCH, WG, TVA, TVF, Vel/Key, LFO, MTX, Ctrl e MFX com até quatro tones, além de mixer de 16 partes, roteamento de efeitos, faixas, envelopes e controles de recepção. Não reduzir o backlog a troca de timbre ou mera leitura. **A IA é a camada que conecta e coordena módulos com parâmetros tecnicamente verificados, não o substituto dos editores de síntese.** A existência da interface antiga não comprova suporte MIDI sem testes no Roland.
+
 ## Experiência principal
 O tecladista prepara cada música antes do culto e vincula um setup ao repertório. Durante o culto **basta escolher a música**, no Palco ou no Repertório, para o Grauê solicitar automaticamente a configuração já aprovada por ele, sem nova confirmação a cada troca. Cifra, tom, BPM e anotações acompanham a seleção. Se o USB estiver desconectado, exibir falha clara sem fingir mudança no teclado. Não disparar mudanças apenas ao renderizar um painel.
 
