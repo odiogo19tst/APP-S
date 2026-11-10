@@ -167,10 +167,12 @@
     const commands=task.parts.length?diff(hw,task.parts):[];
     if(commands.length){
      if(typeof sendEdits!=='function'){pending=null;return {status:'unsupported'};}
-     task.phase='await-part-readback';
-     task.busyAfterAck=false;
+     if(task.tones){
+      task.phase='await-part-readback';
+      task.busyAfterAck=false;
+     }else pending=null;
      sendEdits(commands);
-     return {status:'parts-requested',count:commands.length};
+     return {status:task.tones?'parts-requested':'requested',count:commands.length};
     }
     pending=null;
     return startTones(task,hw);
