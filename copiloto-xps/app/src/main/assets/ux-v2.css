@@ -1124,3 +1124,8 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell .gx-song-tone-presets .gx-song-rig-actions button{min-height:44px;white-space:normal}
 #gx-shell .gx-song-tone-presets button:disabled{opacity:.45}
 @media(max-width:480px){#gx-shell .gx-song-tone-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* 1.31.0 Show Reliability: separate music/USB status and manual recovery. */
+#gx-shell .gx-stage-health{display:block;margin-top:7px;font-size:12px;line-height:1.45;color:#bbdbe9;overflow-wrap:break-word;word-break:normal}
+#gx-shell .gx-stage-reapply-rig{display:block;margin-top:9px;min-height:44px;width:100%;border:1px solid #548da9;border-radius:9px;background:#123f5b;color:#fff;padding:9px 12px;white-space:normal}
+#gx-shell .gx-stage-reapply-rig:disabled{opacity:.45}
