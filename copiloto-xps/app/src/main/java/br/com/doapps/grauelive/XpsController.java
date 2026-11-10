@@ -23,6 +23,27 @@ public final class XpsController {
   return Integer.valueOf(1).equals(state.get(XpsProtocol.address(1,0,0,0)))
    &&state.containsKey(b.start+4)&&state.containsKey(b.start+5)&&state.containsKey(b.start+6);
  }
+ /**
+  * CC80–83 affect four Patch Tone levels (XPS-10 MIDI Implementation 2014).
+  * They are MIDI channel controls, not SysEx part-addressed edits.
+  * Do not allow a command when the target channel is shared by another
+  * receiving Performance part, or when any part's channel is unobserved.
+  * Caller must not call this a verified readback of tone level.
+  */
+ public int isolatedToneChannel(int part){
+  if(part<0||part>=16||busy||!hasValidSysex()||!hasPerformancePart(part))return -1;
+  XpsProtocol.Block selected=XpsProtocol.block("part",part);
+  Integer channel=state.get(selected.start),enabled=state.get(selected.start+1);
+  if(channel==null||channel<0||channel>15||!Integer.valueOf(1).equals(enabled))return -1;
+  for(int i=0;i<16;i++){
+   if(i==part)continue;
+   XpsProtocol.Block b=XpsProtocol.block("part",i);
+   Integer otherChannel=state.get(b.start),otherEnabled=state.get(b.start+1);
+   if(otherChannel==null||otherEnabled==null)return -1;
+   if(otherChannel.equals(channel)&&Integer.valueOf(1).equals(otherEnabled))return -1;
+  }
+  return channel+1;
+ }
  public void auditionTone(int part,int msb,int lsb,int program){auditionToneConfig(part,msb,lsb,program,-1);}
  public void auditionToneConfig(int part,int msb,int lsb,int program,int volume){
   if(part<0||part>=16||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128){

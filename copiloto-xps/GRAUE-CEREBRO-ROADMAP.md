@@ -8,6 +8,12 @@ Documento de continuidade do projeto. **Visão de produto e critérios**, não d
 
 As capturas enviadas em 10/11/2026 documentam as opções PCH, WG, TVA, TVF, Vel/Key, LFO, MTX, Ctrl e MFX com até quatro tones, além de mixer de 16 partes, roteamento de efeitos, faixas, envelopes e controles de recepção. Não reduzir o backlog a troca de timbre ou mera leitura. **A IA é a camada que conecta e coordena módulos com parâmetros tecnicamente verificados, não o substituto dos editores de síntese.** A existência da interface antiga não comprova suporte MIDI sem testes no Roland.
 
+## Marco 1.30.7 — editor inicial dos quatro tones (implementação verificada pelo código, instrumento pendente)
+- **TVA Level 1–4**: MIDI CC80, 81, 82 e 83, conforme implementação do XPS-10 *original* de 2014. Somente após leitura do modo Performance, identificação da parte e exclusividade de canal (partes com canais duplicados não recebem o CC).
+- A UI **não preenche valores atuais que não tenham sido lidos**. Envio CC à porta USB não significa confirmação do instrumento. Nada escreve permanentemente USER.
+- **A fazer:** ler e editar de forma individual WG, TVA Envelope, TVF, Vel/Key, LFO, MTX e Ctrl com endereços específicos do XPS-10, readback e desfazer. Não substituir endereços do XPS-10 por XPS-10X, XPS-30 ou JUNO-Di.
+- Fontes: documentação oficial [Roland XPS-10](https://www.roland.com/global/support/by_product/xps-10/owners_manuals/) e implementação 2014 acessível em [Manualzz](https://manualzz.com/doc/html/51836047/roland-xps-10-expandable-synthesizer-owner-s-manual), seção *General Purpose Controller 5–8*.
+
 ## Experiência principal
 O tecladista prepara cada música antes do culto e vincula um setup ao repertório. Durante o culto **basta escolher a música**, no Palco ou no Repertório, para o Grauê solicitar automaticamente a configuração já aprovada por ele, sem nova confirmação a cada troca. Cifra, tom, BPM e anotações acompanham a seleção. Se o USB estiver desconectado, exibir falha clara sem fingir mudança no teclado. Não disparar mudanças apenas ao renderizar um painel.
 
