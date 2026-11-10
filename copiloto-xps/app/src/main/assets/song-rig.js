@@ -13,13 +13,20 @@
       if(clean===null||clean===undefined)return null;
       if(clean.length)value.parts=clean;
     }
+    if(raw.tones!==undefined&&raw.tones!==null){
+      const tones=brain?.cleanTonePreset(raw.tones);
+      if(!tones)return null;
+      value.tones=tones;
+    }
     return value;
   }
   function assign(song,raw){
     if(!song||typeof song!=='object')throw new Error('Selecione uma música válida');
     const previous=normalize(song.keyboardSetup);
     const same=previous&&raw&&raw.type===previous.type&&Number(raw.number)===previous.number;
-    const preserving=same&&raw.parts===undefined&&Array.isArray(previous.parts)?{...raw,parts:previous.parts}:raw;
+    const preserving=same&&raw?
+      {...raw,...(raw.parts===undefined&&Array.isArray(previous.parts)?{parts:previous.parts}:{}),
+       ...(raw.tones===undefined&&previous.tones?{tones:previous.tones}:{})}:raw;
     const value=normalize(preserving);
     if(raw!==null&&!value)throw new Error('Performance inválida ou snapshot não reconhecido. USER 1–128 ou PRESET 1–16.');
     return {...song,keyboardSetup:value};
