@@ -57,8 +57,8 @@ jobs:
         with:
           name: Graue-Local-Signing-Tools
           path: |
-            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
-            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/zipalign
+            /usr/local/lib/android/sdk/build-tools/35.0.0/lib/apksigner.jar
+            /usr/local/lib/android/sdk/build-tools/35.0.0/zipalign
           if-no-files-found: error
           retention-days: 1
 
