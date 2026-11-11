@@ -48,3 +48,13 @@ body.light #gx-shell.gx-layout-v3 .gx-cifra-text{color:#142938}
 @media(max-width:980px){#gx-shell.gx-layout-v3 .gx-rep-layout{grid-template-columns:minmax(0,1fr)}#gx-shell.gx-layout-v3 .gx-repertoire-library .gx-song-list{max-height:24dvh}}
 @media(max-width:400px){#gx-shell.gx-layout-v3 .gx-reader-tools{gap:4px}#gx-shell.gx-layout-v3 .gx-reader-tools button{padding:6px 8px}#gx-shell.gx-layout-v3 .gx-paper-copy{padding:11px 9px}}
 @media(orientation:landscape) and (max-height:560px){#gx-shell.gx-layout-v3 .gx-cifra-text{max-height:70dvh;min-height:35dvh}#gx-shell.gx-layout-v3 .gx-reader-focused .gx-cifra-text{max-height:calc(100dvh - 130px);min-height:35dvh}#gx-shell.gx-layout-v3 .gx-reader-tools{margin:4px 0}}
+
+/* Keep YouTube entry compact until explicitly opened; retain form values. */
+#gx-shell.gx-layout-v3 .gx-youtube-helper.gx-youtube-collapsed{padding:0!important;border:0;background:transparent;box-shadow:none}
+#gx-shell.gx-layout-v3 #gx-yt-toggle{min-height:44px;padding:10px 14px;font-size:12px;text-align:left}
+#gx-shell.gx-layout-v3 #gx-yt-toggle::after{content:' +';color:var(--gx-mint);margin-left:8px}
+#gx-shell.gx-layout-v3 #gx-yt-toggle[aria-expanded="true"]::after{content:' −'}
+#gx-shell.gx-layout-v3 #gx-yt-content[hidden]{display:none!important}
+#gx-shell.gx-layout-v3 #gx-yt-content{padding-top:8px}
+#gx-shell.gx-layout-v3 #gx-yt-content p,#gx-shell.gx-layout-v3 #gx-yt-content small{font-size:12px;line-height:1.5}
+#gx-shell.gx-layout-v3 .gx-reader-focused>.gx-youtube-helper{display:none!important}
