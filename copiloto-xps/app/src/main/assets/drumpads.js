@@ -291,9 +291,15 @@
  };
  const rep=document.querySelector('[data-gx-screen="repertoire"]');
  if(rep){
-  const panel=document.createElement('section');panel.className='gx-panel gx-youtube-helper';
-  panel.innerHTML='<div class="gx-section-label">YouTube no repertório</div><p>Cole o link, informe o nome e os acordes conhecidos, e salve na lista de músicas. Um link por si só não fornece as notas: para transcrever automaticamente é preciso analisar áudio autorizado.</p><div class="gx-youtube-fields"><label>Link YouTube<input id="gx-yt-link" type="url" placeholder="https://youtu.be/..."></label><label>Nome da música<input id="gx-yt-title" maxlength="140" placeholder="Título da música"></label><label>Progressão de acordes<input id="gx-yt-chords" placeholder="Ex.: G D Em C"></label><label>BPM<input type="number" id="gx-yt-bpm" min="40" max="180" value="72"></label></div><div class="gx-youtube-actions"><button id="gx-yt-open">Abrir vídeo</button><button id="gx-yt-save">Salvar cifra no repertório</button><button id="gx-yt-analyze">Analisar com microfone</button></div><small id="gx-yt-message" role="status">A análise pelo microfone é experimental, não extrai a trilha de áudio diretamente do YouTube.</small>';
+  const panel=document.createElement('section');panel.className='gx-panel gx-youtube-helper gx-youtube-collapsed';
+  panel.innerHTML='<button id="gx-yt-toggle" type="button" aria-expanded="false" aria-controls="gx-yt-content">Adicionar do YouTube</button><div id="gx-yt-content" hidden><p>Cole o link, nome e acordes para salvar no repertório. O link não gera a cifra automaticamente.</p><div class="gx-youtube-fields"><label>Link YouTube<input id="gx-yt-link" type="url" placeholder="https://youtu.be/..."></label><label>Nome da música<input id="gx-yt-title" maxlength="140" placeholder="Título da música"></label><label>Progressão de acordes<input id="gx-yt-chords" placeholder="Ex.: G D Em C"></label><label>BPM<input type="number" id="gx-yt-bpm" min="40" max="180" value="72"></label></div><div class="gx-youtube-actions"><button id="gx-yt-open">Abrir vídeo</button><button id="gx-yt-save">Salvar cifra no repertório</button><button id="gx-yt-analyze">Analisar com microfone</button></div><small id="gx-yt-message" role="status">A análise pelo microfone é experimental, não extrai a trilha de áudio diretamente do YouTube.</small></div>';
   rep.append(panel);
+  el('gx-yt-toggle').onclick=()=>{
+   const button=el('gx-yt-toggle'),content=el('gx-yt-content'),open=content.hidden;
+   content.hidden=!open;button.setAttribute('aria-expanded',String(open));
+   button.textContent=open?'Fechar YouTube':'Adicionar do YouTube';
+   panel.classList.toggle('gx-youtube-collapsed',!open);
+  };
   const getLink=()=>el('gx-yt-link').value.trim();
   const validLink=()=>/^https:\/\/(?:www\.|m\.)?youtube\.com\/watch\?|^https:\/\/youtu\.be\//i.test(getLink());
   el('gx-yt-open').onclick=()=>{if(!validLink()){el('gx-yt-message').textContent='Cole um link de vídeo YouTube válido.';return;}native('launchPlaybackUrl',getLink());};
