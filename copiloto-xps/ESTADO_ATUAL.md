@@ -1,6 +1,16 @@
 # Grauê XPS — referência de continuidade
 
-Versão em desenvolvimento: 1.32.0-palco, versionCode 58.
+Versão em desenvolvimento: 1.32.1-synth-controls, versionCode 59.
+Base: 1.32.0 / PR #72 integrado (0aeb99bb6b8f353898e3ac8d12c59c0f3f952f18).
+
+## Controles no estilo do vídeo
+
+Botões de painel escuros, bordas discretas, abas e seleção vermelhas; gráficos próprios, sem incorporar código/ativos do editor mostrado. Editor interno passa a ter quatro abas Tone 1–4, subseções WG/Pitch Envelope, TVA/Envelope/BIAS, TVF/Envelope, LFO1/LFO2/Step, Matrix/fontes/switches e PCH/mistura. Vel/Key mostra os campos TMT do Tone selecionado.
+
+synth-controls.js decora os campos numéricos existentes: knobs com indicador para pan/afinação/rate, faders para níveis/envelopes/profundidades e chaves ON/OFF apenas nos campos booleanos documentados. Os valores MIDI exatos continuam editáveis e visíveis. Campos Wave ID e enums mantêm seleção exata. Quando não há leitura, os controles ficam bloqueados e não exibem uma posição inventada. Girar/arrastar apenas prepara alterações; o envio continua no botão Aplicar e no validador nativo da 1.31.2. A camada visual não possui transporte MIDI.
+
+Controles foram exercitados por testes de eventos e valores; o bloqueio de prévia local registrado na 1.32 continua, sem tentativa de contorno. Conferir visual e resposta tátil no Android real. Não declarar teste físico do XPS-10 nem inferência real da Gemma.
+
 Base confirmada: 1.31.2 / PR #71 integrado (ee2aff6033ce32bc816596ca325d4696e61216c1).
 
 ## Layout 1.32
