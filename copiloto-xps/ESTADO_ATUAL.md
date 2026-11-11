@@ -1,6 +1,16 @@
 # Grauê XPS — referência de continuidade
 
-Versão em desenvolvimento: 1.31.2-deep-patch, versionCode 57.
+Versão em desenvolvimento: 1.32.0-palco, versionCode 58.
+Base confirmada: 1.31.2 / PR #71 integrado (ee2aff6033ce32bc816596ca325d4696e61216c1).
+
+## Layout 1.32
+
+Nova camada de apresentação layout-v3.js/css sobre os serviços existentes. Painéis grafite, acento verde suave, menos gradientes, tipografia e hierarquia consistentes. No celular, navegação inferior: Palco / Repertório / Sons / Pads / Mais. Mais mantém Jarvis, Backups, Ajustes e Atualizar MIDI. Os botões originais são movidos com seus IDs e callbacks, nunca clonados; nenhum comando MIDI é emitido pela camada visual.
+
+Palco destaca música, transporte e cifra. Metrônomo, favoritos, sugestões, acorde de apoio e preparação ficam recolhíveis. Atalho Favoritos abre o painel antes de rolar até ele. O looper preserva REC/PLAY/STOP e quatro pistas à vista; BPM, compassos, mute, apagar e instruções ficam em opções. Sons usa seletor compacto de editor; controles internos são agrupados em cartões. Acessibilidade: nomes nos ícones, foco, Escape no menu, áreas de toque e preferência de movimento reduzido. Indicador USB distingue desconectado, MIDI e SysEx usando os eventos reais.
+
+Verificação: regressões existentes e teste funcional da navegação/movimentação de controles. Prévia pelo navegador indisponível neste ambiente: política recusou URL file://; não foi feita tentativa de contornar. Aparência final ainda deve ser conferida no Android real. Looper, edição SysEx, repertório, timbres e IA preservados.
+
 Base: 1.31.1 com MIDI Looper / PR #70 integrado.
 
 ## Editor interno: mapa original recuperado
