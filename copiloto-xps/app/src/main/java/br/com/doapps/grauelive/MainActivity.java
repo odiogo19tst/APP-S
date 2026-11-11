@@ -101,6 +101,8 @@ public class MainActivity extends Activity {
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
   rootLayout=new android.widget.LinearLayout(this);rootLayout.setBackgroundColor(android.graphics.Color.rgb(7,17,28));rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
+  // Required for confirm() dialogs: without a Chrome client Android cancels them silently.
+  web.setWebChromeClient(new WebChromeClient());
   web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();restoreConfirmedMidiCache();emitCachedUsers();worker.execute(()->publishLatestBackup());}});
   web.addJavascriptInterface(new Bridge(),"Native");
   worker.execute(()->{
