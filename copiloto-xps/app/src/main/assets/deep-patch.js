@@ -21,18 +21,33 @@
   return {part,revision:state.revision,operations:validated};
  }
  function create(transport){
-  let state=null,connected=false,busy=false,part=0,tone=1,group='TVA',host=null,draft=new Map(),invalid=new Set(),lastRevision=-1;
+  let state=null,connected=false,busy=false,part=0,tone=1,group='TVA',subgroup=0,host=null,draft=new Map(),invalid=new Set(),lastRevision=-1;
   const mk=(tag,text)=>{const n=host.ownerDocument.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-  function render(container,nextGroup,nextPart){host=container;group=nextGroup;part=nextPart;if(!host||group==='MFX')return;
+  const sections={WG:['Wave Generator','Pitch Envelope'],TVA:['TVA','TVA Envelope','BIAS'],TVF:['TVF','TVF Envelope'],LFO:['LFO 1','LFO 2','Step'],MTX:['Fontes e destinos','Switches por Tone'],PCH:['Patch Common','Mistura']};
+  function visibleDefs(){return defs.filter(d=>{
+   if(d.group!==group)return false;
+   if(group==='WG')return /^Pitch Env/.test(d.label)===(subgroup===1);
+   if(group==='TVA')return subgroup===1?/^TVA Env/.test(d.label):subgroup===2?/^Bias/.test(d.label):!/^TVA Env|^Bias/.test(d.label);
+   if(group==='TVF')return /^TVF Env/.test(d.label)===(subgroup===1);
+   if(group==='LFO')return (subgroup===0?/^LFO1/:subgroup===1?/^LFO2/:/^LFO Step/).test(d.label);
+   if(group==='MTX')return (d.section==='tone')===(subgroup===1);
+   if(group==='PCH')return (d.section==='tmt')===(subgroup===1);
+   if(group==='Vel/Key')return new RegExp('^TMT'+tone+' ').test(d.label);
+   return true;
+  });}
+  function render(container,nextGroup,nextPart){host=container;if(group!==nextGroup)subgroup=0;group=nextGroup;part=nextPart;if(!host||group==='MFX')return;
    const area=mk('section');area.className='gx-deep-editor';
    const header=mk('div');header.className='gx-deep-toolbar';header.append(mk('h4','Parâmetros internos · XPS-10'));
    const read=mk('button','Ler Patch completo desta parte');read.type='button';read.disabled=!connected||busy;read.onclick=()=>transport.readDeep?.(part);
    const undo=mk('button','Desfazer última edição interna');undo.type='button';undo.disabled=!connected||busy||!state?.ready||state.part!==part;undo.onclick=()=>transport.undoDeep?.();header.append(read,undo);
-   const pick=mk('select');pick.setAttribute('aria-label','Tone interno selecionado');for(let i=1;i<=4;i++){const o=mk('option','Tone '+i);o.value=String(i);pick.append(o);}pick.value=String(tone);pick.onchange=()=>{tone=Number(pick.value);refresh();};header.append(pick);area.append(header);
+   const pick=mk('select');pick.setAttribute('aria-label','Tone interno selecionado');for(let i=1;i<=4;i++){const o=mk('option','Tone '+i);o.value=String(i);pick.append(o);}pick.value=String(tone);pick.onchange=()=>{tone=Number(pick.value);refresh();};pick.className='gx-tone-native-picker';header.append(pick);
+   const toneTabs=mk('div');toneTabs.className='gx-tone-select-tabs';toneTabs.setAttribute('role','radiogroup');toneTabs.setAttribute('aria-label','Escolher Tone interno');
+   for(let i=1;i<=4;i++){const tab=mk('button','Tone '+i);tab.type='button';tab.setAttribute('role','radio');tab.setAttribute('aria-checked',String(i===tone));tab.className=i===tone?'on':'';tab.tabIndex=i===tone?0:-1;tab.onclick=()=>{pick.value=String(i);pick.onchange();};tab.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const next=event.key==='Home'?1:event.key==='End'?4:(tone+(event.key==='ArrowRight'?1:3)-1)%4+1;pick.value=String(next);pick.onchange();host.querySelector?.('.gx-tone-select-tabs button[aria-checked="true"]')?.focus?.();};toneTabs.append(tab);}header.append(toneTabs);
+   if(sections[group]){const subTabs=mk('div');subTabs.className='gx-synth-subtabs';subTabs.setAttribute('role','group');subTabs.setAttribute('aria-label','Seções de '+group);sections[group].forEach((text,i)=>{const b=mk('button',text);b.type='button';b.className=i===subgroup?'on':'';b.setAttribute('aria-pressed',String(i===subgroup));b.onclick=()=>{subgroup=i;refresh();};subTabs.append(b);});header.append(subTabs);}area.append(header);
    const ready=connected&&!busy&&state?.ready&&state.part===part;
    const info=mk('p',ready?'Leitura real recebida. Alterações são temporárias e confirmadas por releitura.':'Conecte, leia a Performance e toque Ler Patch completo. Nenhum valor é presumido.');info.className='gx-deep-info';area.append(info);
    const grid=mk('div');grid.className='gx-deep-grid';
-   const fields=defs.filter(d=>d.group===group);
+   const fields=visibleDefs();
    for(const d of fields){
     const label=mk('label',d.label);let value=null;try{if(ready)value=decode(d,bytesFor(state,d,tone));}catch(_){}
     const key=d.id+':'+(d.section==='tone'?tone:1),pending=draft.get(key),current=pending?.value??value;
@@ -42,6 +57,7 @@
     input.disabled=value===null;
     const hint=mk('small',d.center?'MIDI '+d.min+'–'+d.max+' · neutro '+d.center:'MIDI '+d.min+'–'+d.max);label.append(input,hint);
     input.onchange=()=>{const v=Number(input.value);if(input.value===''||!allowed(d,v)){invalid.add(key);status.textContent='Valor inválido: '+d.label;apply.disabled=true;return;}invalid.delete(key);if(v===value)draft.delete(key);else draft.set(key,{field:d.id,tone:d.section==='tone'?tone:1,value:v});review();};
+    scope?.GraueSynthControls?.decorate(input,d);
     grid.append(label);
    }
    area.append(grid);
@@ -57,7 +73,7 @@
    if(kind==='deepPatch'){if(data?.revision!==lastRevision){draft.clear();invalid.clear();lastRevision=data?.revision;}state=data;}
    if(['xpsConnection','hardwareReset','hardwareBusy','deepPatch'].includes(kind))refresh();
   }
-  function context(){if(!state?.ready||state.part!==part)return '';return 'Editor interno: kind=patch, part='+part+', tone='+tone+'. Campos válidos (valores MIDI): '+defs.filter(d=>d.group===group).slice(0,14).map(d=>{let v='?';try{v=decode(d,bytesFor(state,d,tone));}catch(_){}return d.id+' ['+d.min+'..'+d.max+'] atual='+v;}).join('; ');}
+  function context(){if(!state?.ready||state.part!==part)return '';return 'Editor interno: kind=patch, part='+part+', tone='+tone+'. Campos válidos (valores MIDI): '+visibleDefs().slice(0,14).map(d=>{let v='?';try{v=decode(d,bytesFor(state,d,tone));}catch(_){}return d.id+' ['+d.min+'..'+d.max+'] atual='+v;}).join('; ');}
   return {render,receive,context,prepare:ops=>prepare(state,ops,part),state:()=>state,tone:()=>tone};
  }
  const api={defs,decode,prepare,create};if(typeof module!=='undefined')module.exports=api;if(scope)scope.GraueDeepPatch=api;

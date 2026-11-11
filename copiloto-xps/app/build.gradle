@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 58
-        versionName '1.32.0-palco'
+        versionCode 59
+        versionName '1.32.1-synth-controls'
     }
     buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
