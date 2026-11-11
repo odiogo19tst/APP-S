@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 60
-        versionName '1.32.2-sound-workspace'
+        versionCode 61
+        versionName '1.32.3-repertoire-reader'
     }
     buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
