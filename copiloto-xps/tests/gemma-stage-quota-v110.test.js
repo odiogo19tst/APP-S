@@ -9,7 +9,7 @@ assert(model.includes('validator.validate(candidate)'),'The model must load in n
 assert(!gemma.includes('ModelImport.checkBundle(downloading)'),'Gemma must not be rejected by ZIP-only heuristics');
 assert(gemma.includes('SHA256')&&gemma.includes('validator.validate(downloading)'),'Downloaded Gemma integrity and runtime check missing');
 assert(api.includes('insufficient_quota')&&api.includes('429'),'API 429 must distinguish quota from rate limit');
-assert(ui.includes('const hasRealSong=songs.some'),'An example progression must not masquerade as live worship repertoire');
+assert(ui.includes('const hasRealSong=matchingSong>=0;')&&ui.includes('const matchingSong=activeSongIndex()'),'Only the actual selected repertoire entry may appear as the current worship song');
 assert(ui.includes('Nenhuma música selecionada')&&ui.includes('Aguardando cifra'),'Stage must present true missing-song state');
 assert(ui.includes('gx-roland-favorites')&&ui.includes('rolandFavoriteEntriesDecoded:0'),'Keep physical Roland favorite import distinct from local bank');
 console.log('Grauê 1.10: Gemma LiteRT, quota, real song state, Roland physical favorites safeguards passed');

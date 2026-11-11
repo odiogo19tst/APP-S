@@ -64,7 +64,30 @@ public class MainActivity extends Activity {
   for(JSONObject tone:entries.values())merged.put(tone);
   if(merged.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",merged.toString()).apply();
  }
- private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private MidiLooper liveLooper; private final Handler loopHandler=new Handler(Looper.getMainLooper()); private final Runnable loopTick=new Runnable(){public void run(){if(liveLooper!=null&&liveLooper.isPlaying()){liveLooper.tick(System.nanoTime());loopHandler.postDelayed(this,5);}}}; private AudioAnalyzer audio; private boolean armed=false;
+ private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
+ private MidiLooper liveLooper;
+ private HandlerThread loopThread;
+ private Handler loopClock;
+ private final Handler loopUi=new Handler(Looper.getMainLooper());
+ private final Runnable loopTick=new Runnable(){public void run(){
+  if(liveLooper==null)return;
+  liveLooper.tick(System.nanoTime());
+  if(liveLooper.isActive())loopClock.postDelayed(this,2);
+  else publishLoopState();
+ }};
+ private final Runnable loopUiTick=new Runnable(){public void run(){publishLoopState();if(liveLooper!=null&&liveLooper.isActive())loopUi.postDelayed(this,100);}};
+ private void publishLoopState(){
+  if(liveLooper==null)return;
+  MidiLooper.State state=liveLooper.state(System.nanoTime());
+  try{JSONObject data=new JSONObject().put("playing",state.playing).put("recording",state.recording).put("queued",state.queued)
+   .put("track",state.recordingTrack).put("bpm",state.bpm).put("beats",state.beats).put("bars",state.bars)
+   .put("position",state.position).put("counts",new JSONArray(state.counts)).put("muted",new JSONArray(state.muted)).put("message",state.message);
+   emit("loopState",data);
+  }catch(Exception ignored){}
+ }
+ private void startLoopClock(){loopClock.post(()->{loopClock.removeCallbacks(loopTick);loopClock.post(loopTick);});loopUi.removeCallbacks(loopUiTick);loopUi.post(loopUiTick);}
+ private void stopLiveLoop(){if(loopClock!=null)loopClock.removeCallbacks(loopTick);loopUi.removeCallbacks(loopUiTick);if(liveLooper!=null){liveLooper.stop();publishLoopState();}}
+ private boolean armed=false;
   private final java.util.concurrent.atomic.AtomicBoolean gemmaBusy=new java.util.concurrent.atomic.AtomicBoolean(false);
   private final java.util.concurrent.atomic.AtomicBoolean gemmaCancel=new java.util.concurrent.atomic.AtomicBoolean(false);
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private final ExecutorService modelInstallerWorker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
@@ -104,11 +127,13 @@ public class MainActivity extends Activity {
    mergeUserToneCache((JSONArray)d);
   }
  }});
-  liveLooper=new MidiLooper((status,note,velocity)->midi!=null&&midi.isConnected()&&midi.send(status,note,velocity));
+  loopThread=new HandlerThread("GraueMidiClock",android.os.Process.THREAD_PRIORITY_AUDIO);loopThread.start();loopClock=new Handler(loopThread.getLooper());
+  liveLooper=new MidiLooper((status,a,b)->midi!=null&&midi.isConnected()&&midi.send(status,a,b));
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
+ if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
  emit("status",t);
  if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
-  stopDrone();stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
+  stopLiveLoop();liveLooper.retrySilence();publishLoopState();stopDrone();stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
   armed=true;emit("armed",true);emit("xpsConnection",true);
   autoUserRead=!hasCachedUsers();
   emitCachedUsers();
@@ -118,7 +143,9 @@ public class MainActivity extends Activity {
   armed=false;autoUserRead=false;
   emit("armed",false);emit("xpsConnection",false);emit("clear","");
  }
-}public void event(int s,int a,int b){if(liveLooper!=null)liveLooper.input(System.nanoTime(),s,a,b);try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}});
+}public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}
+ public void eventAt(long receivedNs,int s,int a,int b){liveLooper.input(receivedNs,s,a,b);event(s,a,b);}
+ });
   sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
   captureShare(getIntent());
@@ -249,14 +276,25 @@ public class MainActivity extends Activity {
    });
   }
   @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI antes de iniciar a batida.");return;}try{sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
-  @JavascriptInterface public void loopRecord(int bpm,int beats,int bars){runOnUiThread(()->{if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o Roland por USB MIDI para gravar.");return;}if(bpm<40||bpm>240||beats<1||beats>12||bars<1||bars>32){emit("status","Parâmetros de loop inválidos.");return;}loopHandler.removeCallbacks(loopTick);long duration=(60_000_000_000L*beats*bars)/bpm;liveLooper.record(System.nanoTime(),duration);emit("status","Gravando notas MIDI. Toque no Roland e depois inicie PLAY.");});}
-  @JavascriptInterface public void loopPlay(){runOnUiThread(()->{if(!armed||midi==null||!midi.isConnected()){emit("status","Sem USB MIDI conectado.");return;}loopHandler.removeCallbacks(loopTick);liveLooper.play(System.nanoTime());if(liveLooper.isPlaying()){loopHandler.post(loopTick);emit("status","MIDI Loop em reprodução.");}else emit("status","Grave notas antes de iniciar o loop.");});}
-  @JavascriptInterface public void loopStop(){runOnUiThread(()->{loopHandler.removeCallbacks(loopTick);if(liveLooper!=null)liveLooper.stop();emit("status","MIDI Loop parado.");});}
+  @JavascriptInterface public void loopState(){runOnUiThread(()->publishLoopState());}
+  @JavascriptInterface public void loopRecord(int track,int bpm,int beats,int bars){runOnUiThread(()->{
+   if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 por USB para gravar MIDI.");return;}
+   try{if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track);startLoopClock();}
+   catch(Exception e){emit("status",e.getMessage());publishLoopState();}
+  });}
+  @JavascriptInterface public void loopPlay(int bpm,int beats,int bars){runOnUiThread(()->{
+   if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 por USB para tocar o loop.");return;}
+   try{if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);if(liveLooper.play(System.nanoTime()))startLoopClock();else publishLoopState();}
+   catch(Exception e){emit("status",e.getMessage());publishLoopState();}
+  });}
+  @JavascriptInterface public void loopStop(){runOnUiThread(()->stopLiveLoop());}
+  @JavascriptInterface public void loopMute(int track,boolean mute){runOnUiThread(()->{try{liveLooper.mute(track,mute);publishLoopState();}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void loopClear(int track){runOnUiThread(()->{try{liveLooper.clear(track);publishLoopState();}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void stopSequence(){runOnUiThread(()->{sequencer.stop();stopPadNotes();});}
   @JavascriptInterface public void openCifra(){runOnUiThread(()->showCifra());}
   @JavascriptInterface public void importCifra(){runOnUiThread(()->{if(cifraPanel==null){showCifra();emit("status","Abra uma música no Cifra Club e toque Importar novamente.");}else cifraPanel.importCurrent();});}
   @JavascriptInterface public void showMode(boolean on){runOnUiThread(()->setRequestedOrientation(on?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR));}
-  @JavascriptInterface public void panic(){runOnUiThread(()->{sequencer.stop();stopPadNotes();for(int c=0;c<16;c++){midi.send(0xB0+c,64,0);midi.send(0xB0+c,123,0);}emit("status","Sustain e notas MIDI liberados em todos os canais.");});}
+  @JavascriptInterface public void panic(){runOnUiThread(()->{stopLiveLoop();sequencer.stop();stopPadNotes();for(int c=0;c<16;c++){midi.send(0xB0+c,64,0);midi.send(0xB0+c,123,0);}emit("status","Sustain e notas MIDI liberados em todos os canais.");});}
   /** One explicitly requested chord, bounded duration, user-selected MIDI channel. Never automatic. */
   @JavascriptInterface public void playAssistChord(String json){
    if(json==null||json.length()>200)return;
@@ -451,6 +489,7 @@ public class MainActivity extends Activity {
   }
   @JavascriptInterface public void selectPerformance(int number,boolean user){
     runOnUiThread(()->{
+      stopLiveLoop();
       if(number<1||number>(user?128:16)){emit("status","Número de Performance fora da faixa.");return;}
       if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado para selecionar a Performance.");return;}
       // Roland XPS-10 MIDI Implementation: USER MSB 85 / LSB 0, preset MSB 85 / LSB 64.
@@ -484,12 +523,13 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void readHardware(){runOnUiThread(()->xps.read());}
   @JavascriptInterface public void editHardware(String json){if(json.length()<40000)runOnUiThread(()->xps.write(json,armed));}
   @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
-  @JavascriptInterface public void connect(){runOnUiThread(()->{MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
+  @JavascriptInterface public void connect(){runOnUiThread(()->{stopLiveLoop();MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
   /** Refreshes MIDI ports in both directions; never clears cached tones, performances or favorites.
    * Safe for an unplug/replug between songs; releases active notes before changing ports. */
   @JavascriptInterface public void refreshMidiPorts(){
    runOnUiThread(()->{
     if(midi==null){emit("status","Subsistema USB-MIDI não inicializado.");return;}
+    stopLiveLoop();
     MidiDeviceInfo[] found=midi.devices();
     int currentId=midi.connectedDeviceId();
     int incoming=0,outgoing=0;
@@ -540,6 +580,75 @@ public class MainActivity extends Activity {
   // Compatibility: connection is the only switch; no separate MIDI activation.
   armed=midi!=null&&midi.isConnected();emit("armed",armed);
  });}
+  /** Patch Tone TVA levels through documented CC80..83. Not confirmed by SysEx readback. */
+  /** Opt-in passive SysEx learning; does not send a parameter write. */
+  @JavascriptInterface public void observePatch(boolean enabled){
+   runOnUiThread(()->{
+    if(enabled&&(midi==null||!midi.isConnected())){emit("status","Conecte o Roland XPS-10 antes de observar edições SysEx.");return;}
+    xps.observePatch(enabled);
+   });
+  }
+  /** Offline Gemma action suggestions, isolated from normal Jarvis replies.
+   * This method returns an untrusted JSON proposal as text, NEVER hardware commands.
+   */
+  @JavascriptInterface public void planPatch(String context){
+   if(context==null||context.length()<5||context.length()>1700){
+    emit("patchPlanAnswer","Pedido inválido ou extenso demais.");return;
+   }
+   final String prompt=JarvisMusicalProfile.buildPatchPlanPrompt(context,
+     getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));
+   worker.execute(()->{
+    try{
+     if(llm==null){File model=new File(getFilesDir(),"model.task");
+      if(!model.exists())throw new IOException("Gemma offline não instalada. Instale em Ajustes ou use os controles manuais.");
+      llm=openModel(model);
+     }
+     emit("patchPlanAnswer",llm.generateResponse(prompt));
+    }catch(Exception e){emit("patchPlanAnswer","IA offline indisponível: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void toneLevel(int part,int tone,int value){
+   runOnUiThread(()->{
+    if(part<0||part>15||tone<1||tone>4||value<0||value>127){
+     emit("status","Tone inválido: selecione parte 1–16, tone 1–4 e nível 0–127.");return;
+    }
+    if(!armed||midi==null||!midi.isConnected()){
+     emit("status","Conecte o XPS-10 via USB-MIDI antes de editar os tones.");return;
+    }
+    int channel=xps.isolatedToneChannel(part);
+    if(channel<1||channel>16){
+     emit("status","CC do tone bloqueado: leia todas as partes e use um canal MIDI exclusivo para esta parte. Canais compartilhados podem alterar mais de um som.");return;
+    }
+    int controller=79+tone;
+    if(!midi.send(0xB0+channel-1,controller,value)){
+     emit("status","Falha no envio CC do tone. A configuração não foi confirmada.");return;
+    }
+    try{emit("toneLevelSent",new JSONObject()
+       .put("part",part).put("tone",tone).put("channel",channel)
+       .put("controller",controller).put("value",value));}
+    catch(Exception ignored){}
+    emit("status","CC"+controller+" enviado ao canal "+channel+" (Tone "+tone+"). Confira ouvindo o XPS-10: o valor não possui readback SysEx nesta versão.");
+   });
+  }
+  /** Vibrato offsets (CC76/77/78) of the Performance Part; NOT per-Tone LFO editing. */
+  @JavascriptInterface public void partVibrato(int part,int controller,int value){
+   runOnUiThread(()->{
+    if(part<0||part>=16||controller<76||controller>78||value<0||value>127){
+     emit("status","Vibrato inválido: parte 1–16, CC76–78, valor 0–127.");return;
+    }
+    if(!armed||midi==null||!midi.isConnected()){
+     emit("status","Conecte o Roland via USB para ajustar o Vibrato da Performance.");return;
+    }
+    int channel=xps.isolatedToneChannel(part);
+    if(channel<1||channel>16){emit("status","Vibrato bloqueado: canal da parte compartilhado ou sem leitura SysEx.");return;}
+    boolean sent=midi.send(0xB0+channel-1,controller,value);
+    if(sent){
+     try{emit("partVibratoSent",new JSONObject().put("part",part).put("cc",controller).put("value",value));}catch(Exception ignored){}
+     emit("status","Vibrato CC"+controller+" enviado à parte "+(part+1)+". Confirme ouvindo o XPS-10.");
+     new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.readWhenIdle(20);},550);
+    }else emit("status","Falha ao enviar Vibrato MIDI; instrumento não confirmado.");
+   });
+  }
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
   @JavascriptInterface public void save(String value){if(value.length()<1000000)getPreferences(0).edit().putString("state",value).apply();}
   @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
@@ -748,6 +857,6 @@ public class MainActivity extends Activity {
  if(req==5){java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else if(data.getData()!=null)uris.add(data.getData());emit("backups",backupArchive.importFiles(uris));publishLatestBackup();emit("status","Backups copiados para a biblioteca. Originais preservados; formato ainda não interpretado.");return;}
  if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
  if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>1000000)throw new IOException("Arquivo maior que 1 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
- @Override protected void onStop(){super.onStop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
- @Override protected void onDestroy(){loopHandler.removeCallbacks(loopTick);if(liveLooper!=null)liveLooper.stop();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
+ @Override protected void onStop(){super.onStop();stopLiveLoop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
+ @Override protected void onDestroy(){stopLiveLoop();if(loopThread!=null)loopThread.quitSafely();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
 }

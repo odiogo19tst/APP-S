@@ -41,7 +41,7 @@ body.gx-legacy #gx-shell{display:none}
 .gx-progress{height:5px;border-radius:4px;background:#18394b;margin-top:auto;overflow:hidden}
 .gx-progress i{display:block;height:100%;background:#2be7c4;border-radius:5px;transition:width .2s}
 .gx-mini{display:flex;flex-direction:column;gap:7px}
-.gx-mini strong{font-size:22px;color:#f6fbff;overflow-wrap:anywhere}
+.gx-mini strong{font-size:22px;color:#f6fbff;overflow-wrap:break-word}
 .gx-mini span{font-size:11px;color:#aebdcb}
 .gx-stage-actions{display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr 1.6fr 1fr;gap:9px;margin:9px 0}
 #gx-shell .gx-stage-actions>button{min-height:82px;padding:9px;font-size:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
@@ -57,7 +57,7 @@ body.gx-legacy #gx-shell{display:none}
 .gx-section-label button{padding:4px 8px!important;font-size:11px!important;min-height:24px!important}
 .gx-fav-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
 #gx-shell .gx-fav-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:5px;min-width:0;min-height:66px;text-align:left;padding:9px 8px;border:1px solid #417a92;border-radius:8px;background:linear-gradient(165deg,#1773be,#11395d)}
-.gx-fav-tile strong{font-size:12px;overflow-wrap:anywhere}
+.gx-fav-tile strong{font-size:12px;overflow-wrap:break-word}
 .gx-fav-tile small{font-size:10px;color:#c6faff!important}
 #gx-shell .gx-fav-1,#gx-shell .gx-fav-5{background:linear-gradient(165deg,#258966,#15573f);border-color:#2c9e77}
 #gx-shell .gx-fav-2,#gx-shell .gx-fav-6{background:linear-gradient(165deg,#329775,#1c594c);border-color:#2d8064}
@@ -99,7 +99,7 @@ body.gx-legacy #gx-shell{display:none}
 .gx-paper-copy h2{font-size:26px}
 .gx-paper-copy>span{display:block;color:#627582;font-size:13px;margin:5px 0}
 .gx-paper-copy>p{color:#7c8b9b;font-size:12px;margin:12px 0!important}
-.gx-cifra-text{font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font-size:13px;color:#222e3a;max-height:70vh;overflow:auto}
+.gx-cifra-text{font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:break-word;line-height:1.85;font-size:13px;color:#222e3a;max-height:70vh;overflow:auto}
 .gx-paper-actions{background:#f5f8fc;border-left:1px solid #e6eff4;display:flex;flex-direction:column;gap:9px;padding:12px}
 #gx-shell .gx-paper-actions button{color:#20394d;background:#fff;border:1px solid #cedce6;font-size:12px;font-weight:700;padding:12px 9px;text-align:center;min-height:45px}
 #gx-shell .gx-paper-actions .gx-blue{color:white;background:#1387ee;border-color:#1178d2}
@@ -113,7 +113,7 @@ body.gx-legacy #gx-shell{display:none}
 .gx-sound-center{min-width:0;display:flex;flex-direction:column;gap:9px}
 .gx-performance small{display:block;font-size:11px;margin-bottom:12px}
 .gx-perf-row{display:flex;gap:6px;align-items:center}
-.gx-perf-row strong{min-width:0;overflow-wrap:anywhere;flex:1;font-size:19px}
+.gx-perf-row strong{min-width:0;overflow-wrap:break-word;flex:1;font-size:19px}
 #gx-shell .gx-perf-row button{padding:9px;font-size:12px}
 .gx-mixer{flex:1}
 .gx-mixer .gx-section-label>div{display:flex;gap:4px}
@@ -122,7 +122,7 @@ body.gx-legacy #gx-shell{display:none}
 .gx-mixer-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;min-height:275px}
 .gx-channel{min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:9px 3px;background:#112636;border:1px solid #244354;border-radius:10px}
 .gx-channel b{font-size:15px}
-.gx-channel span{font-size:10px;min-height:28px;overflow-wrap:anywhere}
+.gx-channel span{font-size:10px;min-height:28px;overflow-wrap:break-word}
 .gx-channel input[type=range]{writing-mode:vertical-lr;direction:rtl;appearance:slider-vertical;width:25px;height:170px;min-height:130px}
 .gx-channel strong{font-size:12px;color:#e0f6f4}
 .gx-mixer>p{font-size:11px;color:#9cbbca;margin-top:10px!important}
@@ -267,9 +267,9 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 #gx-shell .gx-backup-actions button.gx-start{background:linear-gradient(145deg,#16ae86,#096c60)}
 .gx-backup-list{display:grid;gap:7px}
 .gx-backup-row{background:#0c2230;border:1px solid #264456;border-radius:9px;padding:9px;display:flex;align-items:center;gap:8px}
-.gx-backup-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.gx-backup-name{flex:1;min-width:0;overflow-wrap:break-word}
 .gx-backup-name strong{display:block;font-size:13px}
-.gx-backup-name small{display:block;font-size:10px;overflow-wrap:anywhere}
+.gx-backup-name small{display:block;font-size:10px;overflow-wrap:break-word}
 #gx-shell .gx-backup-row button{min-height:42px;padding:8px;font-size:11px}
 #gx-shell .gx-backup-row .gx-danger-inline{border-color:#813c52;color:#e8b8c3}
 .gx-backup-compare{font-size:12px;color:#7de7d1}
@@ -316,7 +316,7 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 .gx-gemma-license{display:flex;align-items:flex-start;gap:8px;line-height:1.5;font-size:13px;padding:8px;background:#142c3c;border-radius:8px}
 .gx-gemma-license input[type=checkbox]{width:19px;height:19px;flex-shrink:0;margin:1px 0 0;accent-color:#32dfba}
 #gx-gemma-progress{width:100%;height:12px;accent-color:#30d9bb}
-#gx-gemma-info{font-size:12px;color:#e7f8f6;line-height:1.5;overflow-wrap:anywhere}
+#gx-gemma-info{font-size:12px;color:#e7f8f6;line-height:1.5;overflow-wrap:break-word}
 #gx-shell .gx-gemma-chat{display:flex;flex-direction:column;gap:8px;border:1px solid #2f6574;border-radius:10px;padding:10px;background:#0e2937}
 .gx-gemma-chat label{font-size:13px;font-weight:700;color:#65f2d1}
 #gx-shell #gx-gemma-question{min-height:70px;resize:vertical;font:inherit;font-size:13px;color:#f3faff;background:#0d1e2b}
@@ -339,7 +339,7 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 .gx-tone-count,.gx-tone-tip{color:#96b6c4;font-size:11px}
 .gx-tone-list{max-height:min(40vh,390px);overflow-y:auto;display:grid;gap:4px;scrollbar-width:thin}
 .gx-tone-line{display:grid;grid-template-columns:minmax(0,1fr) 44px 55px;gap:5px;align-items:stretch}
-#gx-shell .gx-tone-line button{min-height:48px;padding:7px 9px;margin:0;text-align:left;font-size:12px;overflow-wrap:anywhere}
+#gx-shell .gx-tone-line button{min-height:48px;padding:7px 9px;margin:0;text-align:left;font-size:12px;overflow-wrap:break-word}
 #gx-shell .gx-tone-line .gx-tone-pick{background:#0e3142;border-color:#2d5b65;color:#edfaf9}
 #gx-shell .gx-tone-line .gx-tone-pick:active{background:#00695f}
 #gx-shell .gx-tone-line button:not(.gx-tone-pick){text-align:center;font-size:12px}
@@ -347,7 +347,7 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 .gx-bank-tabs,.gx-live-bank-tabs{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;margin:5px 0}
 #gx-shell .gx-bank-tabs button,#gx-shell .gx-live-bank-tabs button{min-height:40px;padding:6px 1px;font-size:11px;border:1px solid #31556b}
 .gx-bank-slots,.gx-live-bank-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
-#gx-shell .gx-bank-slots button,#gx-shell .gx-live-bank-slots button{min-height:48px;padding:6px 5px;font-size:11px;text-align:center;overflow-wrap:anywhere}
+#gx-shell .gx-bank-slots button,#gx-shell .gx-live-bank-slots button{min-height:48px;padding:6px 5px;font-size:11px;text-align:center;overflow-wrap:break-word}
 .gx-live-banks-heading{font-size:12px;color:#9ac4cb;margin:10px 0 2px}
 #gx-shell .gx-live-bank-slots button:disabled{opacity:.4}
 .gx-tone-dialog{box-sizing:border-box;width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 35px);overflow-y:auto;border:1px solid #1bcfb3;border-radius:14px;padding:15px;background:#0c202e;color:#edfdfa;box-shadow:0 16px 55px #0009}
@@ -390,7 +390,7 @@ body.gx-ready{margin:0!important;min-width:0;overflow-x:hidden}
 .gx-silent-content{display:grid;grid-template-columns:1fr 1.8fr;gap:7px}
 .gx-silent-content>div{display:flex;flex-direction:column;gap:3px;border:1px solid #2a5060;background:#10212c;border-radius:9px;padding:8px 10px;min-width:0}
 .gx-silent-content small{font-size:10px;color:#a6c3ca;line-height:1.3}
-.gx-silent-content strong{font-size:17px;line-height:1.2;color:#f4fffc;overflow-wrap:anywhere}
+.gx-silent-content strong{font-size:17px;line-height:1.2;color:#f4fffc;overflow-wrap:break-word}
 .gx-silent-actions{display:grid;grid-template-columns:1.35fr 1.1fr 1.1fr .65fr;gap:6px}
 #gx-shell .gx-silent-actions button{min-height:46px;padding:8px 6px;font-size:12px;margin:0;line-height:1.15}
 #gx-shell #gx-silent-accept{background:#09876d;border:1px solid #28baa1;font-weight:700;color:white}
@@ -500,7 +500,7 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell .gx-perf-tools button{min-height:40px;padding:7px 10px;font-size:12px}
 #gx-shell .gx-perf-tools button.on{background:#099e87;color:#061b20;border-color:#3be0c0}
 .gx-perf-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
-#gx-shell .gx-perf-grid button{min-height:55px;text-align:center;padding:6px 4px;font-size:12px;overflow-wrap:anywhere}
+#gx-shell .gx-perf-grid button{min-height:55px;text-align:center;padding:6px 4px;font-size:12px;overflow-wrap:break-word}
 #gx-shell .gx-performance-banks>small{font-size:10px;color:#acc9d3}
 #gx-shell .gx-one-touch .gx-tone-list{margin:0}
 @media(min-width:840px) and (orientation:landscape){
@@ -605,7 +605,7 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 .gx-drum-library small{color:#9fc8d1;font-size:11px;line-height:1.5}
 .gx-drum-library .gx-pad-library-help{color:#d4ceda}
 #gx-shell .gx-drum-key.gx-drum-empty{opacity:.65;border-style:dashed}
-#gx-shell .gx-drums-pads button strong{overflow-wrap:anywhere}
+#gx-shell .gx-drums-pads button strong{overflow-wrap:break-word}
 #gx-shell .gx-drum-library [hidden]{display:none!important}
 @media(max-width:700px){.gx-pad-library-source{grid-template-columns:1fr}.gx-pad-library-actions>*{flex:1 1 45%}.gx-pad-library-actions label{min-width:120px}.gx-drum-library{padding:10px}}
 
@@ -614,7 +614,7 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 .gx-played-feedback{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px;align-items:center;border:1px solid #1d766d!important}
 .gx-played-feedback>div{display:flex;flex-direction:column;gap:3px;min-width:0}
 .gx-played-feedback small{font-size:10px;color:#9ac3ca}
-.gx-played-feedback strong{font-size:16px;color:#e8fff8;overflow-wrap:anywhere}
+.gx-played-feedback strong{font-size:16px;color:#e8fff8;overflow-wrap:break-word}
 .gx-played-feedback>small{grid-column:1/-1}
 .gx-faders-physical{display:flex;flex-direction:column;gap:10px;border:1px solid #287c77!important}
 .gx-physical-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
@@ -634,7 +634,7 @@ body.gx-ready #connect,body.gx-ready #liveRead,body.gx-ready #readHardware {disp
 #gx-shell #gx-performance-source{display:block;font-size:11px;color:#6ce4d1;line-height:1.35;margin-top:7px}
 #gx-shell .gx-roland-favorites{order:-1;padding:14px}
 .gx-inspection-report{margin-top:9px;border:1px solid #447687;background:#092132;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;max-width:100%}
-.gx-inspection-report pre{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;line-height:1.45;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px}
+.gx-inspection-report pre{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;line-height:1.45;overflow-x:auto;white-space:pre-wrap;overflow-wrap:break-word;max-height:320px}
 .gx-inspection-report>small{font-size:11px;color:#9bbdc8}
 #gx-shell .gx-backup-row button{min-height:44px}
 
@@ -949,3 +949,183 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell [data-gx-screen="stage"]>.gx-stage-actions>.gx-transpose button{min-height:42px!important;height:42px!important;font-size:19px!important}
 #gx-shell [data-gx-screen="stage"]>.gx-stage-actions>.gx-transpose small{font-size:10px!important}
 @media(min-width:800px){#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls{grid-template-columns:repeat(5,minmax(0,1fr))!important}#gx-shell [data-gx-screen="stage"] .graue-metronome .metro-controls>#metroMute{grid-column:auto!important}#gx-shell [data-gx-screen="stage"]>.gx-stage-actions{grid-template-columns:repeat(6,minmax(0,1fr))!important}#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>#gx-panic,#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>#gx-show-favorites{grid-column:auto!important}#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>.gx-transpose{grid-column:span 2!important}}
+
+/* Stage design-system v2: predictable mobile grid and reduced visual noise. */
+#gx-shell [data-gx-screen="stage"]{--stage-space:10px;--stage-radius:12px;--stage-control:46px;gap:var(--stage-space);min-width:0}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--stage-space)}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-summary>.gx-current{grid-column:1/-1}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-summary>.gx-panel{min-width:0;overflow:hidden;padding:11px;border-radius:var(--stage-radius)}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-summary>.gx-mini strong{font-size:clamp(18px,4.2vw,26px);line-height:1.15;overflow-wrap:break-word}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-summary>.gx-mini small{font-size:10px}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>button{border-radius:var(--stage-radius)}
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap{padding:12px;border-radius:var(--stage-radius)}
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap #gx-live-score-toggle{width:100%;min-width:0;min-height:var(--stage-control);font-size:14px;text-align:left}
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap .gx-live-score{margin-top:8px;padding:12px;border-radius:9px;background:#071522;line-height:1.55;max-height:56dvh}
+#gx-shell [data-gx-screen="stage"]>.graue-metronome{background:#102434;border:1px solid #294d65;border-radius:var(--stage-radius);padding:12px}
+#gx-shell [data-gx-screen="stage"]>.graue-metronome .metro-head strong{font-size:16px!important}
+#gx-shell [data-gx-screen="stage"]>.graue-metronome .metro-lights{max-height:56px!important}
+#gx-shell [data-gx-screen="stage"]>.gx-zone,#gx-shell [data-gx-screen="stage"]>.gx-silent-advisor,#gx-shell [data-gx-screen="stage"]>.gx-assist{border-radius:var(--stage-radius);min-width:0}
+@media(min-width:760px){#gx-shell [data-gx-screen="stage"]>.gx-stage-summary{grid-template-columns:minmax(220px,2fr) repeat(4,minmax(0,1fr))}#gx-shell [data-gx-screen="stage"]>.gx-stage-summary>.gx-current{grid-column:auto}}
+
+/* 1.30.2: consistent touch targets and accessibility in the live stage. */
+#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>button,
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap button,
+#gx-shell [data-gx-screen="stage"] .graue-metronome button{touch-action:manipulation;transition:filter .12s ease,box-shadow .12s ease}
+#gx-shell [data-gx-screen="stage"] button:focus-visible,
+#gx-shell [data-gx-screen="stage"] select:focus-visible,
+#gx-shell [data-gx-screen="stage"] input:focus-visible{outline:3px solid #63c7ef!important;outline-offset:2px}
+#gx-shell [data-gx-screen="stage"]>.gx-stage-actions>button:active,
+#gx-shell [data-gx-screen="stage"] .graue-metronome button:active{filter:brightness(1.15)}
+#gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap .gx-live-score{overflow-x:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+@media(orientation:landscape) and (max-height:520px){
+  #gx-shell [data-gx-screen="stage"]{--stage-space:7px;--stage-control:42px}
+  #gx-shell [data-gx-screen="stage"]>.gx-live-score-wrap .gx-live-score{max-height:62dvh}
+  #gx-shell [data-gx-screen="stage"]>.graue-metronome{padding:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  #gx-shell [data-gx-screen="stage"] button{transition:none!important;animation:none!important}
+}
+
+/* Grauê 1.30.3: painel de 10 favoritos físicos por banco, legível no celular. */
+#gx-shell [data-gx-screen="stage"] .stage-favorite-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+#gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot{min-width:0;min-height:76px;padding:7px 2px;gap:4px;border-radius:10px}
+#gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot strong{font-size:clamp(18px,4.7vw,25px)}
+#gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot small{font-size:10px;line-height:1.2;overflow-wrap:break-word;max-width:100%}
+#gx-shell [data-gx-screen="stage"] .stage-favorite-bank{max-width:100%;min-width:0}
+@media(orientation:landscape) and (max-height:520px){
+ #gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot{min-height:62px}
+ #gx-shell [data-gx-screen="stage"] .stage-favorite-grid .stage-favorite-slot strong{font-size:20px}
+}
+
+/* Preparação da música: vínculo Performance USER/PRESET. Edição fora do modo Ao Vivo. */
+#gx-shell .gx-song-rig{display:flex;flex-direction:column;gap:8px;background:#0d283a;border:1px solid #366784;border-radius:12px;padding:12px;margin:10px 0;color:#e9f6ff}
+#gx-shell .gx-song-rig>strong{font-size:15px}
+#gx-shell .gx-song-rig>small,#gx-shell .gx-song-rig label{font-size:12px;line-height:1.45}
+#gx-shell .gx-song-rig label{display:flex;flex-direction:column;gap:5px}
+#gx-shell .gx-song-rig select,#gx-shell .gx-song-rig input[type=number]{width:100%;height:42px;min-width:0;background:#102e42;border:1px solid #4c849d;color:#fff;border-radius:8px;padding:8px}
+#gx-shell .gx-song-rig .gx-song-rig-auto{display:flex;flex-direction:row;align-items:center;gap:9px;font-size:12px}
+#gx-shell .gx-song-rig-auto input{width:18px;height:18px;flex-shrink:0}
+#gx-shell .gx-song-rig-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#gx-shell .gx-song-rig-actions button{border-radius:9px;min-height:44px;min-width:0;white-space:normal}
+#gx-shell #gx-song-rig-save{background:#185e92;color:#fff}
+#gx-shell .gx-song-rig-actions button:disabled{opacity:.45}
+#gx-shell .gx-stage-rig-info{display:block;margin-top:7px;font-size:12px;line-height:1.35;color:#bbe5fa}
+#gx-shell.gx-live-mode .gx-song-rig{display:none}
+@media(max-width:420px){#gx-shell .gx-song-rig-actions{grid-template-columns:1fr}}
+
+/* Grauê Performance Matrix: 16-part synthesis controls, grouped and readable at rehearsal. */
+#gx-shell .gx-sound-center.gx-matrix-active>.gx-panel:not(.gx-performance-matrix){display:none!important}
+#gx-shell .gx-performance-matrix{min-width:0;padding:16px}
+#gx-shell .gx-matrix-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+#gx-shell .gx-matrix-title{flex:1 1 220px;display:grid;gap:5px}
+#gx-shell .gx-matrix-title strong{font-size:19px;letter-spacing:.01em}
+#gx-shell .gx-matrix-title small{font-size:12px;opacity:.85}
+#gx-shell .gx-matrix-head button{min-height:44px;padding:9px 12px;border-radius:9px}
+#gx-shell .gx-matrix-toolbar{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:18px 0 10px;flex-wrap:wrap}
+#gx-shell .gx-matrix-toolbar>label{display:flex;flex-direction:column;gap:5px;flex:1 1 150px;font-size:13px}
+#gx-shell .gx-matrix-toolbar select{width:100%;min-height:44px;padding:8px;color:#f1f8fc;background:#102e42;border:1px solid #44758b;border-radius:9px}
+#gx-shell .gx-matrix-pages{display:flex;gap:7px}
+#gx-shell .gx-matrix-pages button{min-height:44px;padding:8px 12px;border-radius:9px}
+#gx-shell .gx-matrix-pages button.on{background:#175e92;border-color:#64afd7;color:#fff}
+#gx-shell .gx-matrix-info{font-size:12px;line-height:1.5;color:#bbdaeb;margin:5px 0 12px}
+#gx-shell .gx-matrix-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#gx-shell .gx-matrix-strip{display:grid;align-content:start;gap:7px;min-width:0;border:1px solid #3a6277;background:#10293c;border-radius:11px;padding:12px}
+#gx-shell .gx-matrix-strip strong{font-size:15px}
+#gx-shell .gx-matrix-strip small{font-size:11px;color:#c0d7e3}
+#gx-shell .gx-matrix-strip output{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+#gx-shell .gx-matrix-strip input[type=range]{width:100%;min-width:0;touch-action:pan-y;min-height:28px}
+#gx-shell .gx-matrix-strip input:disabled{opacity:.45}
+#gx-shell .gx-matrix-status{display:block;margin-top:12px;min-height:25px;font-size:12px;color:#c8e4f4;line-height:1.4}
+@media(max-width:650px){#gx-shell .gx-matrix-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell .gx-matrix-head button{flex:1 1 auto}}
+@media(orientation:landscape) and (min-width:700px){#gx-shell .gx-matrix-grid{grid-template-columns:repeat(8,minmax(0,1fr))}#gx-shell .gx-matrix-strip{padding:8px}#gx-shell .gx-matrix-strip strong{font-size:13px}}
+
+/* 1.30.6: preparação musical, snapshot SysEx e planejador de alterações com auditoria. */
+#gx-shell #gx-song-rig-capture{min-height:44px;background:#125179;color:#fff;border:1px solid #377b9e;border-radius:9px;padding:9px 12px;text-align:center;white-space:normal}
+#gx-shell .gx-song-brain-tools{margin-top:6px;padding:10px;background:#0a2333;border:1px solid #3c6e87;border-radius:11px}
+#gx-shell .gx-song-brain-tools summary{cursor:pointer;font-weight:700;min-height:40px;display:flex;align-items:center;gap:6px}
+#gx-shell .gx-song-brain-tools>small{display:block;font-size:11px;line-height:1.45;margin:7px 0;color:#bcd7e6}
+#gx-shell .gx-song-brain-tools label{display:flex;flex-direction:column;margin:9px 0;gap:5px}
+#gx-shell .gx-song-brain-tools select,#gx-shell .gx-song-brain-tools input{min-height:44px;max-width:100%;background:#112c3f;border:1px solid #517f95;color:#fff;border-radius:8px;padding:8px}
+#gx-shell .gx-song-brain-tools button{min-height:44px;width:100%;border-radius:8px;margin-top:6px;padding:8px 12px;white-space:normal}
+#gx-shell #gx-song-brain-apply{background:#176b58;color:#fff}
+#gx-shell .gx-song-brain-tools button:disabled{opacity:.45}
+#gx-shell #gx-song-brain-preview{font-size:12px;line-height:1.45;color:#e6f8ff;overflow-wrap:break-word;margin:8px 0}
+
+/* 1.30.7 — 4 Tones Patch TVA Level (CC80–83, XPS-10 original) */
+#gx-shell .gx-sound-center.gx-patch-active>.gx-panel:not(.gx-patch-four-tones){display:none!important}
+#gx-shell .gx-patch-four-tones{min-width:0;padding:16px;display:flex;flex-direction:column;gap:12px}
+#gx-shell .gx-patch-four-tones[hidden]{display:none!important}
+#gx-shell .gx-patch-four-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+#gx-shell .gx-patch-four-header>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+#gx-shell .gx-patch-four-header h3{font-size:18px;margin:0;color:#eaf7ff}
+#gx-shell .gx-patch-four-header small{font-size:12px;color:#bfd5e5}
+#gx-shell .gx-patch-four-header button{min-height:44px;border-radius:9px;padding:9px 11px}
+#gx-shell .gx-patch-part-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#gx-shell .gx-patch-part-picker label{font-size:12px;display:flex;flex-direction:column;gap:5px;flex:0 1 185px}
+#gx-shell .gx-patch-part-picker select{width:100%;min-height:44px;color:#e8f4ff;background:#112d40;border:1px solid #407d94;border-radius:8px;padding:8px}
+#gx-shell .gx-patch-name{flex:1;min-width:150px;font-size:12px;line-height:1.4;color:#c2dfed}
+#gx-shell .gx-patch-four-status{margin:0;padding:9px;border-radius:8px;background:#0c263a;font-size:12px;color:#d8effa;line-height:1.5}
+#gx-shell .gx-patch-tone-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+#gx-shell .gx-patch-tone-card{display:flex;flex-direction:column;gap:9px;border:1px solid #3b6d83;border-radius:10px;background:#0d283b;padding:12px;min-width:0}
+#gx-shell .gx-patch-tone-card>strong{font-size:17px}
+#gx-shell .gx-patch-tone-card>small{color:#bfd9e8;font-size:12px}
+#gx-shell .gx-patch-tone-card label{display:flex;flex-direction:column;gap:6px;font-size:12px}
+#gx-shell .gx-patch-tone-card input{min-height:44px;max-width:100%;width:100%;background:#17354c;border:1px solid #56869a;border-radius:8px;color:#fff;padding:8px;font-size:17px}
+#gx-shell .gx-patch-tone-card button{min-height:44px;padding:8px;border-radius:8px;white-space:normal}
+#gx-shell .gx-patch-tone-card button:disabled{opacity:.45}
+#gx-shell .gx-patch-tone-feedback{font-size:11px;min-height:30px;overflow-wrap:break-word}
+#gx-shell .gx-patch-four-note,#gx-shell .gx-patch-future{color:#c7e1ef;font-size:12px;line-height:1.55;margin:0}
+#gx-shell .gx-patch-future{border:1px solid #3d7086;border-radius:9px;padding:10px}
+#gx-shell .gx-patch-future summary{font-weight:650;cursor:pointer}
+@media(max-width:720px){#gx-shell .gx-patch-tone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:390px){#gx-shell .gx-patch-tone-grid{grid-template-columns:1fr}}
+
+/* Grauê 1.30.8: síntese por grupos do XPS-10, monitor SysEx passivo e planejamento offline */
+#gx-shell .gx-patch-four-tones>[hidden]{display:none!important}
+#gx-shell .gx-synth-tabs{display:flex;flex-wrap:wrap;gap:6px;position:relative}
+#gx-shell .gx-synth-tabs button{min-height:42px;border:1px solid #477c9a;border-radius:9px;background:#0e2e43;padding:7px 10px;color:#d3e8f5;font-weight:650}
+#gx-shell .gx-synth-tabs button.on{background:#17699d;color:#fff;border-color:#79c3e8}
+#gx-shell .gx-synth-part-select{display:flex;flex-direction:column;gap:6px;max-width:240px;font-size:12px;color:#bed8e9}
+#gx-shell .gx-synth-part-select select{min-height:44px;background:#15364e;border:1px solid #537f9d;border-radius:9px;color:#fff;padding:8px}
+#gx-shell .gx-synth-detail{background:#0d2739;border:1px solid #3c647d;border-radius:11px;padding:13px;line-height:1.5}
+#gx-shell .gx-synth-detail h3{font-size:17px;margin:0 0 8px}
+#gx-shell .gx-synth-detail h4{font-size:14px;margin:8px 0}
+#gx-shell .gx-synth-detail p{font-size:12px;line-height:1.55;color:#c9dfec;margin:6px 0}
+#gx-shell .gx-synth-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#gx-shell .gx-synth-quick label{display:flex;flex-direction:column;gap:8px;font-size:12px;min-width:0}
+#gx-shell .gx-synth-quick input{min-height:44px;min-width:0;border-radius:8px;border:1px solid #507d93;color:#fff;background:#143249;padding:8px}
+#gx-shell .gx-synth-quick button{min-height:44px;border-radius:8px}
+#gx-shell .gx-synth-capture{border:1px solid #4d7c92;border-radius:11px;background:#0c2638;padding:13px}
+#gx-shell .gx-synth-capture summary{cursor:pointer;font-weight:650;min-height:28px}
+#gx-shell .gx-synth-capture p{font-size:12px;color:#c6dfed;line-height:1.55}
+#gx-shell .gx-synth-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+#gx-shell .gx-synth-actions button{min-height:44px;border-radius:8px;padding:8px;flex:1 1 115px}
+#gx-shell .gx-synth-actions button:disabled{opacity:.45}
+#gx-shell .gx-synth-raw{width:100%;min-height:95px;resize:vertical;background:#071d2e;border:1px solid #3b6680;border-radius:8px;color:#d5ecf8;font:12px monospace;padding:10px}
+#gx-shell .gx-synth-ai{display:flex;flex-direction:column;gap:9px;border:1px solid #387a99;border-radius:11px;background:#0c293f;padding:13px}
+#gx-shell .gx-synth-ai h3{font-size:17px;margin:0}
+#gx-shell .gx-synth-ai p{font-size:12px;line-height:1.6;margin:2px 0;color:#c8e2f1}
+#gx-shell .gx-synth-ai textarea{width:100%;min-height:65px;resize:vertical;background:#122f46;border:1px solid #52819a;border-radius:8px;padding:10px;color:#fff}
+#gx-shell .gx-synth-ai button{min-height:44px;border-radius:9px;padding:9px 12px}
+#gx-shell .gx-synth-ai button:disabled{opacity:.45}
+#gx-shell .gx-synth-ai button:last-child{background:#185a6b;color:#fff}
+#gx-shell .gx-synth-ai-status{overflow-wrap:break-word;word-break:normal}
+@media(max-width:390px){#gx-shell .gx-synth-quick{grid-template-columns:1fr}#gx-shell .gx-synth-tabs button{flex:1 1 75px}}
+
+/* Grauê 1.30.9: preparação dos níveis TVA de quatro tones por música. */
+#gx-shell .gx-song-tone-presets{border:1px solid #427791;background:#0b2535;border-radius:10px;padding:10px;margin:10px 0}
+#gx-shell .gx-song-tone-presets summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+#gx-shell .gx-song-tone-presets>small{display:block;color:#c8e1ed;font-size:12px;line-height:1.5;margin:7px 0}
+#gx-shell .gx-song-tone-presets>label{display:flex;flex-direction:column;gap:5px;margin:10px 0}
+#gx-shell .gx-song-tone-presets select{min-height:44px;border:1px solid #5586a2;background:#14364d;color:#fff;border-radius:8px;padding:8px}
+#gx-shell .gx-song-tone-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#gx-shell .gx-song-tone-values label{display:flex;flex-direction:column;gap:6px;min-width:0}
+#gx-shell .gx-song-tone-values input{width:100%;min-width:0;min-height:44px;background:#0c2b40;color:#fff;border:1px solid #487991;border-radius:8px;padding:8px}
+#gx-shell .gx-song-tone-presets .gx-song-rig-actions button{min-height:44px;white-space:normal}
+#gx-shell .gx-song-tone-presets button:disabled{opacity:.45}
+@media(max-width:480px){#gx-shell .gx-song-tone-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* 1.31.0 Show Reliability: separate music/USB status and manual recovery. */
+#gx-shell .gx-stage-health{display:block;margin-top:7px;font-size:12px;line-height:1.45;color:#bbdbe9;overflow-wrap:break-word;word-break:normal}
+#gx-shell .gx-stage-reapply-rig{display:block;margin-top:9px;min-height:44px;width:100%;border:1px solid #548da9;border-radius:9px;background:#123f5b;color:#fff;padding:9px 12px;white-space:normal}
+#gx-shell .gx-stage-reapply-rig:disabled{opacity:.45}

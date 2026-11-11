@@ -10,10 +10,26 @@ public final class XpsController {
  private final Map<Integer,Integer> state=new HashMap<>();private Map<Integer,Integer> undo=new LinkedHashMap<>();
  private Map<Integer,Integer> expected=new LinkedHashMap<>();private int generation=0;private boolean busy=false;
  private int validSysexPackets=0;
+ private volatile boolean patchObserveEnabled=false;private int patchObserveCount=0;
  /** This is an observed response, unlike USB-MIDI port connection or sent requests. */
  public boolean hasValidSysex(){return validSysexPackets>0;}
  public int validSysexCount(){return validSysexPackets;}
  public XpsController(IO io){this.io=io;}
+ /** Read-only diagnostic: logs only checksum-valid DT1 in temporary Patch address space.
+  * Never requests, edits, or stores USER data. Must be explicitly enabled by musician. */
+ public void observePatch(boolean enabled){patchObserveEnabled=enabled;patchObserveCount=0;io.emit("patchObserveState",enabled);}
+ private void emitPatchObservation(XpsProtocol.Data d){
+  int msb=(d.start>>21)&127;
+  if(!patchObserveEnabled||msb<0x11||msb>0x1f||d.values.length<1||d.values.length>32||patchObserveCount>=100)return;
+  patchObserveCount++;
+  try{
+   JSONObject message=new JSONObject();message.put("address",d.start);
+   int[] digits=XpsProtocol.digits(d.start);message.put("hex",String.format(java.util.Locale.ROOT,"%02X %02X %02X %02X",digits[0],digits[1],digits[2],digits[3]));
+   JSONArray values=new JSONArray();for(int n:d.values)values.put(n);
+   message.put("values",values);message.put("count",patchObserveCount);
+   message.put("source","roland-dt1-checksum-valid");io.emit("patchProbe",message);
+  }catch(JSONException ignored){}
+ }
  private List<XpsProtocol.Block> performanceBlocks(){List<XpsProtocol.Block> b=XpsProtocol.blocks();b.addAll(XpsProtocol.patches());return b;}
  public void readUsers(){if(!hasValidSysex()){io.emit("status","USB-MIDI detectado, mas o XPS-10 não respondeu SysEx. Não vou enviar 256 consultas sem confirmação. Verifique driver GENERIC, modo MIDI e Device ID.");return;}if(busy){io.emit("status","Aguarde a operação atual.");return;}busy=true;io.emit("hardwareBusy",true);int token=++generation,delay=0;for(XpsProtocol.Block b:XpsProtocol.users()){for(int i=0;i<b.size;i++)state.remove(b.start+i);h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Sem porta MIDI de saída.");return;}if(b.index%32==0)io.emit("status","Consultando timbres de usuário: "+(b.index+1)+" / 256…");},delay);delay+=100;}h.postDelayed(()->{if(token!=generation)return;busy=false;io.emit("hardwareBusy",false);JSONArray tones=new JSONArray();for(XpsProtocol.Block b:XpsProtocol.users()){StringBuilder name=new StringBuilder();boolean complete=true;for(int i=0;i<12;i++){Integer c=state.get(b.start+i);if(c==null){complete=false;break;}name.append(c>=32&&c<=126?(char)(int)c:' ');}if(complete)try{JSONObject t=new JSONObject();t.put("code",String.format(java.util.Locale.ROOT,"USER%03d",b.index+1));t.put("name",name.toString().trim());t.put("category","USER");t.put("msb",87);t.put("lsb",b.index/128);t.put("program",b.index%128+1);tones.put(t);}catch(JSONException ignored){}}io.emit("userTones",tones);io.emit("status",tones.length()+" de 256 posições de usuário responderam. Posições sem resposta não foram inventadas.");},delay+1500);}
  /** A tap is an explicit authorization to audition a tone, not a request to save in USER memory. */
@@ -22,6 +38,27 @@ public final class XpsController {
   XpsProtocol.Block b=XpsProtocol.block("part",part);
   return Integer.valueOf(1).equals(state.get(XpsProtocol.address(1,0,0,0)))
    &&state.containsKey(b.start+4)&&state.containsKey(b.start+5)&&state.containsKey(b.start+6);
+ }
+ /**
+  * CC80–83 affect four Patch Tone levels (XPS-10 MIDI Implementation 2014).
+  * They are MIDI channel controls, not SysEx part-addressed edits.
+  * Do not allow a command when the target channel is shared by another
+  * receiving Performance part, or when any part's channel is unobserved.
+  * Caller must not call this a verified readback of tone level.
+  */
+ public int isolatedToneChannel(int part){
+  if(part<0||part>=16||busy||!hasValidSysex()||!hasPerformancePart(part))return -1;
+  XpsProtocol.Block selected=XpsProtocol.block("part",part);
+  Integer channel=state.get(selected.start),enabled=state.get(selected.start+1);
+  if(channel==null||channel<0||channel>15||!Integer.valueOf(1).equals(enabled))return -1;
+  for(int i=0;i<16;i++){
+   if(i==part)continue;
+   XpsProtocol.Block b=XpsProtocol.block("part",i);
+   Integer otherChannel=state.get(b.start),otherEnabled=state.get(b.start+1);
+   if(otherChannel==null||otherEnabled==null)return -1;
+   if(otherChannel.equals(channel)&&Integer.valueOf(1).equals(otherEnabled))return -1;
+  }
+  return channel+1;
  }
  public void auditionTone(int part,int msb,int lsb,int program){auditionToneConfig(part,msb,lsb,program,-1);}
  public void auditionToneConfig(int part,int msb,int lsb,int program,int volume){
@@ -39,9 +76,10 @@ public final class XpsController {
    write(edits.toString(),true); // single explicit tap; guarded snapshot+readback, never WRITE to user memory
   }catch(JSONException e){io.emit("status","Não foi possível selecionar o timbre: "+e.getMessage());}
  }
- public void reset(){generation++;state.clear();undo.clear();expected.clear();busy=false;validSysexPackets=0;io.emit("hardwareReset",true);}
+ public void reset(){patchObserveEnabled=false;patchObserveCount=0;io.emit("patchObserveState",false);generation++;state.clear();undo.clear();expected.clear();busy=false;validSysexPackets=0;io.emit("hardwareReset",true);}
  public void accept(byte[] packet){
   XpsProtocol.Data d=XpsProtocol.decode(packet);if(d==null)return;
+  emitPatchObservation(d);
   validSysexPackets++;
   if(validSysexPackets==1)io.emit("sysexReady",true);
   java.util.Set<String> changed=new java.util.LinkedHashSet<>();
