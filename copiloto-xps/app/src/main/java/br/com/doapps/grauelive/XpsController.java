@@ -12,6 +12,7 @@ public final class XpsController {
  private int deepPart=-1,deepRevision=0;private boolean deepValid=false;private int[] deepIdentity;
  private Map<Integer,Integer> patchUndo=new LinkedHashMap<>(),patchUndoExpected=new LinkedHashMap<>();
  public boolean isBusy(){return busy;}
+ public void patchSelectionInput(){if(deepPart<0)return;invalidatePatch();io.emit("status","Seleção MIDI mudou no teclado. Releia o Patch antes de editar.");h.postDelayed(()->readWhenIdle(5),300);}
  private boolean patchIdentityMatches(){if(deepPart<0||deepIdentity==null||!hasPerformancePart(deepPart))return false;XpsProtocol.Block part=XpsProtocol.block("part",deepPart);for(int i=0;i<3;i++)if(!Integer.valueOf(deepIdentity[i]).equals(state.get(part.start+4+i)))return false;return true;}
  private void invalidatePatch(){if(deepPart>=0&&busy){generation++;busy=false;expected.clear();io.emit("hardwareBusy",false);}deepPart=-1;deepIdentity=null;deepValid=false;deepRevision++;patchUndo.clear();patchUndoExpected.clear();publishPatch();}
  public void publishPatch(){

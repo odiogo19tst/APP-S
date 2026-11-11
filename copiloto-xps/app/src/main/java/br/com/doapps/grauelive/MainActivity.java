@@ -144,7 +144,7 @@ public class MainActivity extends Activity {
   emit("armed",false);emit("xpsConnection",false);emit("clear","");
  }
 }public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}
- public void eventAt(long receivedNs,int s,int a,int b){liveLooper.input(receivedNs,s,a,b);event(s,a,b);}
+ public void eventAt(long receivedNs,int s,int a,int b){liveLooper.input(receivedNs,s,a,b);if(XpsProtocol.patchSelectionMessage(s,a))runOnUiThread(()->xps.patchSelectionInput());event(s,a,b);}
  });
   sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});

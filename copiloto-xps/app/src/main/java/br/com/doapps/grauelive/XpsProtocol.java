@@ -3,6 +3,7 @@ import java.util.*;
 /** XPS-10 MIDI Implementation e01, pp.10-15. Addresses use base-128, not base-256. */
 public final class XpsProtocol {
  public static final int DEVICE=0x10;
+ public static boolean patchSelectionMessage(int status,int data1){return (status&0xf0)==0xc0||((status&0xf0)==0xb0&&(data1==0||data1==32));}
  public static int address(int a,int b,int c,int d){return (a<<21)|(b<<14)|(c<<7)|d;}
  public static int[] digits(int n){return new int[]{(n>>21)&127,(n>>14)&127,(n>>7)&127,n&127};}
  public static final class Block {

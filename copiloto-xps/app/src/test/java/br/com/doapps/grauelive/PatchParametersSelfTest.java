@@ -6,6 +6,8 @@ public final class PatchParametersSelfTest {
  static byte[] packet(String id,int part,int tone,int value){PatchParameters.Def d=PatchParameters.get(id);return XpsProtocol.packet(0x12,PatchParameters.address(d,part,tone),PatchParameters.encode(d,value));}
  static String hex(byte[] b){StringBuilder s=new StringBuilder();for(byte n:b){if(s.length()>0)s.append(' ');s.append(String.format("%02X",n&255));}return s.toString();}
  public static void main(String[] args){
+  check(XpsProtocol.patchSelectionMessage(0xc0,2)&&XpsProtocol.patchSelectionMessage(0xb3,0)&&XpsProtocol.patchSelectionMessage(0xb3,32),"Bank/program invalidate Patch");
+  check(!XpsProtocol.patchSelectionMessage(0x90,60)&&!XpsProtocol.patchSelectionMessage(0xb0,64)&&!XpsProtocol.patchSelectionMessage(0xb0,1),"Notes and musical controllers preserve editor session");
   check(PatchParameters.all().size()==244,"244 original definitions");
   check(hex(packet("tone_tva_env_time_1",0,4,90)).equals("F0 41 10 00 00 3A 12 11 00 26 66 5A 09 F7"),"Official TVA address/checksum vector");
   check(hex(packet("tone_lfo2_rate",15,2,149)).equals("F0 41 10 00 00 3A 12 14 60 22 7C 09 05 60 F7"),"Part16/Tone2 nibble vector");
