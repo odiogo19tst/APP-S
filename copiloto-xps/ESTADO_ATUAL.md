@@ -1,9 +1,21 @@
 # Grauê XPS — referência de continuidade
 
-Versão em desenvolvimento: 1.31.1-midi-looper, versionCode 56.
-Base confirmada: 1.31.0 (PR #69, fae8ddb51bb81c9e2696da0e5032684a32343e96).
+Versão em desenvolvimento: 1.31.2-deep-patch, versionCode 57.
+Base: 1.31.1 com MIDI Looper / PR #70 integrado.
 
-## Prioridade atual: MIDI Looper (continuidade do PR #70)
+## Editor interno: mapa original recuperado
+
+Implementados 244 parâmetros do MIDI Implementation XPS-10 e01 (29 páginas), grupos Patch Common/Matrix, TMT e Patch Tone. WG, Pitch Envelope, TVA Envelope/BIAS, TVF/Envelope, LFO1/LFO2/16 steps, fontes/destinos Matrix e switches por Tone, recepção e faixas por Tone estão no catálogo.
+
+Sons → Editor 4 Tones → selecione parte → Ler Patch completo. O app lê seis blocos (Common, TMT e quatro Tones) da memória temporária da parte de Performance. Exige Performance real e Patch melódico; rejeita Rhythm e não usa o mapa de Patch Mode 1F. Depois da leitura, escolha grupo/Tone, prepare valores MIDI e aplique. Validação Java por ID do catálogo, largura e limites; endereços são calculados internamente. Escrita sempre no buffer temporário 11–14; nunca USER 20/30/40. Releitura confirma valores; Desfazer conserva bytes anteriores e bloqueia se o teclado mudou.
+
+A referência persistente é spec/patch-parameters.json, com URL/hash do PDF e páginas. scripts/generate-patch-catalog.py gera o mesmo catálogo para Java e WebView. Valores multibyte são nibbles, endereços em base128. Parâmetros reservados/ignorados e opções de saída marcadas --- são rejeitados. Fontes Matrix mantêm CC33 no índice 33 (não comprimir o buraco de CC32).
+
+A Gemma pode propor operações kind=patch somente por IDs e valores do catálogo. A aplicação é manual, só aceita leitura MIDI real e revisão do Patch vigente. A IA não gera SysEx. Inferência real, ajustes sonoros e latência ainda requerem validação no Android/XPS-10 físico; não declarar essas validações concluídas. Favoritos físicos continuam pendentes.
+
+Referência anterior: 1.31.0 (PR #69, fae8ddb51bb81c9e2696da0e5032684a32343e96).
+
+## MIDI Looper preservado (PR #70)
 
 Pedido do Diogo: gravar o que toca no XPS-10 em MIDI e repetir ao vivo com som saindo nas saídas do próprio teclado. Uma conexão USB global, sem habilitação extra de envio. Controles REC/PLAY/STOP no Palco e no Ao Vivo. Quatro pistas, overdub, BPM, batidas e compassos.
 

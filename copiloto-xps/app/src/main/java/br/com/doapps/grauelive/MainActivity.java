@@ -144,7 +144,7 @@ public class MainActivity extends Activity {
   emit("armed",false);emit("xpsConnection",false);emit("clear","");
  }
 }public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}
- public void eventAt(long receivedNs,int s,int a,int b){liveLooper.input(receivedNs,s,a,b);event(s,a,b);}
+ public void eventAt(long receivedNs,int s,int a,int b){liveLooper.input(receivedNs,s,a,b);if(XpsProtocol.patchSelectionMessage(s,a))runOnUiThread(()->xps.patchSelectionInput());event(s,a,b);}
  });
   sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
@@ -582,6 +582,9 @@ public class MainActivity extends Activity {
  });}
   /** Patch Tone TVA levels through documented CC80..83. Not confirmed by SysEx readback. */
   /** Opt-in passive SysEx learning; does not send a parameter write. */
+  @JavascriptInterface public void readDeepPatch(int part){runOnUiThread(()->{if(armed&&midi!=null&&midi.isConnected()){stopLiveLoop();xps.readPatch(part);}else emit("status","Conecte o XPS-10 para ler os Tones internos.");});}
+  @JavascriptInterface public void editDeepPatch(String json){if(json==null||json.length()>12000)return;runOnUiThread(()->{stopLiveLoop();xps.writePatch(json,armed&&midi!=null&&midi.isConnected());});}
+  @JavascriptInterface public void undoDeepPatch(){runOnUiThread(()->{stopLiveLoop();xps.undoPatch(armed&&midi!=null&&midi.isConnected());});}
   @JavascriptInterface public void observePatch(boolean enabled){
    runOnUiThread(()->{
     if(enabled&&(midi==null||!midi.isConnected())){emit("status","Conecte o Roland XPS-10 antes de observar edições SysEx.");return;}
@@ -592,7 +595,7 @@ public class MainActivity extends Activity {
    * This method returns an untrusted JSON proposal as text, NEVER hardware commands.
    */
   @JavascriptInterface public void planPatch(String context){
-   if(context==null||context.length()<5||context.length()>1700){
+   if(context==null||context.length()<5||context.length()>3300){
     emit("patchPlanAnswer","Pedido inválido ou extenso demais.");return;
    }
    final String prompt=JarvisMusicalProfile.buildPatchPlanPrompt(context,

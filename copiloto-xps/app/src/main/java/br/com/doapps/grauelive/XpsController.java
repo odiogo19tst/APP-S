@@ -9,6 +9,52 @@ public final class XpsController {
  private final IO io;private final Handler h=new Handler(Looper.getMainLooper());
  private final Map<Integer,Integer> state=new HashMap<>();private Map<Integer,Integer> undo=new LinkedHashMap<>();
  private Map<Integer,Integer> expected=new LinkedHashMap<>();private int generation=0;private boolean busy=false;
+ private int deepPart=-1,deepRevision=0;private boolean deepValid=false;private int[] deepIdentity;
+ private Map<Integer,Integer> patchUndo=new LinkedHashMap<>(),patchUndoExpected=new LinkedHashMap<>();
+ public boolean isBusy(){return busy;}
+ public void patchSelectionInput(){if(deepPart<0)return;invalidatePatch();io.emit("status","Seleção MIDI mudou no teclado. Releia o Patch antes de editar.");h.postDelayed(()->readWhenIdle(5),300);}
+ private boolean patchIdentityMatches(){if(deepPart<0||deepIdentity==null||!hasPerformancePart(deepPart))return false;XpsProtocol.Block part=XpsProtocol.block("part",deepPart);for(int i=0;i<3;i++)if(!Integer.valueOf(deepIdentity[i]).equals(state.get(part.start+4+i)))return false;return true;}
+ private void invalidatePatch(){if(deepPart>=0&&busy){generation++;busy=false;expected.clear();io.emit("hardwareBusy",false);}deepPart=-1;deepIdentity=null;deepValid=false;deepRevision++;patchUndo.clear();patchUndoExpected.clear();publishPatch();}
+ public void publishPatch(){
+  try{JSONObject data=new JSONObject().put("part",deepPart).put("revision",deepRevision).put("ready",false).put("source","midi-live");
+   if(deepPart>=0){boolean complete=true;for(XpsProtocol.Block b:PatchParameters.blocks(deepPart)){
+    JSONArray values=new JSONArray();for(int i=0;i<b.size;i++){Integer v=state.get(b.start+i);if(v==null){complete=false;break;}values.put(v);}
+    if(values.length()==b.size)data.put(b.section.equals("patch")?"common":b.section.equals("patchTmt")?"tmt":"tone"+(b.index%4+1),values);
+   }data.put("ready",deepValid&&complete&&!busy&&patchIdentityMatches());data.put("identity",new JSONArray(deepIdentity));data.put("readAt",System.currentTimeMillis());}
+   io.emit("deepPatch",data);
+  }catch(Exception ignored){}
+ }
+ public void readPatch(int part){
+  if(busy){io.emit("status","Aguarde a operação MIDI atual.");return;}
+  if(!hasValidSysex()||!hasPerformancePart(part)){io.emit("status","Leia uma Performance real antes de abrir os Tones internos.");return;}
+  XpsProtocol.Block b=XpsProtocol.block("part",part);Integer bank=state.get(b.start+4);
+  if(bank==null||(bank!=87&&bank!=121)){io.emit("status","A parte precisa usar um Patch melódico; Drum Kits usam outro mapa.");return;}
+  if(deepPart!=part){patchUndo.clear();patchUndoExpected.clear();}
+  deepPart=part;deepIdentity=new int[]{bank,state.get(b.start+5),state.get(b.start+6)};deepValid=false;deepRevision++;publishPatch();
+  readBlocks(PatchParameters.blocks(part),false);
+ }
+ private static int patchInt(JSONObject o,String key)throws JSONException{Object value=o.get(key);if(!(value instanceof Number)||!Double.isFinite(((Number)value).doubleValue())||((Number)value).doubleValue()!=((Number)value).intValue())throw new IllegalArgumentException("Valor precisa ser inteiro");return ((Number)value).intValue();}
+ public void writePatch(String json,boolean armed){
+  if(!armed||busy||!deepValid||!patchIdentityMatches()){io.emit("status","Leia novamente o Patch antes de editar seus parâmetros internos.");return;}
+  try{JSONObject request=new JSONObject(json);if(request.length()!=3||patchInt(request,"part")!=deepPart||patchInt(request,"revision")!=deepRevision)throw new IllegalArgumentException("A leitura do Patch mudou. Revise novamente.");
+   JSONArray ops=request.getJSONArray("operations");if(ops.length()<1||ops.length()>64)throw new IllegalArgumentException("Quantidade de parâmetros inválida");
+   Map<Integer,Integer> target=new LinkedHashMap<>(),before=new LinkedHashMap<>();
+   for(int i=0;i<ops.length();i++){JSONObject op=ops.getJSONObject(i);if(op.length()!=3||!op.has("field")||!op.has("tone")||!op.has("value"))throw new IllegalArgumentException("Campos de edição não autorizados");
+    PatchParameters.Def d=PatchParameters.get(op.getString("field"));int tone=patchInt(op,"tone"),value=patchInt(op,"value");
+    if(tone<1||tone>4)throw new IllegalArgumentException("Tone inválido");
+    int address=PatchParameters.address(d,deepPart,tone);int[] bytes=PatchParameters.encode(d,value);
+    for(int n=0;n<bytes.length;n++){int at=address+n;if(!state.containsKey(at))throw new IllegalArgumentException("Parâmetro sem leitura real");if(target.put(at,bytes[n])!=null)throw new IllegalArgumentException("Parâmetro duplicado");before.put(at,state.get(at));}
+   }
+   PatchParameters.validateRanges(state,target,deepPart);
+   if(target.equals(before)){io.emit("status","O Patch já corresponde aos valores escolhidos.");return;}
+   patchUndo=before;patchUndoExpected=new LinkedHashMap<>(target);deepValid=false;deepRevision++;publishPatch();send(target);
+  }catch(Exception e){io.emit("status",e.getMessage());}
+ }
+ public void undoPatch(boolean armed){
+  if(!armed||busy||!deepValid||!patchIdentityMatches()||patchUndo.isEmpty()){io.emit("status","Não há edição interna confirmada para desfazer.");return;}
+  if(!patchUndoExpected.entrySet().stream().allMatch(e->e.getValue().equals(state.get(e.getKey())))){io.emit("status","O Patch mudou após a edição. Desfazer bloqueado; leia e revise os valores.");return;}
+  Map<Integer,Integer> old=patchUndo;patchUndo=new LinkedHashMap<>();patchUndoExpected.clear();deepValid=false;deepRevision++;publishPatch();send(old);
+ }
  private int validSysexPackets=0;
  private volatile boolean patchObserveEnabled=false;private int patchObserveCount=0;
  /** This is an observed response, unlike USB-MIDI port connection or sent requests. */
@@ -76,23 +122,27 @@ public final class XpsController {
    write(edits.toString(),true); // single explicit tap; guarded snapshot+readback, never WRITE to user memory
   }catch(JSONException e){io.emit("status","Não foi possível selecionar o timbre: "+e.getMessage());}
  }
- public void reset(){patchObserveEnabled=false;patchObserveCount=0;io.emit("patchObserveState",false);generation++;state.clear();undo.clear();expected.clear();busy=false;validSysexPackets=0;io.emit("hardwareReset",true);}
+ public void reset(){invalidatePatch();patchObserveEnabled=false;patchObserveCount=0;io.emit("patchObserveState",false);generation++;state.clear();undo.clear();expected.clear();busy=false;validSysexPackets=0;io.emit("hardwareReset",true);}
  public void accept(byte[] packet){
   XpsProtocol.Data d=XpsProtocol.decode(packet);if(d==null)return;
   emitPatchObservation(d);
   validSysexPackets++;
   if(validSysexPackets==1)io.emit("sysexReady",true);
+  boolean deepChanged=false;
   java.util.Set<String> changed=new java.util.LinkedHashSet<>();
   for(int i=0;i<d.values.length;i++){
    int address=d.start+i;
    for(XpsProtocol.Block block:readable){
     if(address>=block.start&&address<block.start+block.size){
      Integer before=state.put(address,d.values[i]);
+     if(deepPart>=0&&(before==null||before!=d.values[i]))for(XpsProtocol.Block db:PatchParameters.blocks(deepPart))if(address>=db.start&&address<db.start+db.size){deepChanged=true;break;}
      if(!busy&&(before==null||before!=d.values[i]))changed.add(block.section+":"+block.index);
      break;
     }
    }
   }
+  if(deepPart>=0&&!patchIdentityMatches())invalidatePatch();
+  else if(deepChanged){deepRevision++;if(!busy)publishPatch();}
   // On the actual XPS-10, MIDI Tx Edit Data can forward physical slider/edit changes as SysEx.
   // Merge observed packets with cached blocks; never invent values for missing bytes.
   if(!busy&&!changed.isEmpty()){
@@ -144,11 +194,11 @@ public final class XpsController {
   expected.clear();readNow();
  }
  public void read(){if(busy){io.emit("status","Aguarde a operação MIDI em andamento.");return;}expected.clear();readNow();}
- private void readNow(){readBlocks(performanceBlocks(),true);}
- private void readBlocks(List<XpsProtocol.Block> requested,boolean full){busy=true;if(full)state.clear();else for(XpsProtocol.Block b:requested)for(int i=0;i<b.size;i++)state.remove(b.start+i);io.emit("hardwareBusy",true);io.emit("status","Lendo XPS-10… aguarde a resposta do teclado.");int token=++generation,delay=0;for(XpsProtocol.Block b:requested){h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Porta MIDI indisponível para leitura.");}},delay);delay+=100;}
-  h.postDelayed(()->{if(token!=generation)return;busy=false;io.emit("hardwareBusy",false);JSONObject result=snapshot();io.emit("hardware",result);boolean verified=!expected.isEmpty()&&expected.entrySet().stream().allMatch(e->e.getValue().equals(state.get(e.getKey())));String message=state.isEmpty()?"Sem resposta SysEx. Confira USB, modo MIDI e Device ID 17 (10h).":expected.isEmpty()?"Leitura recebida. Blocos ausentes permanecem indisponíveis.":verified?"Alteração confirmada pela leitura do XPS-10.":"Não foi possível confirmar todos os valores enviados. Leia novamente e confira o teclado.";io.emit("status",message);expected.clear();},delay+700);
+ private void readNow(){invalidatePatch();readBlocks(performanceBlocks(),true);}
+ private void readBlocks(List<XpsProtocol.Block> requested,boolean full){final int patchReadPart=deepPart;final boolean fullPatchRead=patchReadPart>=0&&PatchParameters.blocks(patchReadPart).stream().allMatch(pb->requested.stream().anyMatch(rb->rb.start==pb.start&&rb.size==pb.size));busy=true;if(full)state.clear();else for(XpsProtocol.Block b:requested)for(int i=0;i<b.size;i++)state.remove(b.start+i);io.emit("hardwareBusy",true);io.emit("status","Lendo XPS-10… aguarde a resposta do teclado.");int token=++generation,delay=0;for(XpsProtocol.Block b:requested){h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Porta MIDI indisponível para leitura.");}},delay);delay+=100;}
+  h.postDelayed(()->{if(token!=generation)return;busy=false;io.emit("hardwareBusy",false);JSONObject result=snapshot();io.emit("hardware",result);boolean verified=!expected.isEmpty()&&expected.entrySet().stream().allMatch(e->e.getValue().equals(state.get(e.getKey())));String message=state.isEmpty()?"Sem resposta SysEx. Confira USB, modo MIDI e Device ID 17 (10h).":expected.isEmpty()?"Leitura recebida. Blocos ausentes permanecem indisponíveis.":verified?"Alteração confirmada pela leitura do XPS-10.":"Não foi possível confirmar todos os valores enviados. Leia novamente e confira o teclado.";io.emit("status",message);expected.clear();if(deepPart>=0){if(fullPatchRead&&deepPart==patchReadPart)deepValid=patchIdentityMatches();publishPatch();}},delay+700);
  }
- private void abort(String message){generation++;busy=false;io.emit("hardwareBusy",false);io.emit("status",message);io.emit("hardware",snapshot());}
+ private void abort(String message){deepValid=false;deepRevision++;publishPatch();generation++;busy=false;io.emit("hardwareBusy",false);io.emit("status",message);io.emit("hardware",snapshot());}
  public void cancelWrites(){if(busy)abort("Operação interrompida. Parte dos comandos pode ter sido enviada; leia novamente.");}
  public void write(String json,boolean armed){if(!armed){io.emit("status","USB-MIDI não conectado. Conecte o XPS-10 para testar a edição.");return;}if(busy){io.emit("status","Aguarde a operação atual.");return;}
   try{JSONArray items=new JSONArray(json);if(items.length()<1||items.length()>128)throw new IllegalArgumentException("Quantidade inválida de parâmetros");Map<Integer,Integer> target=new LinkedHashMap<>();for(int i=0;i<items.length();i++){JSONObject o=items.getJSONObject(i);String section=o.getString("section");if(section.equals("mfxparam")){int unit=o.getInt("index"),type=o.getInt("effect");if(!Integer.valueOf(type).equals(state.get(XpsProtocol.block("mfx",unit).start)))throw new IllegalArgumentException("O tipo MFX mudou. Leia novamente.");int a=MfxParameters.address(unit,type,o.getInt("offset"),o.getInt("value"));int[] v=MfxParameters.nibbles(o.getInt("value"));for(int n=0;n<4;n++)if(target.put(a+n,v[n])!=null)throw new IllegalArgumentException("Parâmetro duplicado");}else{int a=XpsProtocol.writeAddress(section,o.getInt("index"),o.getInt("offset"),o.getInt("value"));if(target.put(a,o.getInt("value"))!=null)throw new IllegalArgumentException("Parâmetro duplicado");}}
@@ -162,7 +212,7 @@ public final class XpsController {
  private void send(Map<Integer,Integer> target){busy=true;io.emit("hardwareBusy",true);expected=new LinkedHashMap<>(target);int token=++generation,delay=0;
   List<Integer> keys=new ArrayList<>(target.keySet());Collections.sort(keys);
   for(int i=0;i<keys.size();){int start=keys.get(i),end=i+1;while(end<keys.size()&&keys.get(end)==keys.get(end-1)+1)end++;int[] values=new int[end-i];for(int k=i;k<end;k++)values[k-i]=target.get(keys.get(k));byte[] packet=XpsProtocol.packet(0x12,start,values);h.postDelayed(()->{if(token!=generation)return;if(!io.send(packet))abort("Falha no envio. Leia novamente antes de continuar.");},delay);delay+=35;i=end;}
-  h.postDelayed(()->{if(token!=generation)return;if(target.containsKey(XpsProtocol.address(1,0,0,0))||target.containsKey(XpsProtocol.address(1,0,0,38))){readNow();return;}List<XpsProtocol.Block> touched=new ArrayList<>();for(XpsProtocol.Block b:XpsProtocol.blocks())if(target.keySet().stream().anyMatch(a->a>=b.start&&a<b.start+b.size)){touched.add(b);if(b.section.equals("part")&&(target.containsKey(b.start+4)||target.containsKey(b.start+5)||target.containsKey(b.start+6)))touched.add(XpsProtocol.patches().get(b.index));}readBlocks(touched,false);},delay+400);
+  h.postDelayed(()->{if(token!=generation)return;if(target.containsKey(XpsProtocol.address(1,0,0,0))||target.containsKey(XpsProtocol.address(1,0,0,38))){readNow();return;}if(deepPart>=0&&PatchParameters.blocks(deepPart).stream().anyMatch(b->target.keySet().stream().anyMatch(a->a>=b.start&&a<b.start+b.size))){readBlocks(PatchParameters.blocks(deepPart),false);return;}List<XpsProtocol.Block> touched=new ArrayList<>();for(XpsProtocol.Block b:XpsProtocol.blocks())if(target.keySet().stream().anyMatch(a->a>=b.start&&a<b.start+b.size)){touched.add(b);if(b.section.equals("part")&&(target.containsKey(b.start+4)||target.containsKey(b.start+5)||target.containsKey(b.start+6)))touched.add(XpsProtocol.patches().get(b.index));}readBlocks(touched,false);},delay+400);
  }
  public void undo(boolean armed){if(!armed||busy){io.emit("status","Conecte o XPS-10 e aguarde a leitura ou edição atual.");return;}if(undo.isEmpty()){io.emit("status","Não há alteração temporária com estado anterior conhecido.");return;}Map<Integer,Integer> old=undo;undo=new LinkedHashMap<>();send(old);}
 }
