@@ -291,6 +291,10 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void loopMute(int track,boolean mute){runOnUiThread(()->{try{liveLooper.mute(track,mute);publishLoopState();}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void loopClear(int track){runOnUiThread(()->{try{liveLooper.clear(track);publishLoopState();}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void stopSequence(){runOnUiThread(()->{sequencer.stop();stopPadNotes();});}
+  @JavascriptInterface public void loopClearAll(){runOnUiThread(()->{
+   if(loopClock!=null)loopClock.removeCallbacks(loopTick);loopUi.removeCallbacks(loopUiTick);
+   liveLooper.clearAll();publishLoopState();
+  });}
   @JavascriptInterface public void openCifra(){runOnUiThread(()->showCifra());}
   @JavascriptInterface public void importCifra(){runOnUiThread(()->{if(cifraPanel==null){showCifra();emit("status","Abra uma música no Cifra Club e toque Importar novamente.");}else cifraPanel.importCurrent();});}
   @JavascriptInterface public void showMode(boolean on){runOnUiThread(()->setRequestedOrientation(on?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR));}

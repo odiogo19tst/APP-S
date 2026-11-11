@@ -9,12 +9,12 @@ class Element{
 }
 const elements={},calls=[],events={},anchor=new Element(),stage=new Element();
 stage.querySelector=()=>anchor;
-for(const id of ['output','bpm','beats','bars','rec','play','stop','mute','clear','progress','status'])elements['#loop-'+id]=new Element();
+for(const id of ['output','bpm','beats','bars','rec','play','stop','mute','clear','clear-all','progress','status'])elements['#loop-'+id]=new Element();
 elements['#loop-bpm'].value='90';elements['#loop-beats'].value='4';elements['#loop-bars'].value='2';elements['.loop-tracks']=new Element();
 const document={hidden:false,querySelector:()=>stage,createElement:()=>new Element(),getElementById:()=>({value:'0'}),addEventListener:(name,fn)=>{events[name]=fn;}};
-const native={};for(const k of ['loopState','loopRecord','loopPlay','loopStop','loopMute','loopClear'])native[k]=(...args)=>calls.push([k,...args]);
-let confirmations=0,priorEvents=0;
-const window={Native:native,receive:()=>priorEvents++,confirm:()=>{confirmations++;return true;}};
+const native={};for(const k of ['loopState','loopRecord','loopPlay','loopStop','loopMute','loopClear','loopClearAll'])native[k]=(...args)=>calls.push([k,...args]);
+let confirmations=0,priorEvents=0,approve=true;
+const window={Native:native,receive:()=>priorEvents++,confirm:()=>{confirmations++;return approve;}};
 vm.runInNewContext(fs.readFileSync(__dirname+'/../app/src/main/assets/midi-looper.js','utf8'),{document,window,console});
 const el=id=>elements['#loop-'+id],emit=(type,data)=>window.receive(type,data);
 assert(el('rec').disabled,'USB off blocks recording');assert(el('play').disabled);assert.equal(calls[0][0],'loopState');
@@ -26,9 +26,11 @@ emit('loopState',{...stopped,playing:true,position:.5});assert.equal(el('progres
 elements['.loop-tracks'].children[2].onclick();el('rec').onclick();assert.deepEqual(calls.at(-1),['loopRecord',2,90,4,2]);
 elements['.loop-tracks'].children[0].onclick();el('mute').onclick();assert.deepEqual(calls.at(-1),['loopMute',0,true]);
 el('clear').onclick();assert.equal(confirmations,1);assert.deepEqual(calls.at(-1),['loopClear',0]);
+assert(!el('clear-all').disabled);approve=false;const beforeClearAll=calls.length;el('clear-all').onclick();assert.equal(calls.length,beforeClearAll,'Cancel retains all recordings');approve=true;el('clear-all').onclick();assert.deepEqual(calls.at(-1),['loopClearAll']);
 events['graue:live-state']({detail:{title:'Primeira',bpm:90}});events['graue:live-state']({detail:{title:'Próxima',bpm:72}});assert.equal(calls.at(-1)[0],'loopStop','Changing music stops the loop');
 document.hidden=true;events.visibilitychange();assert.equal(calls.at(-1)[0],'loopStop');
 emit('armed',false);assert(el('rec').disabled&&el('play').disabled);assert.match(el('status').textContent,/desconectado/);assert(priorEvents===5,'Previous receiver remains intact');
+emit('loopState',{...stopped,counts:[0,0,0,0]});assert(el('clear-all').disabled,'Empty loop has nothing to erase');emit('loopState',{...stopped,counts:[0,0,0,0],recording:true,track:2});assert(!el('clear-all').disabled,'An unfinished take can be discarded');
 el('bpm').value='0';el('rec').onclick();assert.match(el('status').textContent,/40 a 240/);
 const html=fs.readFileSync(__dirname+'/../app/src/main/assets/index.html','utf8');assert(html.includes('src="midi-looper.js"'));assert(html.includes('href="midi-looper.css"'));
 console.log('Looper UI PASS: native commands, four tracks, USB gating, authoritative recording/playback state, overdub, mute, clear and music/visibility stop');

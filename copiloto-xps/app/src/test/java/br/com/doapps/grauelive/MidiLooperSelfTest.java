@@ -48,6 +48,22 @@ public final class MidiLooperSelfTest {
   r.looper.record(r.now+1,0);long edge=r.now+SECOND;r.advance(edge+400*MS);r.input(0x90,72,100);r.advance(edge+500*MS);r.input(0x80,72,0);r.advance(edge+SECOND);
   check(r.looper.snapshot(0).size()==4,"Overdub adds without replacing existing take");
 
+  // Clear all stops four tracks and cancels a queued overdub without restarting.
+  r.looper.mute(1,true);r.looper.record(r.now+1,2);r.looper.clearAll();
+  MidiLooper.State empty=r.looper.state(r.now);
+  check(!empty.playing&&!empty.recording&&!empty.queued&&empty.position==0,"Clear all resets active state");
+  for(int i=0;i<4;i++)check(empty.counts[i]==0&&!empty.muted[i],"Clear all empties and unmutes every track");
+  int sent=r.out.size();r.advance(r.now+2*SECOND);check(r.out.size()==sent,"Queued take cannot reappear after clear all");
+  check(!r.looper.play(r.now),"Cleared session cannot play");
+
+  r=new Rig();r.looper.record(r.now,0);r.input(0xb0,64,127);r.input(0x90,64,100);r.advance(2*SECOND);
+  r.looper.clearAll();check(r.out.contains("128:64:0")&&r.out.contains("176:64:0"),"Clear all releases active notes and sustain");
+  r=new Rig();r.looper.record(r.now,0);r.input(0x90,60,100);r.looper.clearAll();r.advance(2*SECOND);
+  check(r.looper.snapshot(0).isEmpty()&&!r.looper.isActive(),"Clear all discards a first unfinished take");
+  r=new Rig();r.take(0,60);r.advance(2100*MS);r.available=false;r.looper.clearAll();
+  check(r.looper.snapshot(0).isEmpty(),"MIDI send failure cannot prevent deletion");
+  r.available=true;r.looper.retrySilence();check(r.out.getLast().equals("128:60:0")&&!r.looper.isActive(),"Retry releases pending note without restoring erased loop");
+
   r=new Rig();r.looper.record(r.now,0);r.input(0x90,60,100);r.looper.stop();check(r.looper.snapshot(0).size()==1,"Early STOP preserves partial take");
   r.looper.play(r.now);r.looper.tick(r.now);r.out.clear();r.looper.tick(r.now+SECOND);check(!r.looper.isActive(),"Clock suspension stops rather than floods old notes");check(r.out.equals(List.of("128:60:0")),"Suspension silences active notes");
 
