@@ -26,7 +26,7 @@
  };
  channels();
  const setup=document.createElement('div');setup.className='gx-drum-library';
- setup.innerHTML='<div class="gx-section-label">BIBLIOTECA DE DRUM PADS <small>Escolha onde o som será produzido</small></div>'+
+ setup.innerHTML='<div class="gx-section-label">Biblioteca de pads <small>Saída de som</small></div>'+
  '<div class="gx-kit-picker-entry"><button id="gx-open-kit-picker" type="button">♫ Escolher biblioteca de sons <span>▾</span></button><small id="gx-active-kit-label">Carregando bibliotecas…</small></div>'+ 
  '<div class="gx-pad-library-source"><label>Fonte do som<select id="gx-pad-source"><option value="midi">Roland XPS-10 · MIDI</option><option value="samples">Celular · Samples de áudio</option></select></label>'+
  '<label id="gx-pad-roland-wrapper">Kit interno do XPS-10<select id="gx-pad-roland-kit"></select></label>'+
@@ -292,7 +292,7 @@
  const rep=document.querySelector('[data-gx-screen="repertoire"]');
  if(rep){
   const panel=document.createElement('section');panel.className='gx-panel gx-youtube-helper';
-  panel.innerHTML='<div class="gx-section-label">YOUTUBE NO REPERTÓRIO · SEM CIFRA CLUB</div><p>Cole o link, informe o nome e os acordes conhecidos, e salve na lista de músicas. Um link por si só não fornece as notas: para transcrever automaticamente é preciso analisar áudio autorizado.</p><div class="gx-youtube-fields"><label>Link YouTube<input id="gx-yt-link" type="url" placeholder="https://youtu.be/..."></label><label>Nome da música<input id="gx-yt-title" maxlength="140" placeholder="Título da música"></label><label>Progressão de acordes<input id="gx-yt-chords" placeholder="Ex.: G D Em C"></label><label>BPM<input type="number" id="gx-yt-bpm" min="40" max="180" value="72"></label></div><div class="gx-youtube-actions"><button id="gx-yt-open">Abrir vídeo</button><button id="gx-yt-save">Salvar cifra no repertório</button><button id="gx-yt-analyze">Analisar com microfone</button></div><small id="gx-yt-message" role="status">A análise pelo microfone é experimental, não extrai a trilha de áudio diretamente do YouTube.</small>';
+  panel.innerHTML='<div class="gx-section-label">YouTube no repertório</div><p>Cole o link, informe o nome e os acordes conhecidos, e salve na lista de músicas. Um link por si só não fornece as notas: para transcrever automaticamente é preciso analisar áudio autorizado.</p><div class="gx-youtube-fields"><label>Link YouTube<input id="gx-yt-link" type="url" placeholder="https://youtu.be/..."></label><label>Nome da música<input id="gx-yt-title" maxlength="140" placeholder="Título da música"></label><label>Progressão de acordes<input id="gx-yt-chords" placeholder="Ex.: G D Em C"></label><label>BPM<input type="number" id="gx-yt-bpm" min="40" max="180" value="72"></label></div><div class="gx-youtube-actions"><button id="gx-yt-open">Abrir vídeo</button><button id="gx-yt-save">Salvar cifra no repertório</button><button id="gx-yt-analyze">Analisar com microfone</button></div><small id="gx-yt-message" role="status">A análise pelo microfone é experimental, não extrai a trilha de áudio diretamente do YouTube.</small>';
   rep.append(panel);
   const getLink=()=>el('gx-yt-link').value.trim();
   const validLink=()=>/^https:\/\/(?:www\.|m\.)?youtube\.com\/watch\?|^https:\/\/youtu\.be\//i.test(getLink());
