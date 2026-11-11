@@ -53,3 +53,22 @@ soundNav.children[1].click();assert.equal(calls.at(-1),'Editor 4 Tones');assert(
 window.receive('xpsConnection',true);assert.equal(shell.dataset.connection,'midi');window.receive('hardware',{validSysexPackets:5});assert.equal(shell.dataset.connection,'verified');window.receive('xpsConnection',false);assert.equal(shell.dataset.connection,'offline');assert.equal(priorCalls,3,'Native receiver chain preserved');
 nav.children[4].open=true;doc.events.keydown({key:'Escape'});assert(!nav.children[4].open);
 console.log('Layout v3 PASS: all original controls/handlers preserved, More navigation, disclosure shortcuts, sound selection and real USB/SysEx state');
+// Pente-fino: reuse real layout nodes and retained handlers in the shortcut overlay.
+const query=Node.prototype.querySelectorAll;
+Node.prototype.querySelectorAll=function(s){if(s===':scope > .gx-disclosure')return this.children.filter(n=>n.classList.contains('gx-disclosure'));return query.call(this,s);};
+Node.prototype.showModal=function(){this.open=true;};
+Node.prototype.close=function(){this.open=false;for(const f of this.listeners.close||[])f();};
+Node.prototype.style={setProperty(){}};doc.body={style:{values:{},setProperty(k,v){this.values[k]=v;}}};
+const settingsScreen=make('div','','',shell);settingsScreen.dataset.gxScreen='settings';make('div','gx-settings','',settingsScreen);
+let saved={colorPalette:'blue',songs:['keep']},saves=0;
+vm.runInNewContext(fs.readFileSync(__dirname+'/../app/src/main/assets/stage-polish.js','utf8'),{document:doc,window,console,saved,persist(){saves++;}});
+const tools=stage.querySelector('.gx-stage-tool-grid'),modal=shell.querySelector('.gx-tool-dialog');
+assert.equal(tools.children.length,5);assert.equal(shell.dataset.palette,'blue');
+const palette=settingsScreen.querySelector('.gx-palette-choices');palette.children[2].click();assert.equal(saved.colorPalette,'amber');assert.equal(saves,1);assert.deepEqual(saved.songs,['keep']);
+const beforeTools=calls.length;tools.children[0].click();assert(modal.open);assert.equal(calls.length,beforeTools,'Opening tools never sends MIDI');assert.equal(modal.querySelectorAll('.gx-tool-content').filter(n=>!n.hidden).length,1);
+const content=modal.querySelectorAll('.gx-tool-content');assert(content.every(n=>!stage.contains(n)),'Panels no longer expand the stage vertically');
+modal.close();assert(tools.children[0].focused,'Focus returns to the shortcut');
+nodes['gx-show-favorites'].click();assert(modal.open);assert.equal(favorites.hidden,false);assert.equal(favorites.parentNode,modal,'Favorites shortcut opens original controls');
+nodes['tab-settings'].click();assert(!modal.open,'Navigation dismisses overlay');
+for(const id of ['gx-start','gx-next','gx-panic','loop-rec'])assert.equal(nodes[id],originalButtons[id]);
+console.log('Stage polish PASS: overlay panels, retained controls, no MIDI on navigation, focus return and palette persistence');
