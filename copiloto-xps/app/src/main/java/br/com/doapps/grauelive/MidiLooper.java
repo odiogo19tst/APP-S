@@ -144,6 +144,12 @@ public final class MidiLooper {
  public synchronized void disconnected(){stop();java.util.Arrays.fill(inputSustain,false);message="Sem USB. Reconecte e toque PLAY.";}
  public synchronized void mute(int index,boolean muted){trackIndex(index);tracks[index].muted=muted;if(muted)silenceTrack(index);}
  public synchronized void clear(int index){trackIndex(index);if(recordTrack==index)cancelRecording();silenceTrack(index);tracks[index].events.clear();tracks[index].muted=false;if(!hasEvents()){playing=false;message="Pronto para gravar";}}
+ /** Erase the session atomically, cancelling takes and releasing loop-owned MIDI notes. */
+ public synchronized void clearAll(){
+  cancelRecording();playing=false;silenceAll();
+  for(Track t:tracks){t.events.clear();t.muted=false;}
+  message=outputFailed?"Pistas apagadas. Reconecte o USB para liberar notas pendentes.":"Todas as pistas apagadas. Pronto para gravar.";
+ }
  public synchronized State state(long now){return new State(this,now);}
  public synchronized boolean isActive(){return playing||recordTrack>=0;}
  public synchronized List<Event> snapshot(int index){trackIndex(index);return new ArrayList<>(tracks[index].events);}

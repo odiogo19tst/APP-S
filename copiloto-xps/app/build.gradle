@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 63
-        versionName '1.32.5-youtube-toggle'
+        versionCode 64
+        versionName '1.32.6-looper-clear-all'
     }
     buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
