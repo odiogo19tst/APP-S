@@ -1,6 +1,25 @@
 # Grauê XPS — referência de continuidade
 
-Versão 1.30.1-repertorio-fix, versionCode 46.
+Versão em desenvolvimento: 1.31.1-midi-looper, versionCode 56.
+Base confirmada: 1.31.0 (PR #69, fae8ddb51bb81c9e2696da0e5032684a32343e96).
+
+## Prioridade atual: MIDI Looper (continuidade do PR #70)
+
+Pedido do Diogo: gravar o que toca no XPS-10 em MIDI e repetir ao vivo com som saindo nas saídas do próprio teclado. Uma conexão USB global, sem habilitação extra de envio. Controles REC/PLAY/STOP no Palco e no Ao Vivo. Quatro pistas, overdub, BPM, batidas e compassos.
+
+Implementado nesta revisão:
+- REC captura um ciclo e inicia PLAY automaticamente; overdub é armado para a próxima volta.
+- Quatro pistas, selecionar, silenciar e apagar com confirmação. Overdub adiciona sem apagar o conteúdo anterior.
+- Notas, sustain CC64, modulação CC1, expressão CC11 e pitch bend; canais originais preservados. Program Change, Bank Select, SysEx e clock não são gravados nem repetidos. Entrada não é ecoada.
+- Relógio MIDI separado da interface; timestamps capturados na recepção. Pausa longa do relógio ou falha de envio interrompe a reprodução.
+- STOP, Panic, saída do app, mudança de Performance/música, atualização das portas e perda de USB encerram o loop. Reconectar nunca reinicia sozinho. Note Off e pedal pendentes são reenviados ao reconectar.
+- BPM e duração editáveis com o loop parado; eventos são reescalados. Em reprodução os campos ficam bloqueados.
+- Correções da 1.31.0 preservadas: Próxima música usa seleção automática do setup, Reaplicar setup, status USB versus SysEx, identidade por índice e cancelamento de respostas tardias.
+
+Limites explícitos: gravações são da sessão e ficam na RAM; fechar/matar o app perde as pistas. Timbragem segue as partes/canais atualmente configurados no teclado; o looper não grava áudio nem congela timbres/Performance. Não há quantização, sincronização com clock MIDI externo ou backup de loops nesta revisão. Precisão Android/USB e saída física no XPS-10 precisam de teste no hardware.
+
+## Referência anterior preservada
+
 
 Resumo LouveApp compacto e recolhível; lista de músicas preserva altura no celular. Remove marcadores de paginação “Parte N de N” da exibição das cifras e das próximas importações. Mesma chave permanente da 1.30.
 
