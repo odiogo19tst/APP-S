@@ -5,11 +5,11 @@
  */
 (function(scope){
  const GROUPS=Object.freeze({
-  PCH:{title:'Patch Common',desc:'Identificação e organização do Patch a partir da leitura recebida. Alterações profundas aguardam mapeamento.'},
+  PCH:{title:'Patch Common',desc:'Identificação e ajustes do Patch Common e estruturas de mistura, conforme leitura real.'},
   WG:{title:'Wave Generator',desc:'Ondas L/R, FXM, afinação e Pitch Envelope por Tone, conforme o mapa original. Leia o Patch para editar.'},
   TVA:{title:'Amplificador',desc:'Nível, pan, env. TVA e BIAS por Tone, com leitura e edição temporária SysEx.'},
   TVF:{title:'Filtro',desc:'Ajustes temporários de cutoff e ressonância da Performance. NÃO representam parâmetros internos de cada Tone.'},
-  'Vel/Key':{title:'Velocity / Key Range',desc:'Zonas por canal da Performance observadas. O mapa de velocidade e teclado por Tone continua em validação.'},
+  'Vel/Key':{title:'Velocity / Key Range',desc:'Zonas por canal da Performance observadas. Faixas e fades de teclado/velocidade por Tone disponíveis abaixo, com leitura do TMT.'},
   LFO:{title:'LFO / Vibrato',desc:'Vibrato global por parte através dos CC76–78 documentados. LFO1/LFO2 internos estão disponíveis abaixo após Ler Patch completo.'},
   MTX:{title:'Matrix Control',desc:'Quatro fontes e quatro destinos por fonte no Patch Common, com switches independentes nos Tones.'},
   Ctrl:{title:'Recepção e modulação',desc:'Sustain, Expression, Redamper e Pitch Bend variam por Tone. Recepção individual disponível abaixo após leitura do Patch.'},
