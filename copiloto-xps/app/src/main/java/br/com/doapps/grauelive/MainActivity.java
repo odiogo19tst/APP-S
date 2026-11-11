@@ -582,6 +582,9 @@ public class MainActivity extends Activity {
  });}
   /** Patch Tone TVA levels through documented CC80..83. Not confirmed by SysEx readback. */
   /** Opt-in passive SysEx learning; does not send a parameter write. */
+  @JavascriptInterface public void readDeepPatch(int part){runOnUiThread(()->{if(armed&&midi!=null&&midi.isConnected()){stopLiveLoop();xps.readPatch(part);}else emit("status","Conecte o XPS-10 para ler os Tones internos.");});}
+  @JavascriptInterface public void editDeepPatch(String json){if(json==null||json.length()>12000)return;runOnUiThread(()->{stopLiveLoop();xps.writePatch(json,armed&&midi!=null&&midi.isConnected());});}
+  @JavascriptInterface public void undoDeepPatch(){runOnUiThread(()->{stopLiveLoop();xps.undoPatch(armed&&midi!=null&&midi.isConnected());});}
   @JavascriptInterface public void observePatch(boolean enabled){
    runOnUiThread(()->{
     if(enabled&&(midi==null||!midi.isConnected())){emit("status","Conecte o Roland XPS-10 antes de observar edições SysEx.");return;}
@@ -592,7 +595,7 @@ public class MainActivity extends Activity {
    * This method returns an untrusted JSON proposal as text, NEVER hardware commands.
    */
   @JavascriptInterface public void planPatch(String context){
-   if(context==null||context.length()<5||context.length()>1700){
+   if(context==null||context.length()<5||context.length()>3300){
     emit("patchPlanAnswer","Pedido inválido ou extenso demais.");return;
    }
    final String prompt=JarvisMusicalProfile.buildPatchPlanPrompt(context,

@@ -16,7 +16,7 @@ public final class XpsProtocol {
  }
  public static List<Block> patches(){List<Block> b=new ArrayList<>();for(int i=0;i<16;i++)b.add(new Block("patch",i,address(0x11+i/4,(i%4)*32,0,0),0x50));return b;}
  public static List<Block> users(){List<Block> b=new ArrayList<>();for(int i=0;i<256;i++)b.add(new Block("user",i,address(0x30+i/128,i%128,0,0),0x50));return b;}
- public static List<Block> readable(){List<Block> b=blocks();b.addAll(patches());b.addAll(users());return b;}
+ public static List<Block> readable(){List<Block> b=blocks();b.addAll(patches());b.addAll(users());for(int p=0;p<16;p++){b.add(PatchParameters.block("tmt",p,1));for(int t=1;t<=4;t++)b.add(PatchParameters.block("tone",p,t));}return b;}
  public static Block block(String section,int index){for(Block b:blocks())if(b.section.equals(section)&&b.index==index)return b;throw new IllegalArgumentException("Bloco desconhecido");}
  public static byte[] packet(int command,int address,int[] payload){int[] ds=digits(address);byte[] p=new byte[13+payload.length];int[] h={0xf0,0x41,DEVICE,0,0,0x3a,command};for(int i=0;i<h.length;i++)p[i]=(byte)h[i];int sum=0;for(int i=0;i<4;i++){p[7+i]=(byte)ds[i];sum+=ds[i];}for(int i=0;i<payload.length;i++){if(payload[i]<0||payload[i]>127)throw new IllegalArgumentException("Dado MIDI inválido");p[11+i]=(byte)payload[i];sum+=payload[i];}p[p.length-2]=(byte)((128-sum%128)%128);p[p.length-1]=(byte)0xf7;return p;}
  public static byte[] request(Block b){return packet(0x11,b.start,digits(b.size));}

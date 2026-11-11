@@ -6,13 +6,13 @@
 (function(scope){
  const GROUPS=Object.freeze({
   PCH:{title:'Patch Common',desc:'Identificação e organização do Patch a partir da leitura recebida. Alterações profundas aguardam mapeamento.'},
-  WG:{title:'Wave Generator',desc:'Ondas L/R, FXM, afinação e Pitch Envelope: observar alterações SysEx no teclado; escrita não autorizada sem mapa verificado.'},
-  TVA:{title:'Amplificador',desc:'Níveis independentes de Tone 1–4 por CC80–83. Envelopes e BIAS ainda aguardam endereços confirmados.'},
+  WG:{title:'Wave Generator',desc:'Ondas L/R, FXM, afinação e Pitch Envelope por Tone, conforme o mapa original. Leia o Patch para editar.'},
+  TVA:{title:'Amplificador',desc:'Nível, pan, env. TVA e BIAS por Tone, com leitura e edição temporária SysEx.'},
   TVF:{title:'Filtro',desc:'Ajustes temporários de cutoff e ressonância da Performance. NÃO representam parâmetros internos de cada Tone.'},
   'Vel/Key':{title:'Velocity / Key Range',desc:'Zonas por canal da Performance observadas. O mapa de velocidade e teclado por Tone continua em validação.'},
-  LFO:{title:'LFO / Vibrato',desc:'Vibrato global por parte através dos CC76–78 documentados. LFO1/LFO2 internos ainda exigem SysEx.'},
-  MTX:{title:'Matrix Control',desc:'Fontes e destinos da matriz dos Tones exigem o mapa original. Captura observações sem escrever em endereços inferidos.'},
-  Ctrl:{title:'Recepção e modulação',desc:'Sustain, Expression, Redamper e Pitch Bend variam por Tone. Recepção individual será liberada após validação do SysEx.'},
+  LFO:{title:'LFO / Vibrato',desc:'Vibrato global por parte através dos CC76–78 documentados. LFO1/LFO2 internos estão disponíveis abaixo após Ler Patch completo.'},
+  MTX:{title:'Matrix Control',desc:'Quatro fontes e quatro destinos por fonte no Patch Common, com switches independentes nos Tones.'},
+  Ctrl:{title:'Recepção e modulação',desc:'Sustain, Expression, Redamper e Pitch Bend variam por Tone. Recepção individual disponível abaixo após leitura do Patch.'},
   MFX:{title:'Efeitos e roteamento',desc:'O editor de MFX, Chorus e Reverb já existe no Grauê. Abra o editor avançado para usar parâmetros validados.'}
  });
  function createProbe(){
@@ -43,19 +43,20 @@
   function reset(){map.clear();before=null;after=null;events=[];count=0;}
   return {ingest,markBefore,markAfter,compare,snapshot,reset,events:()=>events.slice(),state:()=>({count,observed:map.size,baseline:before?.size||0,differences:compare().length})};
  }
- function parsePlan(reply,hw,connected,busy,brain,patch){
+ function parsePlan(reply,hw,connected,busy,brain,patch,deepState){
   if(typeof reply!=='string'||reply.length>5000)throw Error('Resposta da IA inválida ou longa demais.');
   const cleaned=reply.trim().replace(/^\x60\x60\x60(?:json)?\s*/i,'').replace(/\s*\x60\x60\x60$/,'');
   let data;try{data=JSON.parse(cleaned);}catch(_){throw Error('A IA não devolveu JSON válido. Nenhum comando será enviado.');}
   if(!data||typeof data!=='object'||Array.isArray(data)||!Array.isArray(data.operations)||
       data.operations.length<1||data.operations.length>6)throw Error('A IA não propôs operações válidas (1–6).');
   if(!connected||busy)throw Error('Conecte o teclado e aguarde a leitura terminar.');
-  const partial=new Map(),toneEdits=[],unique=new Set();
+  const partial=new Map(),toneEdits=[],deepEdits=[],unique=new Set();
   for(const op of data.operations){
    if(!op||typeof op!=='object'||Array.isArray(op)||!Number.isInteger(op.part)||op.part<0||op.part>=16)
     throw Error('A IA propôs uma parte inválida.');
-   const allowedKeys=op.kind==='part'?['kind','part','field','value']:op.kind==='tone'?['kind','part','tone','level']:[];
+   const allowedKeys=op.kind==='part'?['kind','part','field','value']:op.kind==='tone'?['kind','part','tone','level']:op.kind==='patch'?['kind','part','tone','field','value']:[];
    if(Object.keys(op).some(k=>!allowedKeys.includes(k)))throw Error('A IA incluiu campos não autorizados na proposta.');
+   if(op.kind==='patch'){deepEdits.push(op);continue;}
    if(op.kind==='part'){
     if(typeof op.field!=='string'||!Object.prototype.hasOwnProperty.call(brain.PARAMETERS,op.field))
       throw Error('A IA tentou usar um parâmetro desconhecido.');
@@ -74,11 +75,17 @@
     unique.add(key);toneEdits.push(c);
    }else throw Error('A IA propôs uma operação não permitida.');
   }
+  let deepRequest=null;
+  if(deepEdits.length){
+   if(partial.size||toneEdits.length||deepEdits.some(o=>o.part!==deepEdits[0].part))throw Error('A proposta interna precisa editar um Patch por vez.');
+   const deep=scope?.GraueDeepPatch||(typeof require==='function'?require('./deep-patch.js'):null);
+   deepRequest=deep.prepare(deepState,deepEdits.map(({field,tone,value})=>({field,tone,value})),deepEdits[0].part);
+  }
   if(partial.size&&toneEdits.length)throw Error('Divida a proposta em ajustes de Performance e de Tone; a execução mista exige releitura intermediária.');
   if(toneEdits.length>1)throw Error('Faça um Tone de cada vez para conferir o som antes de continuar.');
   const partEdits=partial.size?brain.diff(hw,[...partial.values()]):[];
-  if(!partEdits.length&&!toneEdits.length)throw Error('O estado atual já corresponde à proposta.');
-  return {partEdits,toneEdits,description:partEdits.length+' parâmetro(s) de Performance e '+toneEdits.length+' de Tone',observedAt:hw.readAt||0};
+  if(!partEdits.length&&!toneEdits.length&&!deepRequest)throw Error('O estado atual já corresponde à proposta.');
+  return {partEdits,toneEdits,deepRequest,description:partEdits.length+' parâmetro(s) de Performance e '+toneEdits.length+' de Tone'+(deepRequest?' e '+deepRequest.operations.length+' internos':''),observedAt:hw.readAt||0};
  }
  function build(container,transport){
   if(!container)return null;
@@ -103,6 +110,7 @@
   };
   selection.append(partSelect);
   const detail=mk('section','gx-synth-detail'),probePanel=mk('details','gx-synth-capture');
+  const deepUi=scope?.GraueDeepPatch?.create(transport);
   const captureSummary=mk('summary',null,'Diagnóstico SysEx · descobrir parâmetros com o Roland');
   const lead=mk('p',null,'Somente captura de mensagens DT1 válidas enviadas pelo XPS-10. Para comparar, observe um valor, marque “Antes”, mude apenas um controle no teclado, e marque “Depois”. Sem leitura anterior do mesmo endereço, não há diferença demonstrável.');
   const captureActions=mk('div','gx-synth-actions');
@@ -133,15 +141,17 @@
    const context='Parte '+part+' (zero-based), modo Performance. Valores observados: '+
      (Array.isArray(snapshot)?Object.entries(brain.PARAMETERS).map(([k,d])=>k+'='+snapshot[d.offset]).join(', '):'não lidos')+
      '. Pedido: '+q.slice(0,260);
-   transport.plan(context);
+   transport.plan((context+" "+(deepUi?.context()||"")).slice(0,3000));
    aiStatus.textContent='Consultando modelo local; nenhum MIDI será enviado sem aprovação…';
   };
   apply.onclick=()=>{
    if(!prepared||!proposal){aiStatus.textContent='Nenhuma proposta validada.';return;}
    try{
     if(hw.readAt!==prepared.observedAt)throw Error('Estado MIDI mudou. Peça outra proposta antes de aplicar.');
-    const now=parsePlan(proposal,hw,connected&&liveSeen,busy,brain,patch);
-    if(now.partEdits.length){transport.edit?.(now.partEdits);aiStatus.textContent='Edição de Performance solicitada; aguarde SysEx de retorno.';}
+    const now=parsePlan(proposal,hw,connected&&liveSeen,busy,brain,patch,deepUi?.state());
+    if(prepared.deepRequest&&now.deepRequest?.revision!==prepared.deepRequest.revision)throw Error('O Patch mudou após a proposta. Peça outra.');
+    if(now.deepRequest){transport.editDeep?.(now.deepRequest);aiStatus.textContent='Ajustes internos solicitados; aguardando confirmação SysEx.';}
+    else if(now.partEdits.length){transport.edit?.(now.partEdits);aiStatus.textContent='Edição de Performance solicitada; aguarde SysEx de retorno.';}
     else if(now.toneEdits.length){const c=now.toneEdits[0];transport.tone?.(c);aiStatus.textContent='CC'+c.controller+' enviado; confirme o som no Roland.';}
     prepared=null;proposal='';apply.disabled=true;
    }catch(e){prepared=null;apply.disabled=true;aiStatus.textContent=e.message;}
@@ -158,7 +168,7 @@
   }
   function render(){
    [...tabs.children].forEach(b=>b.classList.toggle('on',b.dataset.synthGroup===group));
-   original.forEach(el=>{el.hidden=group!=='TVA';});
+   original.forEach(el=>{el.hidden=group!=='TVA'||!!deepUi;});
    detail.replaceChildren();
    if(group!=='TVA'){
     const entry=GROUPS[group];
@@ -243,19 +253,20 @@
      detail.append(row);
     }
    }
+   deepUi?.render(detail,group,part);
    renderProbe();
   }
   function receive(kind,data){
    if(kind==='xpsConnection'){connected=!!data;if(!connected){hw={};liveSeen=false;observing=false;probe.reset();prepared=null;apply.disabled=true;}render();}
    if(kind==='hardwareReset'){hw={};liveSeen=false;observing=false;probe.reset();prepared=null;apply.disabled=true;render();}
    if(kind==='hardwareBusy'){busy=!!data;render();}
-   if(kind==='hardware'){hw=data||{};liveSeen=connected&&Number(hw.validSysexPackets)>0;render();}
+   if(kind==='hardware'||kind==='hardwarePhysical'){hw=data||{};liveSeen=connected&&Number(hw.validSysexPackets)>0;render();}
    if(kind==='patchObserveState'){observing=!!data;renderProbe();}
    if(kind==='patchProbe'){if(probe.ingest(data))renderProbe();}
    if(kind==='patchPlanAnswer'&&awaiting){
     awaiting=false;ask.disabled=false;proposal=String(data||'');prepared=null;
     try{
-     prepared=parsePlan(proposal,hw,connected&&liveSeen,busy,brain,patch);
+     prepared=parsePlan(proposal,hw,connected&&liveSeen,busy,brain,patch,deepUi?.state());
      apply.disabled=false;
      const ops=JSON.parse(proposal.trim().replace(/^\x60\x60\x60(?:json)?\s*/i,'').replace(/\s*\x60\x60\x60$/,'')).operations;
      const details=ops.map(o=>o.kind==='tone'
@@ -264,6 +275,7 @@
      aiStatus.textContent='Proposta validada: '+details+'. '+prepared.description+'. Confira os valores antes de aplicar.';
     }catch(e){apply.disabled=true;aiStatus.textContent=e.message;}
    }
+   deepUi?.receive(kind,data);
   }
   render();return {receive,getState:()=>({group,part,connected,liveSeen,observing}),probe};
  }
@@ -274,6 +286,9 @@
   const target=scope.document?.getElementById('gx-patch-four-tones');
   if(target&&scope.GraueSetupBrain&&scope.GrauePatchFourTones){
    const transport={
+    readDeep:part=>scope.Native?.readDeepPatch?.(part),
+    editDeep:request=>scope.Native?.editDeepPatch?.(JSON.stringify(request)),
+    undoDeep:()=>scope.Native?.undoDeepPatch?.(),
     observe:enabled=>scope.Native?.observePatch?.(enabled),
     plan:text=>scope.Native?.planPatch?.(text),
     edit:commands=>scope.Native?.editHardware?.(JSON.stringify(commands)),
