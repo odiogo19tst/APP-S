@@ -128,7 +128,7 @@ public class MainActivity extends Activity {
   }
  }});
   loopThread=new HandlerThread("GraueMidiClock",android.os.Process.THREAD_PRIORITY_AUDIO);loopThread.start();loopClock=new Handler(loopThread.getLooper());
-  liveLooper=new MidiLooper((status,a,b)->midi!=null&&midi.isConnected()&&midi.send(status,a,b));
+  liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
  if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
  emit("status",t);
