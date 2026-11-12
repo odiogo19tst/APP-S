@@ -14,7 +14,7 @@
  function render(){
   const busy=!!(state.playing||state.recording),hasNotes=state.counts.some(n=>n>0);
   trackButtons.forEach((button,i)=>{button.textContent='Pista '+(i+1)+' · '+(state.recording&&state.track===i?(state.queued?'ARMADA':'REC'):state.counts[i]?(state.muted[i]?'MUDO':'Gravada'):'Vazia');button.setAttribute('aria-pressed',String(i===selected));button.classList.toggle('loop-selected',i===selected);button.classList.toggle('loop-recording',!!state.recording&&state.track===i);});
-  q('rec').disabled=!connected||state.recording;q('rec').textContent=hasNotes?'● OVERDUB':'● REC';
+  q('rec').disabled=!connected||state.recording;q('rec').textContent=state.counts[selected]?'● Adicionar notas':'● Gravar pista';
   q('play').disabled=!connected||!hasNotes||state.recording||state.playing;
   q('stop').disabled=!busy;q('mute').disabled=!state.counts[selected];q('clear').disabled=!state.counts[selected]&&!(state.recording&&state.track===selected);
   q('clear-all').disabled=!hasNotes&&!state.recording;
@@ -23,7 +23,8 @@
   q('output').textContent=connected?'Som no XPS-10 · USB conectado':'Som no XPS-10 · USB aguardando';
   q('progress').value=state.position||0;
   const at=Math.floor((state.position||0)*(state.beats||4)*(state.bars||2));
-  q('status').textContent=(connected?state.message:'USB desconectado. Reconecte para gravar ou tocar.')+(busy&&!state.queued?' · Compasso '+(Math.floor(at/(state.beats||4))+1)+' / '+(state.bars||2)+' · Batida '+(at%(state.beats||4)+1):'');
+  const inputStatus=state.recording?' · Entrada: '+(Number(state.receivedNotes)||0)+' notas · Capturadas: '+(Number(state.capturedNotes)||0):'';
+  q('status').textContent=(connected?state.message:'USB desconectado. Reconecte para gravar ou tocar.')+(busy&&!state.queued?' · Compasso '+(Math.floor(at/(state.beats||4))+1)+' / '+(state.bars||2)+' · Batida '+(at%(state.beats||4)+1):'')+inputStatus;
  }
  q('rec').onclick=()=>{const bpm=Number(q('bpm').value),beats=Number(q('beats').value),bars=Number(q('bars').value);if(!Number.isInteger(bpm)||bpm<40||bpm>240){q('status').textContent='Escolha um BPM inteiro de 40 a 240.';return;}if(state.counts[selected]&&state.muted[selected]){q('status').textContent='Ative Ouvir pista antes de gravar overdub nela.';return;}call('loopRecord',selected,bpm,beats,bars);};
  q('play').onclick=()=>call('loopPlay',Number(q('bpm').value),Number(q('beats').value),Number(q('bars').value));q('stop').onclick=()=>call('loopStop');

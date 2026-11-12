@@ -20,11 +20,11 @@ public final class MidiLooper {
   boolean muted;
  }
  public static final class State {
-  public final boolean playing,recording,queued; public final int recordingTrack,bpm,beats,bars;
+  public final boolean playing,recording,queued; public final int recordingTrack,bpm,beats,bars,receivedNotes,capturedNotes;
   public final double position; public final int[] counts=new int[TRACKS]; public final boolean[] muted=new boolean[TRACKS];
   public final String message;
   State(MidiLooper l,long now){playing=l.playing;recording=l.recordTrack>=0;queued=recording&&now<l.recordStart;recordingTrack=l.recordTrack;
-   bpm=l.bpm;beats=l.beats;bars=l.bars;message=recording?(queued?"Overdub armado: começa na próxima volta":"Gravando MIDI na pista "+(recordingTrack+1)):l.message;
+   bpm=l.bpm;beats=l.beats;bars=l.bars;receivedNotes=l.receivedNotes;capturedNotes=l.capturedNotes;message=recording?(queued?"Overdub armado: começa na próxima volta":"Gravando MIDI na pista "+(recordingTrack+1)):l.message;
    long start=playing?l.startNs:l.recordStart;
    position=(playing||recording)&&now>=start?(double)Math.floorMod(now-start,l.loopNs)/l.loopNs:0;
    for(int i=0;i<TRACKS;i++){counts[i]=l.tracks[i].events.size();muted[i]=l.tracks[i].muted;}
@@ -34,7 +34,7 @@ public final class MidiLooper {
  private final Output output;
  private final List<Event> take=new ArrayList<>();
  private final boolean[] inputSustain=new boolean[16],takeChannels=new boolean[16];
- private int bpm=72,beats=4,bars=2,recordTrack=-1;
+ private int bpm=72,beats=4,bars=2,recordTrack=-1,receivedNotes=0,capturedNotes=0;
  private long loopNs=60_000_000_000L*4*2/72,startNs,lastTickNs,recordStart,recordEnd;
  private boolean playing,outputFailed;
  private String message="Pronto para gravar";
@@ -51,7 +51,7 @@ public final class MidiLooper {
  public synchronized void record(long now,int index){
   trackIndex(index);if(recordTrack>=0)throw new IllegalStateException("Uma gravação já está em andamento");
   if(!playing&&hasEvents()){play(now);if(!playing)return;}
-  outputFailed=false;take.clear();java.util.Arrays.fill(takeChannels,false);recordTrack=index;
+  outputFailed=false;take.clear();receivedNotes=0;capturedNotes=0;java.util.Arrays.fill(takeChannels,false);recordTrack=index;
   recordStart=playing?startNs+(Math.floorDiv(now-startNs,loopNs)+1)*loopNs:now;
   recordEnd=recordStart+loopNs;if(!playing)lastTickNs=now;
   message=playing?"Overdub armado: começa na próxima volta":"Gravando MIDI";
@@ -60,6 +60,7 @@ public final class MidiLooper {
  public synchronized void input(long now,int status,int a,int b){
   if(status<0x80||status>0xef||a<0||a>127||b<0||b>127)return;
   int kind=status&0xf0,c=status&15;
+  if(recordTrack>=0&&kind==0x90&&b>0)receivedNotes++;
   if(kind==0xb0&&a==64)inputSustain[c]=b>=64;
   if(recordTrack<0||now<recordStart||now>=recordEnd)return;
   if(kind!=0x80&&kind!=0x90&&kind!=0xe0&&!(kind==0xb0&&(a==64||a==1||a==11)))return;
@@ -67,6 +68,7 @@ public final class MidiLooper {
   long offset=now-recordStart;
   if(!takeChannels[c]){takeChannels[c]=true;if(inputSustain[c]&&!(kind==0xb0&&a==64))take.add(new Event(0,0xb0|c,64,127));}
   take.add(new Event(offset,status,a,b));
+  if(kind==0x90&&b>0)capturedNotes++;
  }
  private boolean hasEvents(){for(Track t:tracks)if(!t.events.isEmpty())return true;return false;}
  public synchronized boolean play(long now){
@@ -78,13 +80,13 @@ public final class MidiLooper {
  public synchronized void tick(long now){
   if(!playing&&recordTrack<0)return;
   if(now<lastTickNs)return;
-  if(now-lastTickNs>MAX_GAP_NS){stop();message="Loop parado: relógio MIDI interrompido";return;}
+  if(playing&&now-lastTickNs>MAX_GAP_NS){stop();message="Loop parado: relógio MIDI interrompido";return;}
   if(recordTrack>=0&&now>=recordEnd){
    long end=recordEnd;
    if(playing){pump(end-1);lastTickNs=end-1;}
    finishRecording();
-   if(!playing&&hasEvents()){playing=true;startNs=end;lastTickNs=end-1;message="Reproduzindo no XPS-10";}
-   else if(!playing)message="Nenhuma nota recebida. Confira a transmissão MIDI do teclado.";
+   if(!playing&&hasEvents()){playing=true;startNs=now-end>MAX_GAP_NS?now:end;lastTickNs=startNs-1;message="Reproduzindo no XPS-10";}
+   else if(!playing)message=receivedNotes==0?"Nenhuma nota MIDI recebida do teclado. Confira a entrada USB-MIDI.":"Notas recebidas fora do intervalo. Toque REC para tentar novamente.";
   }
   if(playing)pump(now);
   lastTickNs=now;
@@ -146,7 +148,7 @@ public final class MidiLooper {
  public synchronized void clear(int index){trackIndex(index);if(recordTrack==index)cancelRecording();silenceTrack(index);tracks[index].events.clear();tracks[index].muted=false;if(!hasEvents()){playing=false;message="Pronto para gravar";}}
  /** Erase the session atomically, cancelling takes and releasing loop-owned MIDI notes. */
  public synchronized void clearAll(){
-  cancelRecording();playing=false;silenceAll();
+  cancelRecording();playing=false;silenceAll();receivedNotes=0;capturedNotes=0;
   for(Track t:tracks){t.events.clear();t.muted=false;}
   message=outputFailed?"Pistas apagadas. Reconecte o USB para liberar notas pendentes.":"Todas as pistas apagadas. Pronto para gravar.";
  }
