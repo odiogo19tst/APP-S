@@ -77,6 +77,23 @@ public final class MidiLooperSelfTest {
   r.looper.play(r.now);try{r.looper.configure(120,4,1);throw new AssertionError("Live reconfigure accepted");}catch(IllegalStateException expected){}
   try{r.looper.clear(4);throw new AssertionError("Invalid track accepted");}catch(IllegalArgumentException expected){}
 
+  // A scheduling pause must not cancel a first take: there is no loop output to catch up yet.
+  r=new Rig();r.looper.record(r.now,0);r.now+=600*MS;r.looper.tick(r.now);
+  r.input(0x90,60,100);r.now+=100*MS;r.input(0x80,60,0);r.advance(2*SECOND);
+  check(r.looper.snapshot(0).size()==2,"A delayed first recording tick must not discard later input");
+  check(r.looper.state(r.now).receivedNotes==1&&r.looper.state(r.now).capturedNotes==1,"Input counters distinguish actual note-ons from other events");
+
+  // A late end-of-take tick starts playback now, without replaying missed cycles in a burst.
+  r=new Rig();r.take(0,60);r.now=3500*MS;r.looper.tick(r.now);
+  check(r.looper.snapshot(0).size()==2&&r.looper.isActive(),"Late completion keeps the recorded take");
+  check(r.out.isEmpty(),"Late completion must not flood old notes");
+  r.advance(3600*MS);check(count(r.out,"144:60:100")==1,"Late completion restarts the playback clock at the current time");
+
+  r=new Rig();r.looper.record(r.now,0);r.looper.input(r.now-100*MS,0x90,60,100);
+  check(r.looper.state(r.now).receivedNotes==1&&r.looper.state(r.now).capturedNotes==0,"Late MIDI timestamps are visible in diagnostics without entering the wrong cycle");
+  r.advance(2*SECOND);check(r.looper.state(r.now).message.contains("fora do intervalo"),"Out-of-window input differs from missing USB input");
+  r.looper.clearAll();check(r.looper.state(r.now).receivedNotes==0&&r.looper.state(r.now).capturedNotes==0,"Erase resets diagnostics");
+
   r=new Rig();r.looper.record(r.now,0);r.advance(2*SECOND);check(!r.looper.isActive(),"Empty recording must not pretend to play");
   r.looper.record(r.now,0);for(int i=0;i<MidiLooper.MAX_EVENTS+10;i++)r.input(0x90,60,90);check(!r.looper.state(r.now).recording,"Unbounded recording rejected");
   System.out.println("MIDI Looper PASS: automatic playback, timing, four tracks, overdub, MIDI filters, sustain, mute, clear, BPM, send failure, reconnect and clock suspension");

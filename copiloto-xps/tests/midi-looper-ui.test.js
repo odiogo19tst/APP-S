@@ -21,9 +21,9 @@ assert(el('rec').disabled,'USB off blocks recording');assert(el('play').disabled
 emit('xpsConnection',true);assert(!el('rec').disabled);el('rec').onclick();assert.deepEqual(calls.at(-1),['loopRecord',0,90,4,2]);
 const stopped={playing:false,recording:false,queued:false,track:-1,counts:[2,0,0,0],muted:[false,false,false,false],position:0,bpm:90,beats:4,bars:2,message:'Loop parado'};
 emit('loopState',{...stopped,recording:true,track:0});assert(el('rec').disabled);assert(!el('stop').disabled);assert(el('bpm').disabled);
-emit('loopState',stopped);assert(!el('play').disabled);assert.equal(el('rec').textContent,'● OVERDUB');el('play').onclick();assert.equal(calls.at(-1)[0],'loopPlay');
+emit('loopState',stopped);assert(!el('play').disabled);assert.equal(el('rec').textContent,'● Adicionar notas');el('play').onclick();assert.equal(calls.at(-1)[0],'loopPlay');
 emit('loopState',{...stopped,playing:true,position:.5});assert.equal(el('progress').value,.5);assert(el('play').disabled);assert(!el('rec').disabled);
-elements['.loop-tracks'].children[2].onclick();el('rec').onclick();assert.deepEqual(calls.at(-1),['loopRecord',2,90,4,2]);
+elements['.loop-tracks'].children[2].onclick();assert.equal(el('rec').textContent,'● Gravar pista');el('rec').onclick();assert.deepEqual(calls.at(-1),['loopRecord',2,90,4,2]);
 elements['.loop-tracks'].children[0].onclick();el('mute').onclick();assert.deepEqual(calls.at(-1),['loopMute',0,true]);
 el('clear').onclick();assert.equal(confirmations,1);assert.deepEqual(calls.at(-1),['loopClear',0]);
 assert(!el('clear-all').disabled);approve=false;const beforeClearAll=calls.length;el('clear-all').onclick();assert.equal(calls.length,beforeClearAll,'Cancel retains all recordings');approve=true;el('clear-all').onclick();assert.deepEqual(calls.at(-1),['loopClearAll']);
@@ -31,6 +31,7 @@ events['graue:live-state']({detail:{title:'Primeira',bpm:90}});events['graue:liv
 document.hidden=true;events.visibilitychange();assert.equal(calls.at(-1)[0],'loopStop');
 emit('armed',false);assert(el('rec').disabled&&el('play').disabled);assert.match(el('status').textContent,/desconectado/);assert(priorEvents===5,'Previous receiver remains intact');
 emit('loopState',{...stopped,counts:[0,0,0,0]});assert(el('clear-all').disabled,'Empty loop has nothing to erase');emit('loopState',{...stopped,counts:[0,0,0,0],recording:true,track:2});assert(!el('clear-all').disabled,'An unfinished take can be discarded');
+emit('loopState',{...stopped,recording:true,track:0,receivedNotes:3,capturedNotes:2});assert.match(el('status').textContent,/Entrada: 3 notas · Capturadas: 2/);
 el('bpm').value='0';el('rec').onclick();assert.match(el('status').textContent,/40 a 240/);
 const html=fs.readFileSync(__dirname+'/../app/src/main/assets/index.html','utf8');assert(html.includes('src="midi-looper.js"'));assert(html.includes('href="midi-looper.css"'));
 console.log('Looper UI PASS: native commands, four tracks, USB gating, authoritative recording/playback state, overdub, mute, clear and music/visibility stop');

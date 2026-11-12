@@ -81,7 +81,7 @@ public class MainActivity extends Activity {
   MidiLooper.State state=liveLooper.state(System.nanoTime());
   try{JSONObject data=new JSONObject().put("playing",state.playing).put("recording",state.recording).put("queued",state.queued)
    .put("track",state.recordingTrack).put("bpm",state.bpm).put("beats",state.beats).put("bars",state.bars)
-   .put("position",state.position).put("counts",new JSONArray(state.counts)).put("muted",new JSONArray(state.muted)).put("message",state.message);
+   .put("receivedNotes",state.receivedNotes).put("capturedNotes",state.capturedNotes).put("position",state.position).put("counts",new JSONArray(state.counts)).put("muted",new JSONArray(state.muted)).put("message",state.message);
    emit("loopState",data);
   }catch(Exception ignored){}
  }
