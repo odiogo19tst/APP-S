@@ -88,9 +88,9 @@ window.receive=(type,data)=>{if(type==='webCifra'){try{
   if(window.refreshLiveSongs)window.refreshLiveSongs();
   status('Cifra identificada automaticamente: '+item.chords.length+' acordes · '+item.sections.length+' seções. Tom e BPM podem ser ajustados.');
  }catch(e){if(data?.louveBatch&&saved.louveSetlist){const row=saved.louveSetlist.items.find(x=>x.id===data.louve.id);if(row){row.status='failed';row.error=e.message;persist();}}if(data&&typeof data.text==='string')$('sharedText').value=data.text;status('Importação automática não concluída: '+e.message);}}if(type==='sharedText'){$('sharedText').value=data;status('Texto recebido. Revise na aba Repertório e toque em Importar texto revisado.');}if(type==='modelInfo')$('modelInfo').textContent=data;if(type==='status')status(data);if(type==='midi')midi(data);if(type==='clear')clear();if(type==='pause')pause();if(type==='armed')$('arm').checked=data;if(type==='mic'){mic=data;$('mic').textContent=mic?'Parar áudio':'Ouvir ambiente';if(!mic)$('audio').textContent='Áudio desligado';}if(type==='answer')$('answer').textContent=data;if(type==='import')importSongs(data);if(type==='audio'){estimate=data;$('audio').textContent=data.root>=0?'Estimativa: '+M.names[data.root]+(data.mode===1?' menor':' maior')+' • índice '+data.confidence+' (não é probabilidade)':'Ouvindo • tom ainda indefinido';}};
-const migratedIds=new Set();songs=songs.flatMap(entry=>{try{const item=normalize(entry);if(migratedIds.has(item.loopId))item.loopId=songIdentity();migratedIds.add(item.loopId);return [item];}catch(e){return [];}});
+let repertoireMigrated=false;const migratedIds=new Set();songs=songs.flatMap(entry=>{try{const item=normalize(entry);if(migratedIds.has(item.loopId))item.loopId=songIdentity();if(item.loopId!==entry.loopId)repertoireMigrated=true;migratedIds.add(item.loopId);return [item];}catch(e){repertoireMigrated=true;return [];}});
 scenes=scenes.filter(s=>s&&typeof s.name==='string'&&s.values&&typeof s.values==='object');
-list();sceneList();updateSong();draw();
+list();sceneList();updateSong();draw();if(repertoireMigrated)persist();
 
 $('importShared').onclick=()=>importSongs($('sharedText').value);
 $('openLouve').onclick=()=>invoke('openReference','louve');$('openCifra').onclick=()=>invoke('openCifra');

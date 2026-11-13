@@ -42,7 +42,7 @@ async function run(){
    assert.equal((await page.evaluate(midiCalls)).length,0,'Navigation may not send MIDI');
    // Same-title save, favorite and rename must affect only the chosen identity.
    await tab(page,'repertoire');await page.locator('.gx-song-pick').nth(1).click();
-   await page.locator('#gx-up').evaluate(n=>n.click());await page.locator('#gx-save-cifra').click();
+   await page.locator('#gx-up').evaluate(n=>n.click());await page.locator('.gx-repertoire-preparation').evaluate(n=>n.open=true);await page.locator('#gx-save-cifra').click();
    let saved=await page.evaluate(()=>window.lastSaved);assert.equal(saved.songs.length,2);assert.equal(saved.songs[0].root,0);assert.equal(saved.songs[1].root,3);
    await page.locator('.gx-song-star').nth(1).click();saved=await page.evaluate(()=>window.lastSaved);assert.deepEqual(saved.songFavorites,['song-b']);
    await page.locator('#gx-add-song').click();assert.equal(await page.locator('#title').inputValue(),'Nova música');

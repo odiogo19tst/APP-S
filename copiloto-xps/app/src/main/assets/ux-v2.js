@@ -621,6 +621,7 @@
  renderPerformanceBanks();
  const oldSongFavorites=new Set(Array.isArray(saved.songFavorites)?saved.songFavorites:[]);
  saved.songFavorites=songs.filter(s=>oldSongFavorites.has(s.loopId)||oldSongFavorites.has(s.title)).map(s=>s.loopId);
+ if(JSON.stringify([...oldSongFavorites])!==JSON.stringify(saved.songFavorites))persist();
  const songFavoriteSet=()=>new Set(Array.isArray(saved.songFavorites)?saved.songFavorites:[]);
  function renderStageSongOptions(){const dropdown=$x('gx-live-song-select');const catalog=songs.map((entry,i)=>i+':'+S(entry?.title)).join('|');if(dropdown.dataset.catalog!==catalog){dropdown.replaceChildren();songs.forEach((entry,i)=>{if(!entry)return;const option=document.createElement('option');option.value=String(i);option.textContent=S(entry.title||'Música '+(i+1));dropdown.append(option);});dropdown.dataset.catalog=catalog;}const current=activeSongIndex();if(current>=0)dropdown.value=String(current);else dropdown.selectedIndex=-1;}
  function renderSongs(){renderStageSongOptions();

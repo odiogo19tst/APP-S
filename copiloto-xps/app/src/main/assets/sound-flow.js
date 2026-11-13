@@ -59,5 +59,5 @@
   if(id('gx-advanced'))advanced.append(id('gx-advanced'));nav.append(advanced);
  }
  const savePage=id('sound-page-scenes'),repertoire=doc.querySelector('[data-gx-tab="repertoire"]');
- if(savePage&&repertoire){const link=make('button','Vincular à música no Repertório');link.type='button';link.onclick=()=>{id('gx-return')?.click();repertoire.click();id('gx-song-rig')?.scrollIntoView({behavior:'smooth',block:'start'});};savePage.insertBefore(link,savePage.firstChild);}
+ if(savePage&&repertoire){const link=make('button','Vincular à música no Repertório');link.type='button';link.onclick=()=>{id('gx-return')?.click();repertoire.click();const rig=id('gx-song-rig');for(let parent=rig?.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;rig?.scrollIntoView({behavior:'smooth',block:'start'});};savePage.insertBefore(link,savePage.firstChild);}
 })();

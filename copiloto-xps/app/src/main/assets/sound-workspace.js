@@ -5,7 +5,7 @@
  const id=k=>document.getElementById(k),doc=sound.ownerDocument;
  sound.classList.add('sound-workspace');
  const heading=sound.querySelector('h2');if(heading)heading.textContent='Estúdio de sons';
- const groups=[['tones','1 · Timbre',['applyTone','applyPart']],['mix','2 · Ajustes',['apply','applyShape','layerParts']],['effects','3 · Efeitos',['applyMfx','applyAmbience','mfxParameters']],['rhythm','4 · Ritmo',['applyArp','applyRhythm']],['scenes','5 · Guardar',['saveScene','pad']]];
+ const groups=[['tones','1 · Timbre',['applyTone','applyPart']],['mix','2 · Ajustes',['apply','applyShape','layerParts','pad']],['effects','3 · Efeitos',['applyMfx','applyAmbience','mfxParameters']],['rhythm','4 · Ritmo',['applyArp','applyRhythm']],['scenes','5 · Guardar',['saveScene']]];
  const tabs=doc.createElement('div');tabs.className='sound-workspace-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Áreas do estúdio');
  sound.insertBefore(tabs,heading?.nextSibling||sound.firstChild);
  const panels=[],buttons=[];
