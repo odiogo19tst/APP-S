@@ -50,10 +50,10 @@ async function run(){
    saved=await page.evaluate(()=>window.lastSaved);assert.equal(saved.songs.length,3);assert.equal(saved.songs[1].title,'Mesmo nome');
    await page.locator('#title').fill('Terceira renomeada');await page.locator('#saveSong').click();
    saved=await page.evaluate(()=>window.lastSaved);assert.equal(saved.songs.length,3);assert.equal(saved.songs[2].title,'Terceira renomeada');
-   await page.locator('#gx-return').click();await tab(page,'stage');
+   await page.locator('#gx-return').click();await tab(page,'stage');assert.equal(await page.locator('#gx-transpose').innerText(),'0','New song must not inherit the previous transposition display');
    // Modal tools and live mode are reversible and leave one visible page.
    await page.locator('.gx-stage-tool-grid button').first().click();assert(await page.locator('.gx-tool-dialog').isVisible());await page.keyboard.press('Escape');
-   await page.locator('#gx-show-mode').click();assert.equal(await page.locator('#gx-show-mode').getAttribute('aria-pressed'),'true');await page.locator('#gx-show-mode').click();
+   await page.locator('#gx-show-mode').click();assert.equal(await page.locator('#gx-show-mode').getAttribute('aria-pressed'),'true');await page.screenshot({path:path.join(out,size.width+'-live.png'),fullPage:true});await noOverflow(page,'live '+size.width);await page.locator('[data-gx-tab="sound"]').evaluate(n=>n.click());assert(await page.locator('[data-gx-screen="stage"]').evaluate(n=>n.classList.contains('on')));await page.locator('#gx-show-mode').click();
    await page.evaluate(()=>{window.auditLiveEvents=0;document.addEventListener('graue:live-state',()=>window.auditLiveEvents++);});
    await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.auditLiveEvents),0,'Idle stage must not rebroadcast unchanged state');
    // Inject a readback fixture to exercise actual handlers and MFX draft lifetime.

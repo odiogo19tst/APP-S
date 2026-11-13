@@ -153,6 +153,7 @@
   if(result.status==='unsupported'){updateRigStatus('🎹 '+name+' · ponte MIDI indisponível');notify('Esta versão do APK não consegue carregar a Performance.');return;}
   updateRigStatus('🎹 '+name+' · solicitado ao XPS-10 (aguardando leitura)');
  }
+ window.GraueOnSongSelected=()=>{transposeSteps=0;selectedIndex=songIndex(song);preparedBrainPlan=null;};
  function selectRepertoireSong(entry,index){
   selectedIndex=index;transposeSteps=0;
   select(entry);rigSelectionStatus='';
