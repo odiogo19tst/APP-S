@@ -90,6 +90,7 @@ async function run(){
    await noOverflow(page,'central sequencer '+size.width);await page.screenshot({path:path.join(out,size.width+'-central-sequence.png'),fullPage:true});
    await page.locator('[data-central-tab="system"]').click();assert.equal(await page.locator('.central-limits button:disabled').count(),2);
    assert.equal(await page.locator('[data-system-field]').count(),32);
+   const applyPosition=await page.locator('#central-apply').evaluate(n=>{const r=n.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:innerHeight};});assert(applyPosition.top>=0&&applyPosition.bottom<=applyPosition.height,'Global Apply stays visible');
    const tuning=page.locator('[data-system-field="masterTune:0"]'),globalLevel=page.locator('[data-system-field="system:5"]');
    assert.equal(await tuning.inputValue(),'0');const beforeSystem=(await page.evaluate(midiCalls)).length;
    await tuning.fill('12.3');await tuning.dispatchEvent('change');assert.equal((await page.evaluate(midiCalls)).length,beforeSystem,'Global draft must stay passive');
