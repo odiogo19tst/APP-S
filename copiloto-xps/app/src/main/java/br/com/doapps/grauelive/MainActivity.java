@@ -78,7 +78,7 @@ public class MainActivity extends Activity {
   if(loopFiles==null||liveLooper==null||loopStorage.isShutdown())return;
   synchronized(liveLooper){MidiLooper.State state=liveLooper.state(System.nanoTime());if(state.recording||state.revision==loopSavedRevision)return;
    MidiLooper.Session snapshot=liveLooper.session();long revision=state.revision;loopSavedRevision=revision;
-   loopStorage.execute(()->{try{loopFiles.checkpoint(snapshot);}catch(Exception e){synchronized(liveLooper){if(loopSavedRevision==revision)loopSavedRevision=-1;}emit("loopLibraryError","Falha ao salvar a sessão: "+e.getMessage());}});
+   try{loopStorage.execute(()->{try{loopFiles.checkpoint(snapshot);}catch(Exception e){synchronized(liveLooper){if(loopSavedRevision==revision)loopSavedRevision=-1;}emit("loopLibraryError","Falha ao salvar a sessão: "+e.getMessage());}});}catch(RejectedExecutionException ignored){ /* Activity is already closing; queued snapshots are retained. */ }
   }
  }
  private void loadLoopSession(MidiLooper.Session session,JSONObject info){runOnUiThread(()->{
