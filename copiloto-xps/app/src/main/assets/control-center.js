@@ -1,8 +1,8 @@
 'use strict';
 (()=>{
- const model=window.GraueControlCenterModel,screen=document.querySelector('#gx-shell [data-gx-screen="sound"]');if(!model||!screen)return;
+ const model=window.GraueControlCenterModel,screen=document.querySelector('#gx-shell [data-gx-screen="sound"]');if(!model||!screen)return;screen.querySelector('.gx-page-heading')?.remove();
  const doc=screen.ownerDocument,old=screen.querySelector('.gx-sound-layout'),root=doc.createElement('section');root.id='gx-control-center';
- root.innerHTML=`<header class="central-heading"><div><small>GRAUÊ · CONTROLE MIDI DO XPS-10</small><h2>Central do teclado</h2></div><span id="central-connection">USB aguardando</span></header>
+ root.innerHTML=`<header class="central-heading"><div><small>GRAUÊ · CONTROLE MIDI DO XPS-10</small><h1>Central do teclado</h1></div><span id="central-connection">USB aguardando</span></header>
  <p id="central-status" role="status" aria-live="polite">Conecte o XPS-10 e aguarde a leitura para editar seus parâmetros.</p>
  <div class="central-layout"><nav class="central-nav" aria-label="Ferramentas da central">
  <button data-central-tab="overview">Visão geral</button><button data-central-tab="scenes">Cenas</button><button data-central-tab="parts">Partes e camadas</button><button data-central-tab="effects">Efeitos</button><button data-central-tab="sequence">Sequenciador</button><button data-central-tab="system">Sistema</button></nav><div class="central-body">
@@ -25,12 +25,12 @@
  let chords=Array.isArray(preferences.centralChords)&&preferences.centralChords.length>0&&preferences.centralChords.length<=8&&preferences.centralChords.every(validChord)?preferences.centralChords:['C','Am','F','G','Dm','Em','Bb','G7'];
  const message=t=>q('status').textContent=String(t||''),canEdit=()=>connected&&!busy&&model.ready(hw),key=e=>[e.section,e.index,e.offset].join(':'),currentSong=()=>typeof song!=='undefined'&&typeof songIndex==='function'&&songIndex(song)>=0?song.loopId||'':'';
  function call(name,...args){if(typeof window.Native?.[name]!=='function'){message('Este recurso exige o APK atualizado.');return false;}window.Native[name](...args);return true;}
- function selectPage(name){activePage=name;root.querySelectorAll('[data-central-page]').forEach(n=>n.hidden=n.dataset.centralPage!==name);root.querySelectorAll('[data-central-tab]').forEach(n=>{n.classList.toggle('on',n.dataset.centralTab===name);n.setAttribute('aria-current',n.dataset.centralTab===name?'page':'false');});}
+ function selectPage(name){activePage=name;const editors=doc.getElementById('central-existing-editors');if(editors)editors.open=false;root.querySelectorAll('[data-central-page]').forEach(n=>n.hidden=n.dataset.centralPage!==name);root.querySelectorAll('[data-central-tab]').forEach(n=>{n.classList.toggle('on',n.dataset.centralTab===name);n.setAttribute('aria-current',n.dataset.centralTab===name?'page':'false');});}
  for(const b of root.querySelectorAll('[data-central-tab],[data-central-go]'))b.onclick=()=>selectPage(b.dataset.centralTab||b.dataset.centralGo);
  function option(field,text,value){const o=make('option',text);o.value=String(value);field.append(o);}
  for(let i=1;i<=16;i++){option(q('chord-channel'),'Canal '+i,i);option(q('seq-channel'),'Canal '+i,i);option(q('part'),'Parte '+i,i-1);}
  for(let i=0;i<8;i++)option(q('seq-track'),'Pista '+(i+1),i);
- function updateButtons(){q('connection').textContent=connected?(model.ready(hw)?'USB · Performance lida':'USB · aguardando SysEx'):'USB desconectado';q('pending').textContent=prepared.size?prepared.size+' ajuste(s) preparado(s)':'Nenhum ajuste preparado';q('apply').disabled=!canEdit()||!prepared.size;q('discard').disabled=!prepared.size;q('read').disabled=busy;q('undo').disabled=!connected||busy;q('scene-save').disabled=!canEdit()||prepared.size>0;for(const b of q('chord-buttons').querySelectorAll('button'))b.disabled=!connected;q('chord-stop').disabled=!connected;q('seq-play').disabled=!connected||busy||seqPlaying;q('seq-stop').disabled=!seqPlaying;}
+ function updateButtons(){q('connection').textContent=connected?(model.ready(hw)?'USB · Performance lida':'USB · aguardando SysEx'):'USB desconectado';q('pending').textContent=prepared.size?prepared.size+' ajuste(s) preparado(s)':'Nenhum ajuste preparado';q('apply').disabled=!canEdit()||!prepared.size;q('discard').disabled=!prepared.size;q('read').disabled=!connected||busy;q('undo').disabled=!connected||busy;q('scene-save').disabled=!canEdit()||prepared.size>0;for(const b of q('chord-buttons').querySelectorAll('button'))b.disabled=!connected;q('chord-stop').disabled=!connected;q('seq-play').disabled=!connected||busy||seqPlaying;q('seq-stop').disabled=!seqPlaying;}
  function stageEdit(section,index,offset,value){try{const e=model.command(section,index,offset,value);if(!canEdit())throw Error('Conecte e leia o XPS-10 antes de preparar uma alteração.');prepared.set(key(e),e);updateButtons();}catch(e){message(e.message);}}
  function value(section,index,offset){return prepared.get([section,index,offset].join(':'))?.value??hw[section+':'+index]?.[offset];}
  function refreshFields(){
