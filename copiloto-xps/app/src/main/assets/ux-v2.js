@@ -161,7 +161,7 @@
  const switchTab=name=>{if(liveMode&&name!=='stage'){notify('Saia do Ao Vivo para configurar ou editar. Sua música continua selecionada.');return;}active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();if(name==='backups'&&window.Native?.listBackups)window.Native.listBackups();};
  const setLiveMode=enabled=>{liveMode=!!enabled;shell.classList.toggle('gx-live-mode',liveMode);$x('gx-show-mode').textContent=liveMode?'← Sair do Ao Vivo':'▶ Entrar no Ao Vivo';$x('gx-show-mode').setAttribute('aria-pressed',String(liveMode));if(liveMode){switchTab('stage');if(!stageScoreOpen)$x('gx-live-score-toggle').click();renderStageSongOptions();}else{const scrollButton=$x('gx-stage-scroll-toggle');if(scrollButton&&scoreScrolling)scrollButton.click();}window.Native?.showMode?.(liveMode);syncStage();};
  tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');$x('gx-show-mode').onclick=()=>setLiveMode(!liveMode);
- const openLegacy=tab=>{if(liveMode){notify('Saia do Ao Vivo para abrir os editores.');return;}document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();window.scrollTo(0,0);};
+ const openLegacy=(tab,page='tones')=>{if(liveMode){notify('Saia do Ao Vivo para abrir os editores.');return;}document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();if(tab==='sound')window.GraueSoundWorkspace?.open(page);window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
  const arm=()=>{}; // connection owns MIDI send/receive readiness
  const connect=()=>callOld('connect');
@@ -518,7 +518,7 @@
     renderToneList();renderCategories();
    }
    if(soundSection==='tones'){toneOnlyFavs=false;$x('gx-tone-favorites').classList.remove('on');renderToneList();}
-   if(soundSection==='split'||soundSection==='effects'||soundSection==='arpeggio')openLegacy('sound');
+   if(soundSection==='split'||soundSection==='effects'||soundSection==='arpeggio')openLegacy('sound',({split:'mix',effects:'effects',arpeggio:'rhythm'})[soundSection]);
    if(!tonesMode)renderMixer();
  }
  const modifyControls=[[7,'Volume'],[11,'Expressão'],[71,'Resson.'],[72,'Release'],[73,'Attack'],[74,'Cutoff'],[91,'Reverb'],[93,'Chorus']];

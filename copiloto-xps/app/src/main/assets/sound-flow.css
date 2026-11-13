@@ -1,0 +1,13 @@
+.sound-workspace .sound-flow-context{border-color:var(--accent,#dd718e);padding:12px}
+.sound-flow-context>button{margin:3px}
+.sound-workspace .sound-flow-response{border-left:3px solid var(--accent,#dd718e);padding:9px 12px;background:#ffffff08;min-height:42px}
+.sound-workspace .sound-flow-help{grid-column:1/-1;margin:6px 0 12px;padding:12px;border:1px solid #ffffff24;border-radius:8px}
+.sound-flow-details{grid-column:1/-1;border:1px solid #ffffff24;border-radius:8px;padding:12px;margin:10px 0}
+.sound-flow-details summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.sound-workspace .sound-flow-step-actions{grid-column:1/-1;display:flex;justify-content:space-between;gap:12px;margin:16px 0}
+.sound-workspace .sound-flow-prepared{color:var(--accent,#f0a2b6);border-top:1px solid #ffffff24;padding-top:9px}
+#gx-shell.gx-layout-v3 .gx-sound-nav .sound-flow-group{grid-column:1/-1;font-size:12px;color:var(--gx-muted,#b4c5cc);padding:14px 4px 4px}
+#gx-shell.gx-layout-v3 .gx-sound-nav .sound-flow-advanced{grid-column:1/-1;border-top:1px solid #ffffff24;margin-top:12px;padding-top:8px}
+.sound-flow-advanced summary{padding:12px 4px;cursor:pointer}
+#gx-shell.gx-layout-v3 .gx-sound-nav .sound-flow-advanced button{margin:4px;min-height:44px}
+@media(max-width:600px){.sound-workspace-tabs{scroll-snap-type:x proximity}.sound-workspace-tabs button{scroll-snap-align:start}.sound-flow-context>button{font-size:11px}.sound-workspace .sound-flow-context{padding:10px}.sound-flow-details article{padding:8px!important}.sound-workspace .sound-flow-step-actions button{flex:1}}
