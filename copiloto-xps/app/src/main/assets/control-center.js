@@ -2,7 +2,7 @@
 (()=>{
  const model=window.GraueControlCenterModel,screen=document.querySelector('#gx-shell [data-gx-screen="sound"]');if(!model||!screen)return;screen.querySelector('.gx-page-heading')?.remove();
  const doc=screen.ownerDocument,old=screen.querySelector('.gx-sound-layout'),root=doc.createElement('section');root.id='gx-control-center';
- root.innerHTML=`<header class="central-heading"><div><small>GRAUÊ · CONTROLE MIDI DO XPS-10</small><h1>Central do teclado</h1></div><span id="central-connection">USB aguardando</span></header>
+ root.innerHTML=`<header class="central-heading"><div><small>GRAUÊ · CONTROLE MIDI DO XPS-10</small><h1>Central do teclado</h1></div><span id="central-connection">USB aguardando</span><button id="central-mode" hidden>Entrar em Performance</button></header>
  <p id="central-status" role="status" aria-live="polite">Conecte o XPS-10 e aguarde a leitura para editar seus parâmetros.</p>
  <div class="central-layout"><nav class="central-nav" aria-label="Ferramentas da central">
  <button data-central-tab="overview">Visão geral</button><button data-central-tab="scenes">Cenas</button><button data-central-tab="parts">Partes e camadas</button><button data-central-tab="effects">Efeitos</button><button data-central-tab="sequence">Sequenciador</button><button data-central-tab="system">Sistema</button></nav><div class="central-body">
@@ -30,7 +30,7 @@
  function option(field,text,value){const o=make('option',text);o.value=String(value);field.append(o);}
  for(let i=1;i<=16;i++){option(q('chord-channel'),'Canal '+i,i);option(q('seq-channel'),'Canal '+i,i);option(q('part'),'Parte '+i,i-1);}
  for(let i=0;i<8;i++)option(q('seq-track'),'Pista '+(i+1),i);
- function updateButtons(){q('connection').textContent=connected?(model.ready(hw)?'USB · Performance lida':'USB · aguardando SysEx'):'USB desconectado';q('pending').textContent=prepared.size?prepared.size+' ajuste(s) preparado(s)':'Nenhum ajuste preparado';q('apply').disabled=!canEdit()||!prepared.size;q('discard').disabled=!prepared.size;q('read').disabled=!connected||busy;q('undo').disabled=!connected||busy;q('scene-save').disabled=!canEdit()||prepared.size>0;for(const b of q('chord-buttons').querySelectorAll('button'))b.disabled=!connected;q('chord-stop').disabled=!connected;q('seq-play').disabled=!connected||busy||seqPlaying;q('seq-stop').disabled=!seqPlaying;}
+ function updateButtons(){q('mode').hidden=!connected||!Array.isArray(hw['setup:0'])||hw['setup:0'][0]===1;q('mode').disabled=busy;q('connection').textContent=connected?(model.ready(hw)?'USB · Performance lida':'USB · aguardando SysEx'):'USB desconectado';q('pending').textContent=prepared.size?prepared.size+' ajuste(s) preparado(s)':'Nenhum ajuste preparado';q('apply').disabled=!canEdit()||!prepared.size;q('discard').disabled=!prepared.size;q('read').disabled=!connected||busy;q('undo').disabled=!connected||busy;q('scene-save').disabled=!canEdit()||prepared.size>0;for(const b of q('chord-buttons').querySelectorAll('button'))b.disabled=!connected;q('chord-stop').disabled=!connected;q('seq-play').disabled=!connected||busy||seqPlaying;q('seq-stop').disabled=!seqPlaying;}
  function stageEdit(section,index,offset,value){try{const e=model.command(section,index,offset,value);if(!canEdit())throw Error('Conecte e leia o XPS-10 antes de preparar uma alteração.');prepared.set(key(e),e);updateButtons();}catch(e){message(e.message);}}
  function value(section,index,offset){return prepared.get([section,index,offset].join(':'))?.value??hw[section+':'+index]?.[offset];}
  function refreshFields(){
@@ -46,7 +46,8 @@
  for(const [name,offset] of [['transpose',18],['octave',19]])q(name).onchange=()=>{if(q(name).value===''){message('Informe um valor inteiro.');refreshFields();return;}stageEdit('setup',0,offset,Number(q(name).value)+64);};
  q('read').onclick=()=>{if(prepared.size&&!confirm('Atualizar a leitura e descartar os ajustes preparados nesta central?'))return;prepared.clear();expected=null;call('readHardware');refreshFields();};
  q('discard').onclick=()=>{prepared.clear();expected=null;refreshFields();message('Ajustes preparados descartados. Nenhum comando MIDI enviado.');};
- q('apply').onclick=()=>{if(!canEdit()||!prepared.size)return;const edits=[...prepared.values()];expected={source:model.fingerprint(hw),edits};if(call('editHardware',JSON.stringify(edits)))message('Ajustes enviados. Aguardando a leitura do XPS-10.');else expected=null;};
+ q('apply').onclick=()=>{try{if(!canEdit()||!prepared.size)return;const edits=[...prepared.values()];expected={source:model.fingerprint(hw),edits};if(call('editHardware',JSON.stringify(edits)))message('Ajustes enviados. Aguardando a leitura do XPS-10.');else expected=null;}catch(e){expected=null;message(e.message);}};
+ q('mode').onclick=()=>{if(!connected||busy||!Array.isArray(hw['setup:0'])||hw['setup:0'][0]===1)return;call('editHardware',JSON.stringify([{section:'setup',index:0,offset:0,value:1}]));};
  q('undo').onclick=()=>call('undoHardware');
  const openEditor=key=>{const details=doc.getElementById('central-existing-editors');if(details)details.open=true;doc.querySelector('[data-gx-sound="'+key+'"]')?.click();};
  q('open-effects').onclick=()=>openEditor('effects');q('open-split').onclick=()=>openEditor('split');q('open-system').onclick=()=>{doc.getElementById('gx-more-menu').open=true;doc.querySelector('[data-gx-tab="settings"]')?.click();};
@@ -74,7 +75,7 @@
   if(type==='hardware'||type==='hardwarePhysical'){
    const previous=hw;hw=data||{};
    if(expected){try{if(expected.source===model.fingerprint(hw)&&expected.edits.every(e=>hw[e.section+':'+e.index]?.[e.offset]===e.value)){for(const e of expected.edits)if(prepared.get(key(e))?.value===e.value)prepared.delete(key(e));message('Os valores lidos correspondem aos ajustes enviados. Confira o som no XPS.');}}catch(e){}expected=null;}
-   else if(prepared.size&&model.ready(previous)&&model.ready(hw)&&model.fingerprint(previous)!==model.fingerprint(hw)){prepared.clear();message('Performance alterada. Ajustes preparados descartados para não atingir outro som.');}
+   else if(prepared.size&&model.ready(previous)&&model.ready(hw)){try{if(model.fingerprint(previous)!==model.fingerprint(hw)){prepared.clear();message('Performance alterada. Ajustes preparados descartados para não atingir outro som.');}}catch(e){prepared.clear();message('Leitura incompleta. Atualize o teclado antes de preparar novos ajustes.');}}
    refreshFields();
   }
   if(type==='hardwareReset'){hw={};prepared.clear();expected=null;busy=false;refreshFields();}
