@@ -19,7 +19,7 @@ public final class PhraseSequencer {
   public Pattern(int bpm,int steps,List<Track> tracks){
    if(bpm<40||bpm>240||(steps!=16&&steps!=32&&steps!=64)||tracks==null||tracks.size()!=TRACKS)throw new IllegalArgumentException("Use 8 pistas, 16/32/64 passos e BPM 40–240");
    for(Track t:tracks)if(t==null||t.notes.length!=steps)throw new IllegalArgumentException("Tamanho da pista inválido");
-   this.bpm=bpm;this.steps=steps;this.tracks=List.copyOf(tracks);
+   this.bpm=bpm;this.steps=steps;this.tracks=Collections.unmodifiableList(new ArrayList<>(tracks));
   }
  }
  private final Output output;private Pattern pattern;private boolean playing,failed;
