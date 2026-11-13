@@ -79,7 +79,7 @@ async function run(){
    results.push({viewport:size,pass:true});await page.close();
   }
   // Valid JSON that is not a state object must not break startup.
-  for(const value of [null,[],{songs:[null,{title:'Inválida'},...notes],scenes:[null]}]){const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.stack));await boot(p,value);await p.close();}
+  for(const value of [null,[],{songs:[null,{title:'Inválida'},...notes],scenes:[null]}]){const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.stack));await boot(p,value);if(value?.songs?.includes(null)){const recovery=await p.evaluate(()=>window.lastSaved);assert.equal(recovery.recoverySongs.length,2);assert.equal(recovery.recoveryScenes.length,1);assert.equal(recovery.songs.length,2);}await p.close();}
   assert.deepEqual(errors,[],'Browser runtime errors');
  }catch(e){for(const page of browser.contexts().flatMap(c=>c.pages())){await page.screenshot({path:path.join(out,'failure.png'),fullPage:true}).catch(()=>{});fs.writeFileSync(path.join(out,'failure.html'),await page.content());}throw e;}finally{fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({results,errors},null,2));await browser.close();}
  console.log('Browser audit PASS: 3 viewports, all pages, editor routes, identities, drafts, confirmation and passive idle. Hardware bridge simulated.');
