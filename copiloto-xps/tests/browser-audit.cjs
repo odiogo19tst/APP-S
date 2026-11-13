@@ -58,7 +58,7 @@ async function run(){
    await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.auditLiveEvents),0,'Idle stage must not rebroadcast unchanged state');
    // Inject a readback fixture to exercise actual handlers and MFX draft lifetime.
    await page.evaluate(()=>{
-    const hw={'setup:0':Array(80).fill(0),'common:0':Array(80).fill(0),'chorus:0':Array(100).fill(0),'reverb:0':Array(100).fill(0),completeBlocks:56,availableBlocks:56,validSysexPackets:56,readAt:Date.now()};hw['setup:0'][0]=1;hw['setup:0'][18]=64;hw['setup:0'][19]=64;window.auditHardware=hw;Array.from('Piano + Pad').forEach((c,i)=>hw['common:0'][i]=c.charCodeAt(0));for(const [i,name] of ['Piano','Pad','Strings','Baixo'].entries()){hw['patch:'+i]=Array(80).fill(0);Array.from(name).forEach((c,j)=>hw['patch:'+i][j]=c.charCodeAt(0));}
+    const hw={'setup:0':Array(80).fill(0),'common:0':Array(80).fill(0),'chorus:0':Array(100).fill(0),'reverb:0':Array(100).fill(0),'system:0':Array(30).fill(0),'systemController:0':Array(78).fill(0),completeBlocks:58,availableBlocks:58,validSysexPackets:58,readAt:Date.now()};hw['system:0'].splice(0,4,0,4,0,0);hw['system:0'][4]=64;hw['systemController:0'][3]=2;hw['setup:0'][0]=1;hw['setup:0'][18]=64;hw['setup:0'][19]=64;window.auditHardware=hw;Array.from('Piano + Pad').forEach((c,i)=>hw['common:0'][i]=c.charCodeAt(0));for(const [i,name] of ['Piano','Pad','Strings','Baixo'].entries()){hw['patch:'+i]=Array(80).fill(0);Array.from(name).forEach((c,j)=>hw['patch:'+i][j]=c.charCodeAt(0));}
     for(let i=0;i<16;i++){const p=Array(80).fill(0),z=Array(40).fill(0);p[0]=i;p[1]=1;p[4]=87;p[5]=64;p[7]=100;p[21]=64;z[1]=1;z[13]=127;hw['part:'+i]=p;hw['zone:'+i]=z;}
     hw['zone:0'][12]=36;hw['zone:0'][13]=59;hw['zone:1'][12]=60;hw['zone:1'][13]=96;
     for(let i=0;i<3;i++){const b=Array(160).fill(0);b[0]=1;for(let n=17;n<b.length;n+=4)b[n]=8;hw['mfx:'+i]=b;}
@@ -89,6 +89,18 @@ async function run(){
    await page.evaluate(()=>window.receive('phraseState',{playing:true,step:0,muted:Array(8).fill(false),message:'Sequenciador tocando'}));assert(await page.locator('#central-seq-grid [aria-label="Bumbo passo 1"]').isDisabled());await page.locator('#central-seq-stop').click();await page.evaluate(()=>window.receive('phraseState',{playing:false,step:-1,muted:Array(8).fill(false),message:'Sequenciador parado'}));
    await noOverflow(page,'central sequencer '+size.width);await page.screenshot({path:path.join(out,size.width+'-central-sequence.png'),fullPage:true});
    await page.locator('[data-central-tab="system"]').click();assert.equal(await page.locator('.central-limits button:disabled').count(),2);
+   assert.equal(await page.locator('[data-system-field]').count(),32);
+   const tuning=page.locator('[data-system-field="masterTune:0"]'),globalLevel=page.locator('[data-system-field="system:5"]');
+   assert.equal(await tuning.inputValue(),'0');const beforeSystem=(await page.evaluate(midiCalls)).length;
+   await tuning.fill('12.3');await tuning.dispatchEvent('change');assert.equal((await page.evaluate(midiCalls)).length,beforeSystem,'Global draft must stay passive');
+   await page.locator('#central-apply').click();let globalSent=(await page.evaluate(midiCalls)).at(-1);assert.deepEqual(JSON.parse(globalSent.args[0]),[{section:'masterTune',index:0,offset:0,value:1147}]);
+   await page.evaluate(()=>{window.auditHardware['system:0'].splice(0,4,0,4,7,11);window.receive('hardware',window.auditHardware);});assert.match(await page.locator('#central-pending').innerText(),/Nenhum/);
+   await page.evaluate(()=>{window.auditHardware['setup:0'][0]=0;window.receive('hardware',window.auditHardware);});assert(await globalLevel.isEnabled());assert(await page.locator('[data-central-level="0"]').isDisabled());
+   await globalLevel.fill('77');await globalLevel.dispatchEvent('change');await page.locator('#central-apply').click();globalSent=(await page.evaluate(midiCalls)).at(-1);assert.deepEqual(JSON.parse(globalSent.args[0]),[{section:'system',index:0,offset:5,value:77}]);
+   await page.evaluate(()=>{window.auditHardware['system:0'][5]=77;window.receive('hardware',window.auditHardware);window.receive('hardwareBusy',true);});assert(await globalLevel.isDisabled());assert(await page.locator('#central-apply').isDisabled());
+   await page.evaluate(()=>{window.receive('hardwareBusy',false);window.auditHardware['setup:0'][0]=1;window.receive('hardware',window.auditHardware);});
+   await page.screenshot({path:path.join(out,size.width+'-central-system.png'),fullPage:true});
+
    await page.locator('[data-central-tab="overview"]').click();await page.locator('#central-chord-buttons button').first().click();assert.equal(await page.evaluate(()=>window.nativeCalls.at(-1).method),'playAssistChord');
    await page.evaluate(()=>{window.receive('midi',[144,60,90]);window.receive('midi',[145,60,80]);window.receive('midi',[128,60,0]);});assert.equal(await page.locator('#central-keys rect[data-note="60"]').getAttribute('fill'),'#9aebc6');await page.evaluate(()=>window.receive('midi',[129,60,0]));assert.notEqual(await page.locator('#central-keys rect[data-note="60"]').getAttribute('fill'),'#9aebc6');
    assert.equal(await page.locator('[data-quick-part]').count(),4);
