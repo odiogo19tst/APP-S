@@ -36,7 +36,7 @@ async function run(){
    for(const key of ['repertoire','sound','drums','coach','backups','settings','stage']){await tab(page,key);await noOverflow(page,key+' '+size.width);}
    for(const [route,expected] of [['effects','effects'],['split','mix'],['arpeggio','rhythm']]){
     await editor(page,route);assert(await page.locator('#sound-page-'+expected).isVisible());
-    assert(await page.locator('#hardwarePart').isVisible());await noOverflow(page,'editor '+route+' '+size.width);
+    assert(await page.locator('#hardwarePart').isVisible());assert(await page.locator('#readHardware').isVisible());await noOverflow(page,'editor '+route+' '+size.width);
     await page.screenshot({path:path.join(out,size.width+'-'+route+'.png'),fullPage:true});await page.locator('#gx-return').click();
    }
    assert.equal((await page.evaluate(midiCalls)).length,0,'Navigation may not send MIDI');
@@ -81,7 +81,7 @@ async function run(){
   // Valid JSON that is not a state object must not break startup.
   for(const value of [null,[],{songs:[null,{title:'Inválida'},...notes],scenes:[null]}]){const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.stack));await boot(p,value);await p.close();}
   assert.deepEqual(errors,[],'Browser runtime errors');
- }finally{fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({results,errors},null,2));await browser.close();}
+ }catch(e){for(const page of browser.contexts().flatMap(c=>c.pages())){await page.screenshot({path:path.join(out,'failure.png'),fullPage:true}).catch(()=>{});fs.writeFileSync(path.join(out,'failure.html'),await page.content());}throw e;}finally{fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({results,errors},null,2));await browser.close();}
  console.log('Browser audit PASS: 3 viewports, all pages, editor routes, identities, drafts, confirmation and passive idle. Hardware bridge simulated.');
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});
