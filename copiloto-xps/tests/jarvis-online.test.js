@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const base=path.resolve(__dirname,'../app/src/main');
+const native=fs.readFileSync(path.join(base,'java/br/com/doapps/grauelive/MainActivity.java'),'utf8');
+const gateway=fs.readFileSync(path.join(base,'java/br/com/doapps/grauelive/JarvisCloudGateway.java'),'utf8');
+const ui=fs.readFileSync(path.join(base,'assets/ux-v2.js'),'utf8');
+const css=fs.readFileSync(path.join(base,'assets/ux-v2.css'),'utf8');
+for(const id of ['gx-online-panel','gx-online-mode','gx-online-model','gx-online-url','gx-online-token','gx-online-save','gx-online-test','gx-online-state','gx-online-feedback'])assert(ui.includes('id="'+id+'"'),'Missing Jarvis Online setting: '+id);
+for(const required of ['@JavascriptInterface public void configureJarvisOnline','@JavascriptInterface public void getJarvisOnlineStatus','@JavascriptInterface public void testJarvisOnline','jarvisGateway.request(prepared)','emit("aiSource"','Gemma offline'])assert(native.includes(required),'Native integration missing: '+required);
+assert(gateway.includes('AndroidKeyStore')&&gateway.includes('AES/GCM/NoPadding'),'Device token must be protected by Android Keystore');
+assert(gateway.includes('new URL(url+"/ask")'),'Only personal gateway allowed');
+assert(gateway.includes('https')&&gateway.includes('Authorization'),'TLS and device authentication required');
+assert(gateway.includes('setInstanceFollowRedirects(false)'),'Do not forward token to redirects');
+assert(gateway.includes('gpt-6-luna')&&gateway.includes('gpt-6.1-sol'),'Model allowlist required');
+assert(ui.includes("if(kind==='jarvisGateway')")&&ui.includes("if(kind==='aiSource')"),'Real native connection feedback missing');
+assert(ui.includes("if(token.startsWith('sk-'))"),'Protect against pasting OpenAI key into APK');
+assert(css.includes('.gx-online-panel'),'Responsive online setup layout missing');
+console.log('Jarvis Online: Android Keystore token, HTTPS gateway, online/offline fallback, UX wiring passed');

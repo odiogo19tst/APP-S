@@ -1,0 +1,940 @@
+package br.com.doapps.grauelive;
+import android.Manifest;
+import android.app.*;
+import android.content.*;
+import android.content.pm.PackageManager;
+import android.media.midi.MidiDeviceInfo;
+import android.os.*;
+import android.webkit.*;
+import android.view.View;
+import org.json.*;
+import java.io.*;
+import java.util.concurrent.*;
+import com.google.mediapipe.tasks.genai.llminference.LlmInference;
+
+public class MainActivity extends Activity {
+ private static final int MAX_STATE_BYTES=10*1024*1024;
+ private android.widget.LinearLayout rootLayout; private CifraPanel cifraPanel; private DrumSequencer sequencer;
+ private boolean autoUserRead=false;
+ private boolean stoppedWhileConnected=false;
+ private final java.util.Map<Integer,Integer> assistNotes=new java.util.HashMap<>();
+ private int assistSerial=0;
+ private final java.util.Set<Integer> droneNotes=new java.util.HashSet<>();
+ private void stopDrone(){
+  if(midi!=null)for(int key:droneNotes){midi.send(0x80+(key/128),key%128,0);}
+  droneNotes.clear();
+  emit("droneStatus",false);
+ }
+ private void stopAssist(){
+  for(Integer key:assistNotes.keySet())if(midi!=null)midi.send(0x80+(key/128),key%128,0);
+  assistNotes.clear();assistSerial++;
+ }
+
+ private void restoreConfirmedMidiCache(){
+  String snapshot=getPreferences(MODE_PRIVATE).getString("xpsVerifiedPerformanceCache","");
+  if(snapshot.isEmpty())return;
+  try{JSONObject saved=new JSONObject(snapshot);if(saved.optInt("completeBlocks")>0){
+    saved.put("source","midi-cache");
+    saved.put("fullStateVerified",false);
+    emit("hardwareCache",saved);
+  }}catch(Exception ignored){}
+ }
+ private void emitCachedUsers(){
+  String stored=getPreferences(MODE_PRIVATE).getString("xpsUserCache","");
+  if(!stored.isEmpty())try{emit("userTones",new JSONArray(stored));emit("status","Timbres USER recuperados do cache local. Não é necessário ler novamente.");}
+  catch(Exception ignored){}
+ }
+ private boolean hasCachedUsers(){return !getPreferences(MODE_PRIVATE).getString("xpsUserCache","").isEmpty();}
+ /** Save only verified USER entries and merge partial MIDI scans without losing older positions. */
+ private void mergeUserToneCache(JSONArray incoming){
+  if(incoming==null||incoming.length()==0)return;
+  JSONArray previous;
+  try{previous=new JSONArray(getPreferences(MODE_PRIVATE).getString("xpsUserCache","[]"));}
+  catch(Exception ignored){previous=new JSONArray();}
+  java.util.LinkedHashMap<String,JSONObject> entries=new java.util.LinkedHashMap<>();
+  for(JSONArray list:new JSONArray[]{previous,incoming}){
+   for(int i=0;i<list.length();i++){
+    JSONObject tone=list.optJSONObject(i);if(tone==null)continue;
+    String code=tone.optString("code","");
+    int msb=tone.optInt("msb",-1),lsb=tone.optInt("lsb",-1),program=tone.optInt("program",-1);
+    if(!code.matches("USER[0-9]{3}")||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128)continue;
+    entries.put(code,tone);
+   }
+  }
+  JSONArray merged=new JSONArray();
+  for(JSONObject tone:entries.values())merged.put(tone);
+  if(merged.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",merged.toString()).apply();
+ }
+ private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
+ private MidiLooper liveLooper;
+ private PhraseSequencer phraseSequencer;
+ private final Runnable phraseTick=new Runnable(){public void run(){if(phraseSequencer==null)return;phraseSequencer.tick(System.nanoTime());if(phraseSequencer.playing())loopClock.postDelayed(this,4);else publishPhrase();}};
+ private final Runnable phraseUiTick=new Runnable(){public void run(){publishPhrase();if(phraseSequencer!=null&&phraseSequencer.playing())loopUi.postDelayed(this,100);}};
+ private void publishPhrase(){if(phraseSequencer==null)return;try{JSONArray mutes=new JSONArray();for(int i=0;i<8;i++)mutes.put(phraseSequencer.muted(i));emit("phraseState",new JSONObject().put("playing",phraseSequencer.playing()).put("step",phraseSequencer.step()).put("muted",mutes).put("message",phraseSequencer.message()));}catch(Exception ignored){}}
+ private void stopPhrase(){if(loopClock!=null)loopClock.removeCallbacks(phraseTick);loopUi.removeCallbacks(phraseUiTick);if(phraseSequencer!=null){phraseSequencer.stop();publishPhrase();}}
+ private MidiLoopFiles loopFiles;private long loopSavedRevision=0;private byte[] loopExportBytes;
+ private final ExecutorService loopStorage=Executors.newSingleThreadExecutor();
+ private String loopStartupIssue="";
+ private JSONObject loopEntry(MidiLoopFiles.Entry e)throws JSONException{
+  int count=0;for(java.util.List<MidiLooper.Event> track:e.session.tracks)count+=track.size();
+  return new JSONObject().put("id",e.id).put("name",e.name).put("songId",e.songId).put("songTitle",e.songTitle).put("savedAt",e.savedAt).put("bpm",e.session.bpm).put("beats",e.session.beats).put("bars",e.session.bars).put("events",count);
+ }
+ private void loopLibrary(){try{if(loopFiles==null)throw new IOException("Biblioteca indisponível");JSONArray items=new JSONArray();for(MidiLoopFiles.Entry e:loopFiles.list())items.put(loopEntry(e));emit("loopLibrary",items);}catch(Exception e){emit("loopLibraryError",e.getMessage());}}
+ private void checkpointLoop(){
+  if(loopFiles==null||liveLooper==null||loopStorage.isShutdown())return;
+  synchronized(liveLooper){MidiLooper.State state=liveLooper.state(System.nanoTime());if(state.recording||state.revision==loopSavedRevision)return;
+   MidiLooper.Session snapshot=liveLooper.session();long revision=state.revision;loopSavedRevision=revision;
+   try{loopStorage.execute(()->{try{loopFiles.checkpoint(snapshot);}catch(Exception e){synchronized(liveLooper){if(loopSavedRevision==revision)loopSavedRevision=-1;}emit("loopLibraryError","Falha ao salvar a sessão: "+e.getMessage());}});}catch(RejectedExecutionException ignored){ /* Activity is already closing; queued snapshots are retained. */ }
+  }
+ }
+ private void loadLoopSession(MidiLooper.Session session,JSONObject info){runOnUiThread(()->{
+  if(liveLooper.isActive()){emit("loopLibraryError","Pare o loop antes de carregar outro");return;}
+  liveLooper.restore(session);publishLoopState();emit("loopLoaded",info);
+ });}
+
+ private HandlerThread loopThread;
+ private Handler loopClock;
+ private final Handler loopUi=new Handler(Looper.getMainLooper());
+ private final Runnable loopTick=new Runnable(){public void run(){
+  if(liveLooper==null)return;
+  liveLooper.tick(System.nanoTime());
+  if(liveLooper.isActive())loopClock.postDelayed(this,2);
+  else publishLoopState();
+ }};
+ private final Runnable loopUiTick=new Runnable(){public void run(){publishLoopState();if(liveLooper!=null&&liveLooper.isActive())loopUi.postDelayed(this,100);}};
+ private void publishLoopState(){
+  if(liveLooper==null)return;
+  checkpointLoop();
+  MidiLooper.State state=liveLooper.state(System.nanoTime());
+  try{JSONObject data=new JSONObject().put("playing",state.playing).put("recording",state.recording).put("queued",state.queued)
+   .put("track",state.recordingTrack).put("bpm",state.bpm).put("beats",state.beats).put("bars",state.bars)
+   .put("countInBeats",state.countInBeats).put("receivedNotes",state.receivedNotes).put("capturedNotes",state.capturedNotes).put("position",state.position).put("counts",new JSONArray(state.counts)).put("muted",new JSONArray(state.muted)).put("message",state.message);
+   emit("loopState",data);
+  }catch(Exception ignored){}
+ }
+ private void startLoopClock(){loopClock.post(()->{loopClock.removeCallbacks(loopTick);loopClock.post(loopTick);});loopUi.removeCallbacks(loopUiTick);loopUi.post(loopUiTick);}
+ private void stopLiveLoop(){stopPhrase();if(loopClock!=null)loopClock.removeCallbacks(loopTick);loopUi.removeCallbacks(loopUiTick);if(liveLooper!=null){liveLooper.stop();publishLoopState();}}
+ private boolean armed=false;
+  private final java.util.concurrent.atomic.AtomicBoolean gemmaBusy=new java.util.concurrent.atomic.AtomicBoolean(false);
+  private final java.util.concurrent.atomic.AtomicBoolean gemmaCancel=new java.util.concurrent.atomic.AtomicBoolean(false);
+ private final ExecutorService worker=Executors.newSingleThreadExecutor(); private final ExecutorService modelInstallerWorker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
+ private PadSampleEngine padSamples; private ChromaticPadEngine chromaticPad;
+ private final java.util.Set<Integer> chromaticMidiNotes=new java.util.HashSet<>(); private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1,exportRolandBank=-1; private String exportKitSettings="{}";
+ private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
+
+ @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
+  backupArchive=new BackupArchive(this);padSamples=new PadSampleEngine(this);chromaticPad=new ChromaticPadEngine(this);jarvisGateway=new JarvisCloudGateway(this);directApi=new JarvisDirectOpenAI(this);
+  getWindow().setStatusBarColor(android.graphics.Color.rgb(7,17,28));
+  getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
+  getWindow().getDecorView().setSystemUiVisibility(0);
+  rootLayout=new android.widget.LinearLayout(this);rootLayout.setBackgroundColor(android.graphics.Color.rgb(7,17,28));rootLayout.setOrientation(android.widget.LinearLayout.VERTICAL);setContentView(rootLayout);web=new WebView(this);rootLayout.addView(web,new android.widget.LinearLayout.LayoutParams(-1,0,1));rootLayout.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setBlockNetworkLoads(true);
+  // Required for confirm() dialogs: without a Chrome client Android cancels them silently.
+  web.setWebChromeClient(new WebChromeClient());
+  web.setWebViewClient(new WebViewClient(){public boolean shouldOverrideUrlLoading(WebView v,android.webkit.WebResourceRequest req){return true;}public void onPageFinished(WebView v,String url){pageReady=true;if(!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}modelInfo();emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));gatewayInfo();directInfo();restoreConfirmedMidiCache();emitCachedUsers();worker.execute(()->publishLatestBackup());}});
+  web.addJavascriptInterface(new Bridge(),"Native");
+  worker.execute(()->{
+   try{padSamples.prepare();emit("padSampleState",padSamples.state());}
+   catch(Exception e){emit("status","Áudio dos pads indisponível: "+e.getMessage());}
+   try{chromaticPad.prepare();emit("chromaticReady",true);}
+   catch(Exception e){emit("status","Notas musicais do celular indisponíveis: "+e.getMessage());}
+  });
+  xps=new XpsController(new XpsController.IO(){public boolean send(byte[] b){return midi!=null&&midi.send(b);}public void emit(String k,Object d){
+  MainActivity.this.emit(k,d);
+  if("hardware".equals(k)&&d instanceof JSONObject){
+   JSONObject snap=(JSONObject)d;
+   if(snap.optInt("completeBlocks",0)>0&&snap.optInt("validSysexPackets",0)>0){
+    getPreferences(MODE_PRIVATE).edit().putString("xpsVerifiedPerformanceCache",snap.toString()).apply();
+   }
+  }
+  if("hardware".equals(k)&&autoUserRead){
+   autoUserRead=false;
+   if(hasCachedUsers())emitCachedUsers();
+   else if(xps.hasValidSysex())new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
+   else emit("status","USB-MIDI conectado, mas sem resposta SysEx. Leitura de USER/Favorites não iniciada; verifique o teclado.");
+  }
+  if("userTones".equals(k)&&d instanceof JSONArray){
+   mergeUserToneCache((JSONArray)d);
+  }
+ }});
+  loopThread=new HandlerThread("GraueMidiClock",android.os.Process.THREAD_PRIORITY_AUDIO);loopThread.start();loopClock=new Handler(loopThread.getLooper());
+  liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
+  phraseSequencer=new PhraseSequencer((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
+  try{loopFiles=new MidiLoopFiles(getFilesDir());MidiLoopFiles.Entry previous=loopFiles.checkpoint();if(previous!=null)liveLooper.restore(previous.session);loopSavedRevision=liveLooper.state(System.nanoTime()).revision;}catch(Exception e){loopStartupIssue="Sessão anterior não recuperada: "+e.getMessage();}
+  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
+ if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
+ emit("status",t);
+ if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
+  stopLiveLoop();liveLooper.retrySilence();publishLoopState();stopDrone();stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
+  armed=true;emit("armed",true);emit("xpsConnection",true);
+  autoUserRead=!hasCachedUsers();
+  emitCachedUsers();
+  new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.initialSync();},300);
+ }else if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){
+  stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
+  armed=false;autoUserRead=false;
+  emit("armed",false);emit("xpsConnection",false);emit("clear","");
+ }
+}public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}
+ public void eventAt(long receivedNs,int s,int a,int b){liveLooper.input(receivedNs,s,a,b);if(XpsProtocol.patchSelectionMessage(s,a))runOnUiThread(()->xps.patchSelectionInput());event(s,a,b);}
+ });
+  sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
+  audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
+  captureShare(getIntent());
+  layoutPanels();web.loadUrl("file:///android_asset/index.html");
+  // Passive discovery only. Auto-connect when there is exactly one MIDI USB device.
+  // The OS still owns USB access permissions; never choose among multiple devices silently.
+  new Handler(Looper.getMainLooper()).postDelayed(()->autoConnectUsb(),1100);
+ }
+ private static boolean isYoutubeUrl(android.net.Uri u){
+  if(u==null||!"https".equalsIgnoreCase(u.getScheme()))return false;
+  String host=u.getHost();
+  if(host==null)return false;
+  String h=host.toLowerCase(java.util.Locale.ROOT);
+  return h.equals("youtu.be")||h.equals("www.youtube.com")||h.equals("youtube.com")||h.equals("m.youtube.com");
+ }
+ private void autoConnectUsb(){
+  if(midi==null||midi.isConnected())return;
+  MidiDeviceInfo[] list=midi.devices();
+  if(list.length==1)midi.connect(list[0]);
+  else if(list.length==0)new Handler(Looper.getMainLooper()).postDelayed(()->{
+   if(midi!=null&&!midi.isConnected()){MidiDeviceInfo[] retry=midi.devices();if(retry.length==1)midi.connect(retry[0]);}
+  },2000);
+  else if(list.length>1)emit("status","Mais de um dispositivo USB-MIDI detectado. Selecione o XPS-10 em Conectar USB.");
+ }
+ private void layoutPanels(){
+  boolean wide=getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+  boolean browserVisible=cifraPanel!=null&&cifraPanel.getVisibility()==android.view.View.VISIBLE;
+  rootLayout.setOrientation(browserVisible&&wide?android.widget.LinearLayout.HORIZONTAL:android.widget.LinearLayout.VERTICAL);
+  web.setLayoutParams(new android.widget.LinearLayout.LayoutParams(browserVisible&&wide?0:-1,browserVisible&&wide?-1:0,1));
+  if(cifraPanel!=null)cifraPanel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(browserVisible&&wide?0:-1,browserVisible&&wide?-1:0,browserVisible?(wide?1.15f:1):0));
+ }
+ private void showCifra(){
+  if(cifraPanel==null){
+   cifraPanel=new CifraPanel(this,data->{
+    emit("webCifra",data);
+    // Keep the user's page alive and cookies intact, but return immediately to the score in Grauê.
+    if(cifraPanel!=null&&!data.optBoolean("louveBatch")){cifraPanel.setVisibility(android.view.View.GONE);layoutPanels();}
+   },progress->{emit("louveProgress",progress);if(("done".equals(progress.optString("state"))||"cancelled".equals(progress.optString("state")))&&cifraPanel!=null){cifraPanel.setVisibility(android.view.View.GONE);layoutPanels();}},()->{rootLayout.removeView(cifraPanel);cifraPanel.destroy();cifraPanel=null;layoutPanels();});
+   rootLayout.addView(cifraPanel);
+  }
+  cifraPanel.setVisibility(android.view.View.VISIBLE);
+  layoutPanels();
+ }
+ @Override public void onConfigurationChanged(android.content.res.Configuration config){super.onConfigurationChanged(config);layoutPanels();web.invalidate();}
+ @Override protected void onResume(){
+  super.onResume();
+  if(cifraPanel!=null)cifraPanel.resume();
+  // onStop stops active notes for safety but intentionally keeps the USB port open.
+  // Restore outbound MIDI on returning from Cifra Club, file picker or another app.
+  if(midi!=null&&midi.isConnected()){
+   armed=true;
+   emit("armed",true);
+   emit("xpsConnection",true);
+   if(stoppedWhileConnected&&xps!=null)xps.readWhenIdle(45);
+  }else if(midi!=null){
+   armed=false;
+   emit("armed",false);
+   emit("xpsConnection",false);
+  }
+  stoppedWhileConnected=false;
+ }
+ private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+(new JSONArray().put(data).toString()+"[0]")+")",null);}catch(Exception ignored){} });}
+ private void publishLatestBackup(){try{JSONArray files=backupArchive.list();if(files.length()==0)return;JSONObject latest=files.getJSONObject(files.length()-1);String sha=latest.getString("sha256");emit("backupCatalog",RolandBackupInspector.inspect(backupArchive.fileFor(sha),latest.optString("name")));}catch(Exception e){emit("status","Catálogo do backup não disponível: "+e.getMessage());}}
+ private void captureShare(Intent intent){if(Intent.ACTION_SEND.equals(intent.getAction())&&"text/plain".equals(intent.getType())){String text=intent.getStringExtra(Intent.EXTRA_TEXT);if(text!=null)pendingShare=text.substring(0,Math.min(text.length(),200000));}}
+ @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);captureShare(intent);if(pageReady&&!pendingShare.isEmpty()){emit("sharedText",pendingShare);pendingShare="";}}
+ private void directInfo(){
+  try{emit("directApiState",directApi.state());}
+  catch(Exception ignored){emit("status","Preferências de API indisponíveis.");}
+ }
+ private void gatewayInfo(){
+  try{emit("jarvisGateway",jarvisGateway.state());}
+  catch(Exception e){emit("status","Configuração online indisponível.");}
+ }
+ private void modelInfo(){
+  File f=new File(getFilesDir(),"model.task");
+  boolean ready=f.exists();
+  boolean gemma=ready&&getPreferences(MODE_PRIVATE).getBoolean("gemma270",false);
+  emit("modelInfo",ready?(gemma?"Gemma 3 270M":"Modelo local")+" instalado: "+(f.length()/1048576)+" MB. Use Testar IA.":"Nenhum modelo instalado. Instale a Gemma 3 270M pelo Grauê ou importe um .task compatível.");
+  try{
+   org.json.JSONObject d=new org.json.JSONObject().put("installed",ready).put("gemma270",gemma).put("size",ready?f.length():0);
+   emit("gemmaState",d);
+  }catch(Exception ignored){}
+ }
+ private LlmInference openModel(File f){return LlmInference.createFromOptions(MainActivity.this,LlmInference.LlmInferenceOptions.builder().setModelPath(f.getAbsolutePath()).setMaxTokens(1024).build());}
+ private void stopChromatic(){
+  if(midi!=null)for(Integer k:chromaticMidiNotes)midi.send(0x80+(k/128),k%128,0);
+  chromaticMidiNotes.clear();
+  if(chromaticPad!=null)chromaticPad.stop();
+ }
+ private void stopPadNotes(){stopChromatic();stopDrone();stopAssist();for(int key:padTokens.keySet())midi.send(0x80+(key/128),key%128,0);padTokens.clear();}
+ public class Bridge {
+  /** Keep drone sustained on a dedicated MIDI part, until musician stops it. */
+  @JavascriptInterface public void startDrone(String json){
+   if(json==null||json.length()>280)return;
+   runOnUiThread(()->{
+    if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o USB-MIDI antes de iniciar o pad contínuo.");return;}
+    try{
+     JSONObject args=new JSONObject(json);
+     int channel=args.getInt("channel"),velocity=args.optInt("velocity",54);
+     JSONArray notes=args.getJSONArray("notes");
+     if(channel<1||channel>16||velocity<1||velocity>100||notes.length()<1||notes.length()>5)throw new IllegalArgumentException("Limites MIDI inválidos");
+     for(int i=0;i<notes.length();i++)if(notes.getInt(i)<36||notes.getInt(i)>96)throw new IllegalArgumentException("Nota fora da extensão de pad");
+     stopDrone(); // Release old chord even if the user switches to another one.
+     for(int i=0;i<notes.length();i++){
+      int note=notes.getInt(i),key=(channel-1)*128+note;
+      if(midi.send(0x90+channel-1,note,velocity))droneNotes.add(key);
+     }
+     if(droneNotes.size()!=notes.length()){
+      stopDrone();emit("status","Falha no envio de notas do pad. Verifique o MIDI.");return;
+     }
+     emit("droneStatus",true);
+     emit("status","Pad contínuo enviado pelo canal "+channel+". Use Parar Pad para soltar as notas.");
+    }catch(Exception e){stopDrone();emit("status","Pad não iniciado: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void stopDronePad(){runOnUiThread(()->stopDrone());}
+  @JavascriptInterface public void launchPlaybackUrl(String input){
+   if(input==null||input.length()>260)return;
+   runOnUiThread(()->{
+    try{
+     android.net.Uri u=android.net.Uri.parse(input.trim());
+     String host=u.getHost();
+     boolean spotify="https".equalsIgnoreCase(u.getScheme())&&"open.spotify.com".equalsIgnoreCase(host);
+     if(!spotify&&!isYoutubeUrl(u))throw new IllegalArgumentException("Use links HTTPS oficiais do Spotify ou YouTube.");
+     startActivity(new Intent(Intent.ACTION_VIEW,u).addCategory(Intent.CATEGORY_BROWSABLE));
+     emit("status",spotify?"Spotify aberto no player oficial. Áudio não passa pelo USB-MIDI.":"YouTube aberto para consulta. Para obter cifra, informe acordes ou use uma fonte de áudio autorizada.");
+    }catch(Exception e){emit("status","Não foi possível abrir o link de música: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI antes de iniciar a batida.");return;}try{stopLiveLoop();sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void startPhraseSequence(String json){
+   if(json==null||json.length()>40000)return;
+   runOnUiThread(()->{try{
+    if(!armed||midi==null||!midi.isConnected())throw new IllegalStateException("Conecte o XPS-10 por USB-MIDI antes de tocar a sequência.");
+    JSONObject o=new JSONObject(json);int steps=o.getInt("steps"),bpm=o.getInt("bpm");JSONArray rows=o.getJSONArray("tracks");if(rows.length()!=8)throw new IllegalArgumentException("Use oito pistas");
+    java.util.List<PhraseSequencer.Track> tracks=new java.util.ArrayList<>();
+    for(int i=0;i<8;i++){JSONObject row=rows.getJSONObject(i);JSONArray ns=row.getJSONArray("notes"),vs=row.getJSONArray("velocities");if(ns.length()!=steps||vs.length()!=steps||steps>64)throw new IllegalArgumentException("Passos inválidos");int[] n=new int[steps],v=new int[steps];for(int k=0;k<steps;k++){n[k]=ns.getInt(k);v[k]=vs.getInt(k);}tracks.add(new PhraseSequencer.Track(row.getInt("channel"),row.getInt("gate"),n,v));}
+    PhraseSequencer.Pattern pattern=new PhraseSequencer.Pattern(bpm,steps,tracks);
+    stopLiveLoop();sequencer.stop();stopAssist();phraseSequencer.start(pattern,System.nanoTime());loopClock.post(()->{loopClock.removeCallbacks(phraseTick);loopClock.post(phraseTick);});loopUi.post(phraseUiTick);
+   }catch(Exception e){emit("phraseError",e.getMessage());publishPhrase();}});
+  }
+  @JavascriptInterface public void stopPhraseSequence(){runOnUiThread(()->stopPhrase());}
+  @JavascriptInterface public void phraseSequenceState(){runOnUiThread(()->publishPhrase());}
+  @JavascriptInterface public void mutePhraseTrack(int track,boolean mute){runOnUiThread(()->{try{phraseSequencer.mute(track,mute);publishPhrase();}catch(Exception e){emit("phraseError",e.getMessage());}});}
+  @JavascriptInterface public void loopState(){runOnUiThread(()->{publishLoopState();if(!loopStartupIssue.isEmpty()){emit("loopLibraryError",loopStartupIssue);loopStartupIssue="";}});}
+  @JavascriptInterface public void listLoops(){loopStorage.execute(()->loopLibrary());}
+  @JavascriptInterface public void saveLoop(String name,String songId,String songTitle){runOnUiThread(()->{
+   try{if(liveLooper.isActive())throw new IOException("Pare o loop antes de salvar uma cópia");if(loopFiles==null)throw new IOException("Biblioteca indisponível");MidiLooper.Session snapshot=liveLooper.session();boolean any=false;for(java.util.List<MidiLooper.Event> t:snapshot.tracks)if(!t.isEmpty())any=true;if(!any)throw new IOException("Grave ou importe notas antes de salvar");
+    loopStorage.execute(()->{try{MidiLoopFiles.Entry entry=loopFiles.save(name,songId,songTitle,snapshot);loopLibrary();emit("loopLibrarySaved",loopEntry(entry));}catch(Exception e){emit("loopLibraryError",e.getMessage());}});
+   }catch(Exception e){emit("loopLibraryError",e.getMessage());}
+  });}
+  @JavascriptInterface public void loadLoop(String id){loopStorage.execute(()->{try{MidiLoopFiles.Entry entry=loopFiles.load(id);loadLoopSession(entry.session,loopEntry(entry));}catch(Exception e){emit("loopLibraryError",e.getMessage());}});}
+  @JavascriptInterface public void deleteLoop(String id){loopStorage.execute(()->{try{loopFiles.delete(id);loopLibrary();emit("loopLibraryInfo","Cópia apagada da biblioteca. A sessão atual foi preservada.");}catch(Exception e){emit("loopLibraryError",e.getMessage());}});}
+  @JavascriptInterface public void exportLoopMidi(){runOnUiThread(()->{
+   try{if(liveLooper.isActive())throw new IOException("Pare o loop antes de exportar");MidiLooper.Session snapshot=liveLooper.session();boolean any=false;for(java.util.List<MidiLooper.Event> t:snapshot.tracks)if(!t.isEmpty())any=true;if(!any)throw new IOException("Não há gravação para exportar");loopExportBytes=MidiLoopSmf.encode(snapshot);startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("audio/midi").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"Graue-loop.mid"),14);}catch(Exception e){emit("loopLibraryError",e.getMessage());}
+  });}
+  @JavascriptInterface public void importLoopMidi(){runOnUiThread(()->{if(liveLooper.isActive()){emit("loopLibraryError","Pare o loop antes de importar");return;}startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE),13);});}
+
+  @JavascriptInterface public void loopRecord(int track,int bpm,int beats,int bars){runOnUiThread(()->{
+   if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 por USB para gravar MIDI.");return;}
+   try{stopPhrase();if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track);startLoopClock();}
+   catch(Exception e){emit("status",e.getMessage());publishLoopState();}
+  });}
+  @JavascriptInterface public void loopRecordPrepared(int track,int bpm,int beats,int bars,boolean countIn){runOnUiThread(()->{
+   if(!armed||midi==null||!midi.isConnected()){emit("loopLibraryError","Conecte o XPS-10 por USB para gravar MIDI.");return;}
+   try{stopPhrase();if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track,countIn);startLoopClock();}catch(Exception e){emit("loopLibraryError",e.getMessage());publishLoopState();}
+  });}
+  @JavascriptInterface public void loopPlay(int bpm,int beats,int bars){runOnUiThread(()->{
+   if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 por USB para tocar o loop.");return;}
+   try{stopPhrase();if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);if(liveLooper.play(System.nanoTime()))startLoopClock();else publishLoopState();}
+   catch(Exception e){emit("status",e.getMessage());publishLoopState();}
+  });}
+  @JavascriptInterface public void loopStop(){runOnUiThread(()->stopLiveLoop());}
+  @JavascriptInterface public void loopMute(int track,boolean mute){runOnUiThread(()->{try{liveLooper.mute(track,mute);publishLoopState();}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void loopClear(int track){runOnUiThread(()->{try{liveLooper.clear(track);publishLoopState();}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void stopSequence(){runOnUiThread(()->{sequencer.stop();stopPadNotes();});}
+  @JavascriptInterface public void loopClearAll(){runOnUiThread(()->{
+   if(loopClock!=null)loopClock.removeCallbacks(loopTick);loopUi.removeCallbacks(loopUiTick);
+   liveLooper.clearAll();publishLoopState();
+  });}
+  @JavascriptInterface public void openCifra(){runOnUiThread(()->showCifra());}
+  @JavascriptInterface public void importCifra(){runOnUiThread(()->{if(cifraPanel==null){showCifra();emit("status","Abra uma música no Cifra Club e toque Importar novamente.");}else cifraPanel.importCurrent();});}
+  @JavascriptInterface public void showMode(boolean on){runOnUiThread(()->setRequestedOrientation(on?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR));}
+  @JavascriptInterface public void panic(){runOnUiThread(()->{stopLiveLoop();sequencer.stop();stopPadNotes();for(int c=0;c<16;c++){midi.send(0xB0+c,64,0);midi.send(0xB0+c,123,0);}emit("status","Sustain e notas MIDI liberados em todos os canais.");});}
+  /** One explicitly requested chord, bounded duration, user-selected MIDI channel. Never automatic. */
+  @JavascriptInterface public void playAssistChord(String json){
+   if(json==null||json.length()>200)return;
+   runOnUiThread(()->{
+    if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para tocar o acorde de apoio.");return;}
+    if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado via USB-MIDI.");return;}
+    try{
+     JSONObject v=new JSONObject(json);
+     int channel=v.optInt("channel",1),velocity=v.optInt("velocity",65),duration=v.optInt("duration",900);
+     JSONArray notes=v.getJSONArray("notes");
+     if(channel<1||channel>16||velocity<1||velocity>100||duration<150||duration>3000||notes.length()<1||notes.length()>5)
+       throw new Exception("Limites MIDI excedidos");
+     for(int i=0;i<notes.length();i++)if(notes.getInt(i)<36||notes.getInt(i)>96)throw new Exception("Nota fora da faixa segura");
+     stopAssist();
+     int token=++assistSerial;
+     for(int i=0;i<notes.length();i++){
+      int note=notes.getInt(i),key=(channel-1)*128+note;
+      if(midi.send(0x90+channel-1,note,velocity))assistNotes.put(key,token);
+     }
+     if(assistNotes.isEmpty()){emit("status","Não foi possível transmitir o acorde MIDI.");return;}
+     padHandler.postDelayed(()->{if(token==assistSerial)stopAssist();},duration);
+     emit("status","Acorde MIDI enviado à parte/canal "+channel+" por até "+duration+" ms. Confira o som no teclado.");
+    }catch(Exception e){stopAssist();emit("status","Acorde não enviado: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void stopAssistChord(){runOnUiThread(()->stopAssist());}
+  @JavascriptInterface public void padHit(int channel,int note,int velocity){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para tocar os pads.");return;}if(channel<1||channel>16||note<0||note>127||velocity<1||velocity>127)return;int key=(channel-1)*128+note,token=++padSerial;if(!midi.send(0x90+channel-1,note,velocity)){sequencer.stop();emit("status","Sem saída MIDI conectada.");return;}padTokens.put(key,token);padHandler.postDelayed(()->{if(Integer.valueOf(token).equals(padTokens.get(key))){midi.send(0x80+channel-1,note,0);padTokens.remove(key);}},120);});}
+  @JavascriptInterface public void chromaticNoteOn(int midiNote,int velocity,boolean phone,int channel){
+   runOnUiThread(()->{
+    if(midiNote<60||midiNote>71||velocity<1||velocity>127||channel<1||channel>16)return;
+    if(phone){
+     String error=chromaticPad.noteOn(midiNote-60,velocity);
+     if(!error.isEmpty())emit("status",error);
+     return;
+    }
+    if(!armed||midi==null||!midi.isConnected()){
+     emit("status","Conecte o USB-MIDI para tocar notas pelo Roland.");return;
+    }
+    int key=(channel-1)*128+midiNote;
+    if(chromaticMidiNotes.contains(key))midi.send(0x80+channel-1,midiNote,0);
+    if(midi.send(0x90+channel-1,midiNote,velocity)){
+     chromaticMidiNotes.add(key);
+     // Emergency Note Off when Android does not receive pointerup.
+     padHandler.postDelayed(()->{
+      if(chromaticMidiNotes.remove(key))midi.send(0x80+channel-1,midiNote,0);
+     },6500);
+    }else emit("status","Saída USB-MIDI indisponível.");
+   });
+  }
+  @JavascriptInterface public void chromaticNoteOff(int midiNote,boolean phone,int channel){
+   runOnUiThread(()->{
+    if(midiNote<60||midiNote>71||channel<1||channel>16)return;
+    if(phone){chromaticPad.noteOff(midiNote-60);return;}
+    int key=(channel-1)*128+midiNote;
+    if(chromaticMidiNotes.remove(key)&&midi!=null)midi.send(0x80+channel-1,midiNote,0);
+   });
+  }
+  @JavascriptInterface public void stopPads(){runOnUiThread(()->stopPadNotes());}
+  @JavascriptInterface public void getPadSampleLibrary(){
+   try{emit("padSampleState",padSamples.state());}
+   catch(Exception e){emit("status","Biblioteca de samples: "+e.getMessage());}
+  }
+  @JavascriptInterface public void playPadSample(int bank,int pad,int velocity){
+   runOnUiThread(()->{
+    String issue=padSamples.play(bank,pad,velocity);
+    if(!issue.isEmpty())emit("status",issue);
+   });
+  }
+  @JavascriptInterface public void stopPadSamples(){runOnUiThread(()->padSamples.stop());}
+  /** Android Storage Access Framework lets the musician choose Google Drive as destination.
+    * No Google OAuth token, Drive API key or broad storage permission is needed.
+    */
+  /** Save a ZIP containing SONG LIST/GRAUE1 and GRAUE2 for XPS-10 AUDIO PADs.
+   * Do not imply that USB COMPUTER can transport audio files.
+   */
+  @JavascriptInterface public void exportRolandAudioPads(int bank){
+   if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Selecione uma biblioteca válida.");return;}
+   runOnUiThread(()->{
+    exportRolandBank=bank;
+    Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT)
+      .addCategory(Intent.CATEGORY_OPENABLE).setType("application/zip")
+      .putExtra(Intent.EXTRA_TITLE,"GRAUE-XPS10-PADS-Banco-"+(bank+1)+".zip");
+    startActivityForResult(save,11);
+   });
+  }
+  @JavascriptInterface public void exportPadKitToDrive(int bank,String settings){
+   if(bank<0||bank>=PadSampleEngine.BANKS||settings==null||settings.length()>12000){
+    emit("status","Banco ou configurações de Drum Pad inválidos.");return;
+   }
+   runOnUiThread(()->{
+    exportKitBank=bank;exportKitSettings=settings;
+    Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT)
+       .addCategory(Intent.CATEGORY_OPENABLE)
+       .setType("application/zip")
+       .putExtra(Intent.EXTRA_TITLE,"Graue-DrumPad-Banco-"+(bank+1)+".zip");
+    startActivityForResult(save,10);
+   });
+  }
+  @JavascriptInterface public void importPadZip(int bank){
+   if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Biblioteca inválida.");return;}
+   runOnUiThread(()->{
+    importZipBank=bank;
+    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*")
+      .addCategory(Intent.CATEGORY_OPENABLE)
+      .putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"application/zip","application/x-zip-compressed","application/octet-stream"});
+    startActivityForResult(pick,9);
+   });
+  }
+  @JavascriptInterface public void importPadKit(int bank){
+   if(bank<0||bank>=PadSampleEngine.BANKS){emit("status","Biblioteca inválida.");return;}
+   runOnUiThread(()->{
+    importKitBank=bank;
+    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("audio/*")
+      .addCategory(Intent.CATEGORY_OPENABLE)
+      .putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
+    startActivityForResult(pick,8);
+   });
+  }
+  @JavascriptInterface public void importPadSample(int bank,int pad){
+   if(bank<0||bank>=PadSampleEngine.BANKS||pad<0||pad>=PadSampleEngine.PADS){
+    emit("status","Escolha um banco e pad válidos.");return;
+   }
+   runOnUiThread(()->{
+    importPadBank=bank;importPadIndex=pad;
+    Intent picker=new Intent(Intent.ACTION_OPEN_DOCUMENT)
+       .setType("audio/*").addCategory(Intent.CATEGORY_OPENABLE);
+    startActivityForResult(picker,7);
+   });
+  }
+  /** Roland XPS-10 published drum-bank/patch MIDI values, not sampled audio. */
+  @JavascriptInterface public void selectDrumKit(int channel,int msb,int lsb,int program){
+   runOnUiThread(()->{
+    if(channel<1||channel>16||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128){
+     emit("status","Parâmetros MIDI de kit inválidos.");return;
+    }
+    if(midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 pelo USB-MIDI.");return;}
+    boolean sent=midi.send(0xB0+channel-1,0,msb);
+    if(sent)sent=midi.send(0xB0+channel-1,32,lsb);
+    if(sent)sent=midi.sendProgram(channel,program-1);
+    if(sent){
+     try{emit("drumKitSent",new JSONObject().put("channel",channel)
+       .put("msb",msb).put("lsb",lsb).put("program",program));}catch(Exception ignored){}
+     emit("status","Kit de bateria enviado no canal "+channel+". Confirme o som; a parte deve aceitar Rhythm/Program Change.");
+    }else emit("status","Falha ao enviar Bank Select / Program Change do kit.");
+   });
+  }
+
+
+  @JavascriptInterface public void startLouveImport(String json){runOnUiThread(()->{try{if(json==null||json.length()>70000)throw new IllegalArgumentException("Escala grande demais");org.json.JSONArray items=new org.json.JSONArray(json);showCifra();cifraPanel.importBatch(items);}catch(Exception e){emit("status","Escala: "+e.getMessage());}});}
+  @JavascriptInterface public void cancelLouveImport(){runOnUiThread(()->{if(cifraPanel!=null)cifraPanel.cancelBatch();});}
+  @JavascriptInterface public void pasteLouveScale(){runOnUiThread(()->{try{android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);if(clipboard==null||!clipboard.hasPrimaryClip())throw new IllegalArgumentException("Copie a escala do LouveApp primeiro");CharSequence text=clipboard.getPrimaryClip().getItemAt(0).coerceToText(MainActivity.this);if(text==null)throw new IllegalArgumentException("Texto não disponível");emit("sharedText",text.toString().substring(0,Math.min(text.length(),200000)));}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void openReference(String name){runOnUiThread(()->{String url=null;if(name.equals("model"))url="https://huggingface.co/litert-community/Gemma3-1B-IT/tree/main";if(name.equals("gemmaTerms"))url="https://ai.google.dev/gemma/terms";if(name.equals("gemmaSource"))url="https://huggingface.co/72fstudio/gemma-3-270m-it";if(name.equals("effects"))url="https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf";if(name.equals("louve"))url="https://louveapp.com.br/";if(name.equals("cifra"))url="https://www.cifraclub.com.br/";if(url!=null)try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(Exception e){emit("status","Não foi possível abrir o navegador.");}});}
+  @JavascriptInterface public void testModel(){
+    // Verifica explicitamente a Gemma local, sem roteamento para OpenAI.
+    worker.execute(()->{
+     try{
+      File file=new File(getFilesDir(),"model.task");
+      if(!file.isFile()){emit("answer","Gemma não instalada. Abra Ajustes e instale ou importe um modelo compatível.");return;}
+      if(llm==null)llm=openModel(file);
+      String sample=JarvisMusicalProfile.buildPrompt("Qual é a diferença entre ataque e release de um pad? Responda em duas frases.",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));
+      String result=llm.generateResponse(sample);
+      if(result==null||result.isBlank())throw new IOException("O modelo não produziu texto.");
+      emit("aiSource","Gemma · Offline (teste real)");
+      emit("answer",result);
+     }catch(Exception e){emit("answer","Teste da Gemma offline falhou: "+e.getMessage());}
+    });
+  }
+
+  @JavascriptInterface public void readUserTones(){runOnUiThread(()->{
+    if(!xps.hasValidSysex()){emit("status","O XPS-10 ainda não confirmou SysEx. Conecte o MIDI e confirme resposta antes de ler USER.");return;}
+    autoUserRead=false;xps.readUsers();
+  });}
+  @JavascriptInterface public void getMidiDiagnostics(){
+   runOnUiThread(()->{
+    try{
+     emit("midiDiagnostics",new JSONObject()
+      .put("connected",midi!=null&&midi.isConnected())
+      .put("validSysexPackets",xps.validSysexCount())
+      .put("cachedUserTones",hasCachedUsers())
+      .put("readValidated",xps.hasValidSysex())
+      .put("source","Diagnóstico local sem chaves API e sem escrita no Roland"));
+    }catch(Exception ignored){}
+   });
+  }
+  @JavascriptInterface public void restoreCachedTones(){runOnUiThread(()->emitCachedUsers());}
+  @JavascriptInterface public void selectToneWithVolume(int msb,int lsb,int program,int part,int volume){
+   runOnUiThread(()->{
+    if(volume<0||volume>127||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>15){emit("status","Dados inválidos para testar timbre.");return;}
+    if(xps.hasPerformancePart(part))xps.auditionToneConfig(part,msb,lsb,program,volume);
+    else emit("status","Para testar volume e timbre juntos, primeiro leia uma Performance válida. Não alterei a configuração.");
+   });
+  }
+  @JavascriptInterface public void selectPerformance(int number,boolean user){
+    runOnUiThread(()->{
+      stopLiveLoop();
+      if(number<1||number>(user?128:16)){emit("status","Número de Performance fora da faixa.");return;}
+      if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado para selecionar a Performance.");return;}
+      // Roland XPS-10 MIDI Implementation: USER MSB 85 / LSB 0, preset MSB 85 / LSB 64.
+      boolean sent=midi.send(0xb0,0,85);
+      if(sent)sent=midi.send(0xb0,32,user?0:64);
+      if(sent)sent=midi.sendProgram(1,number-1);
+      if(sent){
+        try{emit("performanceSelected",new JSONObject().put("index",number).put("user",user));}catch(Exception ignored){}
+        emit("status","Performance "+(user?"USER ":"Preset ")+number+" solicitada no canal MIDI 1.");
+        new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi.isConnected())xps.readWhenIdle(45);},650);
+      }else emit("status","Não foi possível transmitir a seleção de Performance ao XPS-10.");
+    });
+  }
+  @JavascriptInterface public void selectTone(int msb,int lsb,int program,int part){
+   runOnUiThread(()->{
+    if(msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>=16){
+     emit("status","Dados de timbre inválidos.");return;
+    }
+    if(xps.hasPerformancePart(part)){xps.auditionTone(part,msb,lsb,program);return;}
+    // Patch mode / unverified performance: transmit a standard bank+program change
+    // to the keyboard's receiving MIDI channel. This may not switch the local panel sound.
+    int channel=0;
+    boolean ok=midi.send(0xb0+channel,0,msb);
+    if(ok)ok=midi.send(0xb0+channel,32,lsb);
+    if(ok)ok=midi.sendProgram(channel+1,program-1);
+    emit("status",ok?"Bank/Program enviado via canal 1. Confira o som no teclado; modo Patch pode ignorar a troca.":"Sem porta USB-MIDI de saída. Conecte o XPS-10.");
+   });
+  }
+
+  @JavascriptInterface public void cancelHardware(){runOnUiThread(()->xps.cancelWrites());}
+  @JavascriptInterface public void readHardware(){runOnUiThread(()->xps.read());}
+  @JavascriptInterface public void editHardware(String json){if(json.length()<40000)runOnUiThread(()->xps.write(json,armed));}
+  @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
+  @JavascriptInterface public void connect(){runOnUiThread(()->{stopLiveLoop();MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
+  /** Refreshes MIDI ports in both directions; never clears cached tones, performances or favorites.
+   * Safe for an unplug/replug between songs; releases active notes before changing ports. */
+  @JavascriptInterface public void refreshMidiPorts(){
+   runOnUiThread(()->{
+    if(midi==null){emit("status","Subsistema USB-MIDI não inicializado.");return;}
+    stopLiveLoop();
+    MidiDeviceInfo[] found=midi.devices();
+    int currentId=midi.connectedDeviceId();
+    int incoming=0,outgoing=0;
+    for(MidiDeviceInfo info:found){
+     // Android output ports RECEIVE messages from the keyboard;
+     // Android input ports SEND commands to the keyboard.
+     incoming+=info.getOutputPortCount();
+     outgoing+=info.getInputPortCount();
+    }
+    try{
+     JSONObject detail=new JSONObject()
+      .put("devices",found.length)
+      .put("inputPorts",incoming)
+      .put("outputPorts",outgoing)
+      .put("connected",midi.isConnected())
+      .put("refreshing",found.length>0);
+     emit("midiPorts",detail);
+    }catch(Exception ignored){}
+    if(found.length==0){
+     if(midi.isConnected()){
+      if(sequencer!=null)sequencer.stop();
+      stopPadNotes();
+      midi.disconnect();
+     }
+     armed=false;autoUserRead=false;
+     emit("armed",false);emit("xpsConnection",false);
+     emit("status","Atualização MIDI: nenhuma entrada/saída USB encontrada. Reconecte o cabo; seus timbres e favoritos continuam salvos.");
+     return;
+    }
+    MidiDeviceInfo selected=null;
+    for(MidiDeviceInfo info:found)if(info.getId()==currentId){selected=info;break;}
+    if(selected==null&&found.length==1)selected=found[0];
+    if(selected==null){
+     emit("status","Há "+found.length+" dispositivos MIDI disponíveis. Escolha o XPS-10 na lista.");
+     new Bridge().connect(); // Same selection dialog as the single global connection.
+     return;
+    }
+    if(sequencer!=null)sequencer.stop();
+    stopPadNotes(); // Release pad, drone and assist notes before reopening the device.
+    armed=false;
+    emit("armed",false);emit("xpsConnection",false);
+    emit("status","Atualizando entrada e saída MIDI do XPS-10…");
+    midi.connect(selected); // Reopens both ports, resets parsers, triggers initialSync once.
+   });
+  }
+  @JavascriptInterface public void microphone(boolean on){runOnUiThread(()->{if(!on){audio.stop();emit("mic",false);}else if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},1);else{audio.start();emit("mic",audio.isRunning());}});}
+  @JavascriptInterface public void arm(boolean value){runOnUiThread(()->{
+  // Compatibility: connection is the only switch; no separate MIDI activation.
+  armed=midi!=null&&midi.isConnected();emit("armed",armed);
+ });}
+  /** Patch Tone TVA levels through documented CC80..83. Not confirmed by SysEx readback. */
+  /** Opt-in passive SysEx learning; does not send a parameter write. */
+  @JavascriptInterface public void readDeepPatch(int part){runOnUiThread(()->{if(armed&&midi!=null&&midi.isConnected()){stopLiveLoop();xps.readPatch(part);}else emit("status","Conecte o XPS-10 para ler os Tones internos.");});}
+  @JavascriptInterface public void editDeepPatch(String json){if(json==null||json.length()>12000)return;runOnUiThread(()->{stopLiveLoop();xps.writePatch(json,armed&&midi!=null&&midi.isConnected());});}
+  @JavascriptInterface public void undoDeepPatch(){runOnUiThread(()->{stopLiveLoop();xps.undoPatch(armed&&midi!=null&&midi.isConnected());});}
+  @JavascriptInterface public void observePatch(boolean enabled){
+   runOnUiThread(()->{
+    if(enabled&&(midi==null||!midi.isConnected())){emit("status","Conecte o Roland XPS-10 antes de observar edições SysEx.");return;}
+    xps.observePatch(enabled);
+   });
+  }
+  /** Offline Gemma action suggestions, isolated from normal Jarvis replies.
+   * This method returns an untrusted JSON proposal as text, NEVER hardware commands.
+   */
+  @JavascriptInterface public void planPatch(String context){
+   if(context==null||context.length()<5||context.length()>3300){
+    emit("patchPlanAnswer","Pedido inválido ou extenso demais.");return;
+   }
+   final String prompt=JarvisMusicalProfile.buildPatchPlanPrompt(context,
+     getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));
+   worker.execute(()->{
+    try{
+     if(llm==null){File model=new File(getFilesDir(),"model.task");
+      if(!model.exists())throw new IOException("Gemma offline não instalada. Instale em Ajustes ou use os controles manuais.");
+      llm=openModel(model);
+     }
+     emit("patchPlanAnswer",llm.generateResponse(prompt));
+    }catch(Exception e){emit("patchPlanAnswer","IA offline indisponível: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void toneLevel(int part,int tone,int value){
+   runOnUiThread(()->{
+    if(part<0||part>15||tone<1||tone>4||value<0||value>127){
+     emit("status","Tone inválido: selecione parte 1–16, tone 1–4 e nível 0–127.");return;
+    }
+    if(!armed||midi==null||!midi.isConnected()){
+     emit("status","Conecte o XPS-10 via USB-MIDI antes de editar os tones.");return;
+    }
+    int channel=xps.isolatedToneChannel(part);
+    if(channel<1||channel>16){
+     emit("status","CC do tone bloqueado: leia todas as partes e use um canal MIDI exclusivo para esta parte. Canais compartilhados podem alterar mais de um som.");return;
+    }
+    int controller=79+tone;
+    if(!midi.send(0xB0+channel-1,controller,value)){
+     emit("status","Falha no envio CC do tone. A configuração não foi confirmada.");return;
+    }
+    try{emit("toneLevelSent",new JSONObject()
+       .put("part",part).put("tone",tone).put("channel",channel)
+       .put("controller",controller).put("value",value));}
+    catch(Exception ignored){}
+    emit("status","CC"+controller+" enviado ao canal "+channel+" (Tone "+tone+"). Confira ouvindo o XPS-10: o valor não possui readback SysEx nesta versão.");
+   });
+  }
+  /** Vibrato offsets (CC76/77/78) of the Performance Part; NOT per-Tone LFO editing. */
+  @JavascriptInterface public void partVibrato(int part,int controller,int value){
+   runOnUiThread(()->{
+    if(part<0||part>=16||controller<76||controller>78||value<0||value>127){
+     emit("status","Vibrato inválido: parte 1–16, CC76–78, valor 0–127.");return;
+    }
+    if(!armed||midi==null||!midi.isConnected()){
+     emit("status","Conecte o Roland via USB para ajustar o Vibrato da Performance.");return;
+    }
+    int channel=xps.isolatedToneChannel(part);
+    if(channel<1||channel>16){emit("status","Vibrato bloqueado: canal da parte compartilhado ou sem leitura SysEx.");return;}
+    boolean sent=midi.send(0xB0+channel-1,controller,value);
+    if(sent){
+     try{emit("partVibratoSent",new JSONObject().put("part",part).put("cc",controller).put("value",value));}catch(Exception ignored){}
+     emit("status","Vibrato CC"+controller+" enviado à parte "+(part+1)+". Confirme ouvindo o XPS-10.");
+     new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.readWhenIdle(20);},550);
+    }else emit("status","Falha ao enviar Vibrato MIDI; instrumento não confirmado.");
+   });
+  }
+  @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
+  @JavascriptInterface public void save(String value){if(value==null||value.length()>MAX_STATE_BYTES||value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>MAX_STATE_BYTES){emit("status","Dados não salvos: limite de 10 MB atingido. Exporte e reduza o repertório antes de continuar.");return;}try{getPreferences(0).edit().putString("state",value).apply();}catch(Exception e){emit("status","Não foi possível salvar os dados: "+e.getMessage());}}
+  @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
+  @JavascriptInterface public void listBackups(){worker.execute(()->{try{emit("backups",backupArchive.list());}catch(Exception e){emit("status","Biblioteca: "+e.getMessage());}});}
+  @JavascriptInterface public void inspectRolandBackup(String sha){
+   worker.execute(()->{
+    try{
+     File original=backupArchive.fileFor(sha);
+     emit("backupInspection",RolandBackupInspector.inspect(original,backupArchive.originalName(sha)));
+    }catch(Exception e){emit("status","Não foi possível examinar o backup: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void importGraueSettings(){runOnUiThread(()->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE),12));}
+  @JavascriptInterface public void importXpsBackups(){runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(i,5);});}
+  @JavascriptInterface public void exportXpsBackup(String sha){worker.execute(()->{try{File file=backupArchive.fileFor(sha);String originalName=backupArchive.originalName(sha);backupExportSha=sha;runOnUiThread(()->startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/octet-stream").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,originalName),6));}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void deleteXpsBackup(String sha){worker.execute(()->{try{if(backupArchive.delete(sha)){emit("backups",backupArchive.list());emit("status","Copia local excluida. Nenhuma alteração foi feita no XPS-10.");}}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void installGemma(boolean accepted){
+   if(!accepted){emit("status","Leia e aceite os Termos Gemma antes de instalar.");return;}
+   if(!gemmaBusy.compareAndSet(false,true)){emit("status","Instalação da Gemma em andamento.");return;}
+   gemmaCancel.set(false);
+   modelInstallerWorker.execute(()->{
+    try{
+     Gemma270Installer.install(getFilesDir(),gemmaCancel,(percent,message)->{
+      try{emit("gemmaProgress",new org.json.JSONObject().put("progress",percent).put("message",message).put("busy",true));}
+      catch(Exception ignored){}
+     },candidate->{try(LlmInference check=openModel(candidate)){}});
+     // Aguarda inferências anteriores terminarem antes de fechar o modelo carregado.
+     worker.execute(()->{if(llm!=null){llm.close();llm=null;}});
+     getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",true).apply();
+     modelInfo();
+     emit("status","Gemma instalada. Abra o Copiloto e teste uma pergunta offline.");
+     emit("gemmaProgress",new org.json.JSONObject().put("progress",100).put("busy",false).put("message","IA pronta para conversar sem internet."));
+    }catch(Exception e){
+     emit("status","Gemma: "+e.getMessage());
+     try{emit("gemmaProgress",new org.json.JSONObject().put("progress",-1).put("busy",false).put("message",e.getMessage()));}catch(Exception ignored){}
+    }finally{gemmaBusy.set(false);}
+   });
+  }
+  @JavascriptInterface public void cancelGemma(){gemmaCancel.set(true);}
+  @JavascriptInterface public void importFile(boolean model){runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);if(!model)i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(i,model?3:2);});}
+  @JavascriptInterface public void exportFile(String text){if(text==null||text.length()>MAX_STATE_BYTES||text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>MAX_STATE_BYTES){emit("status","Exportação não iniciada: limite de 10 MB. Exporte o repertório em partes.");return;}runOnUiThread(()->{exportText=text;startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"copiloto-repertorio.json"),4);});}
+  @JavascriptInterface public void getJarvisMemory(){
+   emit("jarvisMemory",getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes",""));
+  }
+  @JavascriptInterface public void saveJarvisMemory(String notes){
+   if(notes==null||notes.length()>JarvisMusicalProfile.MAX_NOTES){
+    emit("status","As preferências do Jarvis devem ter no máximo 550 caracteres.");return;
+   }
+   String cleaned=JarvisMusicalProfile.cleanNotes(notes);
+   getPreferences(MODE_PRIVATE).edit().putString("jarvisMusicalNotes",cleaned).apply();
+   emit("jarvisMemory",cleaned);
+   emit("status",cleaned.isEmpty()?"Preferências locais limpas.":"Preferências do Jarvis salvas somente neste celular.");
+  }
+  @JavascriptInterface public void clearJarvisMemory(){saveJarvisMemory("");}
+  @JavascriptInterface public void configureDirectApi(String key,String mode,String model){
+   try{
+    directApi.configure(key==null?"":key,mode,model);
+    directInfo();
+    emit("status","Jarvis: modo de IA atualizado. Chave guardada criptografada neste aparelho.");
+   }catch(Exception e){emit("status","Chave da API: "+e.getMessage());}
+  }
+  @JavascriptInterface public void forgetDirectApi(){directApi.clear();directInfo();emit("status","Chave local revogada do aplicativo. Revogue também em OpenAI Platform se necessário.");}
+  @JavascriptInterface public void getDirectApiState(){directInfo();}
+  @JavascriptInterface public void testDirectApi(){
+   if(!directApi.ready()){emit("answer","Cadastre sua chave OpenAI em Ajustes para fazer o teste.");return;}
+   worker.execute(()->{
+    try{
+     JarvisCloudGateway.Answer r=directApi.request("Você é Jarvis Musical, responda em até 12 palavras: conexão com a OpenAI funcionando.");
+     emit("aiSource","OpenAI direta · "+r.model);emit("answer",r.text);
+    }catch(Exception e){emit("answer","API direta: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void configureJarvisOnline(String endpoint,String deviceToken,String mode,String model){
+   try{
+    if(deviceToken!=null&&(deviceToken.trim().startsWith("sk-")||deviceToken.trim().startsWith("sk_")))
+     throw new IllegalArgumentException("Não cole a chave OpenAI no celular. Insira apenas o token próprio do seu Worker.");
+    jarvisGateway.configure(endpoint,deviceToken,mode,model);
+    gatewayInfo();
+    emit("status","Configuração Jarvis salva no celular. A chave OpenAI permanece exclusivamente no servidor.");
+   }catch(Exception e){emit("status","Configuração online: "+e.getMessage());}
+  }
+  @JavascriptInterface public void getJarvisOnlineStatus(){gatewayInfo();}
+  @JavascriptInterface public void testJarvisOnline(){
+   if(!jarvisGateway.ready()){emit("answer","Configure o endereço e o token do Worker em Ajustes.");return;}
+   worker.execute(()->{
+    try{
+     JarvisCloudGateway.Answer result=jarvisGateway.request("Responda apenas: Jarvis online conectado.");
+     emit("aiSource","Online · "+result.model);
+     emit("answer",result.text);
+    }catch(Exception e){emit("answer","Teste Jarvis online falhou: "+e.getMessage());}
+   });
+  }
+  @JavascriptInterface public void ask(String prompt){
+   if(prompt==null||prompt.length()>JarvisMusicalProfile.MAX_REQUEST){
+    emit("answer","Encurte a pergunta para até 2400 caracteres.");return;
+   }
+   String notes=getPreferences(MODE_PRIVATE).getString("jarvisMusicalNotes","");
+   final String prepared=JarvisMusicalProfile.buildPrompt(prompt,notes);
+   worker.execute(()->{
+    String directMode=directApi.mode();
+    if(!"offline".equals(directMode)){
+     if(directApi.ready()){
+      try{
+       JarvisCloudGateway.Answer answer=directApi.request(prepared);
+       emit("aiSource","OpenAI direta · "+answer.model);
+       emit("answer",answer.text);return;
+      }catch(Exception e){
+       if("online".equals(directMode)){emit("answer","API direta indisponível: "+e.getMessage()+". Altere para Automático ou Offline em Ajustes.");return;}
+       emit("status","OpenAI indisponível; usando Gemma offline.");
+       try{
+        if(llm==null){File model=new File(getFilesDir(),"model.task");if(!model.exists())throw new IOException("Gemma não instalada.");llm=openModel(model);}
+        emit("aiSource","Gemma · Offline");emit("answer",llm.generateResponse(prepared));return;
+       }catch(Exception local){emit("answer","Falha na API e na Gemma: "+local.getMessage());return;}
+      }
+     }else if("online".equals(directMode)){emit("answer","Cadastre sua chave OpenAI em Ajustes.");return;}
+    }
+    // An explicit preference in the app always overrides a legacy server configuration.
+    String mode=directApi.selected()?"offline":jarvisGateway.mode();
+    if(!"offline".equals(mode)&&jarvisGateway.ready()){
+     try{
+      JarvisCloudGateway.Answer result=jarvisGateway.request(prepared);
+      emit("aiSource","Online · "+result.model);
+      emit("answer",result.text);return;
+     }catch(Exception e){
+      if("online".equals(mode)){
+       emit("answer","Jarvis online indisponível: "+e.getMessage()+". Troque para Automático ou Offline em Ajustes.");
+       return;
+      }
+      emit("status","Rede/API indisponível. Tentando Gemma local.");
+     }
+    }else if("online".equals(mode)){
+     emit("answer","Configure o endereço seguro do Worker e o token do dispositivo antes de usar Jarvis Online.");
+     return;
+    }
+    try{
+     if(llm==null){
+      File model=new File(getFilesDir(),"model.task");
+      if(!model.exists()){
+       emit("answer","Gemma offline ainda não instalada. Instale-a em Ajustes; o guia de cifras e favoritos continua disponível.");return;
+      }
+      llm=openModel(model);
+     }
+     emit("aiSource","Gemma · Offline");
+     emit("answer",llm.generateResponse(prepared));
+    }catch(Exception e){emit("answer","A IA local não respondeu: "+e.getMessage());}
+   });
+  }
+ }
+ @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
+ @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);
+ if(req==13||req==14){
+  if(result!=RESULT_OK||data==null||data.getData()==null){loopExportBytes=null;emit("loopLibraryInfo","Operação cancelada. Sessão preservada.");return;}
+  final byte[] export=loopExportBytes;loopExportBytes=null;
+  loopStorage.execute(()->{try{
+   if(req==14){if(export==null)throw new IOException("Exportação interrompida; tente novamente");try(OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Destino indisponível");out.write(export);}emit("loopLibraryInfo","MIDI exportado. O arquivo contém notas e controles; o timbre continua no teclado.");}
+   else{MidiLooper.Session imported;try(InputStream in=getContentResolver().openInputStream(data.getData())){imported=MidiLoopSmf.decode(MidiLoopFiles.read(in));}loadLoopSession(imported,new JSONObject().put("name","MIDI importado").put("bpm",imported.bpm).put("beats",imported.beats).put("bars",imported.bars));}
+  }catch(Exception e){emit("loopLibraryError","Importação/exportação não concluída: "+e.getMessage());}});return;
+ }
+ if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
+ if(req==12){try(InputStream in=getContentResolver().openInputStream(data.getData());ByteArrayOutputStream output=new ByteArrayOutputStream()){
+  if(in==null)throw new IOException("Arquivo não disponível");byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1){if(output.size()+n>MAX_STATE_BYTES)throw new IOException("Backup de configurações maior que 10 MB");output.write(buffer,0,n);}
+  JSONObject archive=new JSONObject(output.toString("UTF-8"));if(archive.optInt("graueSettingsBackup")!=1)throw new IOException("Não é um backup de dados do Grauê");JSONObject state=archive.getJSONObject("state");if(!(state.opt("songs") instanceof JSONArray))throw new IOException("Repertório ausente no backup");getPreferences(0).edit().putString("state",state.toString()).apply();runOnUiThread(()->web.reload());return;
+ }}
+ if(req==11){
+  int bank=exportRolandBank;
+  int count=padSamples.exportRolandAudioPads(bank,data.getData());
+  emit("rolandPadExported",new JSONObject().put("bank",bank).put("samples",count));
+  emit("status","Pacote Roland salvo: "+count+" sons reais. Extraia SONG LIST/GRAUE1 e GRAUE2 no pendrive formatado pelo XPS-10; pressione LIST e escolha o grupo. O USB-MIDI não envia áudio.");
+  return;
+ }
+ if(req==10){
+  int bank=exportKitBank;
+  if(bank<0||bank>=PadSampleEngine.BANKS)throw new IOException("Banco não definido");
+  int count=padSamples.exportZipKit(bank,data.getData(),exportKitSettings);
+  emit("padDriveExported",new JSONObject().put("bank",bank).put("samples",count));
+  emit("status","Kit Drum Pad salvo no destino escolhido ("+count+" samples e configurações). Se escolheu Google Drive, confirme a sincronização no Drive.");
+  return;
+ }
+ if(req==9){
+  int bank=importZipBank;
+  if(bank<0||bank>=PadSampleEngine.BANKS)throw new IOException("Banco de destino inválido");
+  org.json.JSONObject metadata=padSamples.readZipManifest(data.getData());
+  int count=padSamples.importZipKit(bank,data.getData());
+  if(metadata!=null){
+   padSamples.restoreZipLabels(bank,metadata);
+   emit("padKitRestored",new JSONObject().put("bank",bank).put("settings",metadata.optJSONObject("settings")==null?new JSONObject():metadata.getJSONObject("settings")));
+  }
+  emit("padSampleState",padSamples.state());
+  emit("status",count+" samples importados do ZIP para o banco "+(bank+1)+". Original preservado; toque para testar.");
+  return;
+ }
+ if(req==8){
+  if(importKitBank<0||importKitBank>=PadSampleEngine.BANKS)throw new IOException("Kit não selecionado");
+  java.util.ArrayList<android.net.Uri> selected=new java.util.ArrayList<>();
+  if(data.getClipData()!=null){
+   if(data.getClipData().getItemCount()>8)throw new IOException("Selecione até 8 sons por kit");
+   for(int i=0;i<data.getClipData().getItemCount();i++)selected.add(data.getClipData().getItemAt(i).getUri());
+  }else if(data.getData()!=null)selected.add(data.getData());
+  int imported=0;
+  for(android.net.Uri uri:selected){
+   padSamples.importSample(importKitBank,imported,uri);
+   imported++;
+  }
+  emit("padSampleState",padSamples.state());
+  emit("status",imported+" arquivos importados. Pads 1 a "+imported+" atualizados; originais preservados.");
+  return;
+ }
+ if(req==7){
+  if(importPadBank<0||importPadIndex<0)throw new IOException("Pad importado sem destino");
+  padSamples.importSample(importPadBank,importPadIndex,data.getData());
+  emit("padSampleState",padSamples.state());
+  emit("status","Sample importado para o Grauê. Arquivo original preservado.");
+  return;
+ }
+ if(req==5){java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else if(data.getData()!=null)uris.add(data.getData());emit("backups",backupArchive.importFiles(uris));publishLatestBackup();emit("status","Backups copiados para a biblioteca. Originais preservados; formato ainda não interpretado.");return;}
+ if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
+ if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>MAX_STATE_BYTES)throw new IOException("Arquivo maior que 10 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
+ @Override protected void onStop(){super.onStop();stopLiveLoop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
+ @Override protected void onDestroy(){stopLiveLoop();if(loopThread!=null)loopThread.quitSafely();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();loopStorage.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
+}

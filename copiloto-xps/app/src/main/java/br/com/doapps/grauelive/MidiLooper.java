@@ -1,0 +1,201 @@
+package br.com.doapps.grauelive;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+/** Four-track session looper. All entry points are synchronized across MIDI/UI/clock threads. */
+public final class MidiLooper {
+ public interface Output { boolean send(int status, int data1, int data2); }
+ public static final int TRACKS=4, MAX_EVENTS=16000;
+ private static final long MAX_GAP_NS=250_000_000L;
+ public static final class Event {
+  public final long offsetNs; public final int status,note,velocity;
+  public Event(long offsetNs,int status,int note,int velocity){this.offsetNs=offsetNs;this.status=status;this.note=note;this.velocity=velocity;}
+ }
+ /** Immutable, validated session. Restoring never starts playback. */
+ public static final class Session {
+  public final int bpm,beats,bars;
+  public final List<List<Event>> tracks;
+  private final boolean[] muted;
+  public Session(int bpm,int beats,int bars,List<List<Event>> tracks,boolean[] muted){
+   if(bpm<40||bpm>240||beats<1||beats>12||bars<1||bars>32||tracks==null||tracks.size()!=TRACKS||muted==null||muted.length!=TRACKS)throw new IllegalArgumentException("Loop inválido");
+   this.bpm=bpm;this.beats=beats;this.bars=bars;this.muted=muted.clone();
+   long duration=60_000_000_000L*beats*bars/bpm;
+   List<List<Event>> copy=new ArrayList<>();
+   for(List<Event> track:tracks){
+    if(track==null||track.size()>MAX_EVENTS)throw new IllegalArgumentException("Loop excede o limite de eventos");
+    List<Event> events=new ArrayList<>(track);long previous=-1;
+    for(Event e:events){if(e==null||e.offsetNs<previous||e.offsetNs<0||e.offsetNs>=duration||!musical(e.status,e.note,e.velocity))throw new IllegalArgumentException("Evento MIDI inválido");previous=e.offsetNs;}
+    copy.add(java.util.Collections.unmodifiableList(events));
+   }
+   this.tracks=java.util.Collections.unmodifiableList(copy);
+  }
+  public boolean muted(int track){return muted[track];}
+  public long durationNs(){return 60_000_000_000L*beats*bars/bpm;}
+ }
+ public static boolean musical(int s,int a,int b){int k=s&0xf0;return s>=0x80&&s<=0xef&&a>=0&&a<=127&&b>=0&&b<=127&&(k==0x80||k==0x90||k==0xe0||(k==0xb0&&(a==1||a==11||a==64)));}
+ private static final class Track {
+  final List<Event> events=new ArrayList<>();
+  final boolean[][] notes=new boolean[16][128];
+  final boolean[] sustain=new boolean[16],bend=new boolean[16],mod=new boolean[16];
+  boolean muted;
+ }
+ public static final class State {
+  public final boolean playing,recording,queued; public final int recordingTrack,bpm,beats,bars,receivedNotes,capturedNotes,countInBeats;
+  public final long revision;
+  public final double position; public final int[] counts=new int[TRACKS]; public final boolean[] muted=new boolean[TRACKS];
+  public final String message;
+  State(MidiLooper l,long now){playing=l.playing;recording=l.recordTrack>=0;queued=recording&&now<l.recordStart;recordingTrack=l.recordTrack;
+   revision=l.revision;countInBeats=recording&&!playing&&now<l.recordStart?(int)Math.ceil((double)(l.recordStart-now)*l.bpm/60_000_000_000L):0;bpm=l.bpm;beats=l.beats;bars=l.bars;receivedNotes=l.receivedNotes;capturedNotes=l.capturedNotes;message=recording?(queued?(playing?"Aguardando a próxima volta":"Prepare-se: "+countInBeats+" batida(s)"):"Gravando MIDI na pista "+(recordingTrack+1)):l.message;
+   long start=playing?l.startNs:l.recordStart;
+   position=(playing||recording)&&now>=start?(double)Math.floorMod(now-start,l.loopNs)/l.loopNs:0;
+   for(int i=0;i<TRACKS;i++){counts[i]=l.tracks[i].events.size();muted[i]=l.tracks[i].muted;}
+  }
+ }
+ private final Track[] tracks=new Track[TRACKS];
+ private final Output output;
+ private final List<Event> take=new ArrayList<>();
+ private final boolean[] inputSustain=new boolean[16],takeChannels=new boolean[16];
+ private int bpm=72,beats=4,bars=2,recordTrack=-1,receivedNotes=0,capturedNotes=0;
+ private long loopNs=60_000_000_000L*4*2/72,startNs,lastTickNs,recordStart,recordEnd;
+ private boolean playing,outputFailed;private long revision=0;
+ private String message="Pronto para gravar";
+ public MidiLooper(Output output){if(output==null)throw new IllegalArgumentException("output");this.output=output;for(int i=0;i<TRACKS;i++)tracks[i]=new Track();}
+ private void trackIndex(int i){if(i<0||i>=TRACKS)throw new IllegalArgumentException("Pista inválida");}
+ public synchronized void configure(int newBpm,int newBeats,int newBars){
+  if(playing||recordTrack>=0)throw new IllegalStateException("Pare o loop para ajustar BPM e compassos");
+  if(newBpm<40||newBpm>240||newBeats<1||newBeats>12||newBars<1||newBars>32)throw new IllegalArgumentException("BPM ou compassos inválidos");
+  long next=60_000_000_000L*newBeats*newBars/newBpm;
+  for(Track t:tracks)for(int i=0;i<t.events.size();i++){Event e=t.events.get(i);t.events.set(i,new Event(Math.min(next-1,(long)((double)e.offsetNs*next/loopNs)),e.status,e.note,e.velocity));}
+  loopNs=next;bpm=newBpm;beats=newBeats;bars=newBars;revision++;
+ }
+ /** REC on a playing session queues an overdub at the next loop boundary. */
+ public synchronized void record(long now,int index){record(now,index,false);}
+ public synchronized void record(long now,int index,boolean countIn){
+  trackIndex(index);if(recordTrack>=0)throw new IllegalStateException("Uma gravação já está em andamento");
+  if(!playing&&hasEvents()){play(now);if(!playing)return;}
+  outputFailed=false;take.clear();receivedNotes=0;capturedNotes=0;java.util.Arrays.fill(takeChannels,false);recordTrack=index;
+  recordStart=playing?startNs+(Math.floorDiv(now-startNs,loopNs)+1)*loopNs:now+(countIn?60_000_000_000L*beats/bpm:0);
+  recordEnd=recordStart+loopNs;if(!playing)lastTickNs=now;
+  message=playing?"Overdub armado: começa na próxima volta":"Gravando MIDI";
+ }
+ /** Capture only musical gestures. Bank/program/SysEx and clock are never recorded or echoed. */
+ public synchronized void input(long now,int status,int a,int b){
+  if(status<0x80||status>0xef||a<0||a>127||b<0||b>127)return;
+  int kind=status&0xf0,c=status&15;
+  if(recordTrack>=0&&kind==0x90&&b>0)receivedNotes++;
+  if(kind==0xb0&&a==64)inputSustain[c]=b>=64;
+  if(recordTrack<0||now<recordStart||now>=recordEnd)return;
+  if(kind!=0x80&&kind!=0x90&&kind!=0xe0&&!(kind==0xb0&&(a==64||a==1||a==11)))return;
+  if(take.size()+tracks[recordTrack].events.size()>=MAX_EVENTS-2){cancelRecording();message="Limite de gravação atingido. Toque REC para outra pista.";return;}
+  long offset=now-recordStart;
+  if(!takeChannels[c]){takeChannels[c]=true;if(inputSustain[c]&&!(kind==0xb0&&a==64))take.add(new Event(0,0xb0|c,64,127));}
+  take.add(new Event(offset,status,a,b));
+  if(kind==0x90&&b>0)capturedNotes++;
+ }
+ private boolean hasEvents(){for(Track t:tracks)if(!t.events.isEmpty())return true;return false;}
+ public synchronized boolean play(long now){
+  if(recordTrack>=0)finishRecording();
+  if(!hasEvents()){message="Grave notas antes de tocar";return false;}
+  silenceAll();if(outputFailed){playing=false;message="Falha MIDI. Reconecte o USB.";return false;}
+  playing=true;startNs=now;lastTickNs=now-1;message="Reproduzindo no XPS-10";return true;
+ }
+ public synchronized void tick(long now){
+  if(!playing&&recordTrack<0)return;
+  if(now<lastTickNs)return;
+  if(playing&&now-lastTickNs>MAX_GAP_NS){stop();message="Loop parado: relógio MIDI interrompido";return;}
+  if(recordTrack>=0&&now>=recordEnd){
+   long end=recordEnd;
+   if(playing){pump(end-1);lastTickNs=end-1;}
+   finishRecording();
+   if(!playing&&hasEvents()){playing=true;startNs=now-end>MAX_GAP_NS?now:end;lastTickNs=startNs-1;message="Reproduzindo no XPS-10";}
+   else if(!playing)message=receivedNotes==0?"Nenhuma nota MIDI recebida do teclado. Confira a entrada USB-MIDI.":"Notas recebidas fora do intervalo. Toque REC para tentar novamente.";
+  }
+  if(playing)pump(now);
+  lastTickNs=now;
+ }
+ private void pump(long now){
+   long from=lastTickNs-startNs,to=now-startNs;
+   long first=Math.max(0,Math.floorDiv(from,loopNs)),last=Math.floorDiv(to,loopNs);
+   for(long cycle=first;cycle<=last&&!outputFailed;cycle++){
+    long edge=cycle*loopNs;
+    if(cycle>0&&edge>from&&edge<=to)silenceAll();
+    // Merge by timestamp across tracks, so shared-channel sustain/notes retain ordering.
+    List<Due> due=new ArrayList<>();
+    for(int i=0;i<TRACKS;i++)if(!tracks[i].muted){
+     List<Event> events=tracks[i].events;
+     // Tracks remain sorted after recording, restore and tempo changes. Skip
+     // events outside this clock slice instead of scanning 64k events per tick.
+     int low=0,high=events.size();long after=from-edge,through=to-edge;
+     while(low<high){int middle=(low+high)>>>1;if(events.get(middle).offsetNs<=after)low=middle+1;else high=middle;}
+     for(int n=low;n<events.size();n++){Event e=events.get(n);if(e.offsetNs>through)break;due.add(new Due(i,e));}
+    }
+    due.sort(Comparator.comparingLong(d->d.event.offsetNs));
+    for(Due d:due){sendTracked(d.track,d.event);if(outputFailed)break;}
+   }
+   if(outputFailed){playing=false;cancelRecording();silenceAll();message="Falha no envio MIDI. Loop parado; reconecte o USB.";}
+ }
+ private static final class Due {final int track;final Event event;Due(int track,Event event){this.track=track;this.event=event;}}
+ private boolean send(int s,int a,int b){boolean ok=output.send(s,a,b);if(!ok)outputFailed=true;return ok;}
+ private void sendTracked(int index,Event e){
+  Track t=tracks[index];int c=e.status&15,k=e.status&0xf0;
+  if(k==0x80||(k==0x90&&e.velocity==0)){
+   for(int i=0;i<TRACKS;i++)if(i!=index&&tracks[i].notes[c][e.note]){t.notes[c][e.note]=false;return;}
+  }
+  if(k==0xb0&&e.note==64&&e.velocity<64){
+   for(int i=0;i<TRACKS;i++)if(i!=index&&tracks[i].sustain[c]){t.sustain[c]=false;return;}
+  }
+  if(!send(e.status,e.note,e.velocity))return;
+  if(k==0x90&&e.velocity>0)t.notes[c][e.note]=true;
+  else if(k==0x80||(k==0x90&&e.velocity==0))t.notes[c][e.note]=false;
+  if(k==0xb0&&e.note==64)t.sustain[c]=e.velocity>=64;
+  if(k==0xb0&&e.note==1)t.mod[c]=e.velocity!=0;
+  if(k==0xe0)t.bend[c]=e.note!=0||e.velocity!=64;
+ }
+ private void silenceTrack(int index){
+  Track t=tracks[index];
+  for(int c=0;c<16;c++){
+   for(int n=0;n<128;n++)if(t.notes[c][n]){
+    boolean held=false;for(int i=0;i<TRACKS;i++)if(i!=index&&tracks[i].notes[c][n])held=true;
+    if(held||send(0x80|c,n,0))t.notes[c][n]=false;
+   }
+   if(t.sustain[c]){boolean held=false;for(int i=0;i<TRACKS;i++)if(i!=index&&tracks[i].sustain[c])held=true;if(held||send(0xb0|c,64,0))t.sustain[c]=false;}
+   if(t.bend[c]&&send(0xe0|c,0,64))t.bend[c]=false;
+   if(t.mod[c]&&send(0xb0|c,1,0))t.mod[c]=false;
+  }
+ }
+ private void silenceAll(){for(int i=0;i<TRACKS;i++)silenceTrack(i);}
+ private void finishRecording(){
+  if(recordTrack<0)return;
+  Track t=tracks[recordTrack];if(!take.isEmpty())revision++;t.events.addAll(take);t.events.sort(Comparator.comparingLong(e->e.offsetNs));t.muted=false;cancelRecording();
+ }
+ private void cancelRecording(){recordTrack=-1;take.clear();}
+ public synchronized void stop(){if(recordTrack>=0)finishRecording();playing=false;silenceAll();message="Loop parado";}
+ /** Clear connection input state; playback never restarts automatically on reconnection. */
+ public synchronized void retrySilence(){outputFailed=false;silenceAll();message=outputFailed?"Falha MIDI. Reconecte o USB.":"Loop parado. Toque REC ou PLAY.";}
+ public synchronized void disconnected(){stop();java.util.Arrays.fill(inputSustain,false);message="Sem USB. Reconecte e toque PLAY.";}
+ public synchronized void mute(int index,boolean muted){trackIndex(index);if(tracks[index].muted!=muted)revision++;tracks[index].muted=muted;if(muted)silenceTrack(index);}
+ public synchronized void clear(int index){trackIndex(index);revision++;if(recordTrack==index)cancelRecording();silenceTrack(index);tracks[index].events.clear();tracks[index].muted=false;if(!hasEvents()){playing=false;message="Pronto para gravar";}}
+ /** Erase the session atomically, cancelling takes and releasing loop-owned MIDI notes. */
+ public synchronized void clearAll(){revision++;
+  cancelRecording();playing=false;silenceAll();receivedNotes=0;capturedNotes=0;
+  for(Track t:tracks){t.events.clear();t.muted=false;}
+  message=outputFailed?"Pistas apagadas. Reconecte o USB para liberar notas pendentes.":"Todas as pistas apagadas. Pronto para gravar.";
+ }
+ public synchronized Session session(){
+  if(recordTrack>=0)throw new IllegalStateException("Termine a gravação antes de salvar");
+  List<List<Event>> copy=new ArrayList<>();boolean[] mutes=new boolean[TRACKS];
+  for(int i=0;i<TRACKS;i++){copy.add(new ArrayList<>(tracks[i].events));mutes[i]=tracks[i].muted;}
+  return new Session(bpm,beats,bars,copy,mutes);
+ }
+ public synchronized void restore(Session session){
+  if(session==null)throw new IllegalArgumentException("Loop ausente");
+  stop();bpm=session.bpm;beats=session.beats;bars=session.bars;loopNs=session.durationNs();
+  for(int i=0;i<TRACKS;i++){tracks[i].events.clear();tracks[i].events.addAll(session.tracks.get(i));tracks[i].muted=session.muted(i);}
+  receivedNotes=0;capturedNotes=0;revision++;message="Loop carregado. Toque Reproduzir quando quiser.";
+ }
+ public synchronized State state(long now){return new State(this,now);}
+ public synchronized boolean isActive(){return playing||recordTrack>=0;}
+ public synchronized List<Event> snapshot(int index){trackIndex(index);return new ArrayList<>(tracks[index].events);}
+}
