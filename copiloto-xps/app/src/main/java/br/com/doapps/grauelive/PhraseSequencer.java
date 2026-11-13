@@ -35,7 +35,7 @@ public final class PhraseSequencer {
  }
  private void silence(){for(int i=0;i<TRACKS;i++)for(int n=0;n<128;n++)release(i,n);}
  public synchronized void start(Pattern next,long now){
-  failed=false;silence();if(failed)throw new IllegalStateException("Falha ao liberar notas. Reconecte o MIDI.");
+  Objects.requireNonNull(next);playing=false;failed=false;silence();if(failed)throw new IllegalStateException("Falha ao liberar notas. Reconecte o MIDI.");
   pattern=Objects.requireNonNull(next);Arrays.fill(muted,false);interval=15_000_000_000L/next.bpm;
   origin=now;lastTick=now;nextStep=0;step=-1;playing=true;message="Sequenciador MIDI tocando";
  }
