@@ -19,5 +19,5 @@ f('applyArp').onclick=()=>{try{send([edit('setup',0,25,f('arpEnabled').checked?1
 f('applyRhythm').onclick=()=>{try{send([edit('setup',0,33,f('rhythmEnabled').checked?1:0),edit('setup',0,38,number('rhythmGroup',1,24)-1),edit('setup',0,39,number('rhythmAccent',0,100)),edit('setup',0,40,number('rhythmVelocity',1,127))]);}catch(e){f('status').textContent=e.message;}};
 f('applyPhysicalPads').onclick=()=>{try{let out=[];for(let i=0;i<6;i++){let n=number('physicalPattern'+i,1,256)-1,o=21+i*6;out.push(edit('rhythmGroup',0,o,number('physicalVelocity'+i,1,127)),edit('rhythmGroup',0,o+2,n>>4),edit('rhythmGroup',0,o+3,n&15));}send(out);}catch(e){f('status').textContent=e.message;}};
 for(let id of ['mfxUnit','hardwarePart']){let prev=f(id).onchange;f(id).onchange=()=>{prev();render();};}
-let prev=window.receive;window.receive=(k,d)=>{prev(k,d);if(k==='hardwareBusy'){busy=!!d;renderMfx();}if(k==='hardware')hw=d;if(k==='hardwareReset')hw={};if(k==='hardware'||k==='hardwareReset')render();};render();
+let prev=window.receive;window.receive=(k,d)=>{prev(k,d);if(k==='hardwareBusy'){busy=!!d;for(const button of f('mfxParameters').querySelectorAll('button'))button.disabled=busy;}if(k==='hardware')hw=d;if(k==='hardwareReset')hw={};if(k==='hardware'||k==='hardwareReset')render();};render();
 })();

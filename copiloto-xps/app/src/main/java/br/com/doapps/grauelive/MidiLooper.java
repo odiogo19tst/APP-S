@@ -123,7 +123,14 @@ public final class MidiLooper {
     if(cycle>0&&edge>from&&edge<=to)silenceAll();
     // Merge by timestamp across tracks, so shared-channel sustain/notes retain ordering.
     List<Due> due=new ArrayList<>();
-    for(int i=0;i<TRACKS;i++)if(!tracks[i].muted)for(Event e:tracks[i].events){long at=edge+e.offsetNs;if(at>from&&at<=to)due.add(new Due(i,e));}
+    for(int i=0;i<TRACKS;i++)if(!tracks[i].muted){
+     List<Event> events=tracks[i].events;
+     // Tracks remain sorted after recording, restore and tempo changes. Skip
+     // events outside this clock slice instead of scanning 64k events per tick.
+     int low=0,high=events.size();long after=from-edge,through=to-edge;
+     while(low<high){int middle=(low+high)>>>1;if(events.get(middle).offsetNs<=after)low=middle+1;else high=middle;}
+     for(int n=low;n<events.size();n++){Event e=events.get(n);if(e.offsetNs>through)break;due.add(new Due(i,e));}
+    }
     due.sort(Comparator.comparingLong(d->d.event.offsetNs));
     for(Due d:due){sendTracked(d.track,d.event);if(outputFailed)break;}
    }

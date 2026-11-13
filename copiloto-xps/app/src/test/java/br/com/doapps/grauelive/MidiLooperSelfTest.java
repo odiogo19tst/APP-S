@@ -98,6 +98,16 @@ public final class MidiLooperSelfTest {
 
   r=new Rig();r.looper.record(r.now,0);r.advance(2*SECOND);check(!r.looper.isActive(),"Empty recording must not pretend to play");
   r.looper.record(r.now,0);for(int i=0;i<MidiLooper.MAX_EVENTS+10;i++)r.input(0x90,60,90);check(!r.looper.state(r.now).recording,"Unbounded recording rejected");
+  // A full 64k-event session must dispatch each event once, even when several
+  // tracks/timestamps tie and ticks fall exactly on event and loop boundaries.
+  List<List<MidiLooper.Event>> dense=new ArrayList<>();
+  for(int track=0;track<4;track++){List<MidiLooper.Event> events=new ArrayList<>();for(int i=0;i<MidiLooper.MAX_EVENTS;i++)events.add(new MidiLooper.Event(i*10*MS,0xb0|track,11,i%128));dense.add(events);}
+  int[] emitted={0};MidiLooper full=new MidiLooper((s,a,b)->{emitted[0]++;return true;});
+  full.restore(new MidiLooper.Session(40,12,32,dense,new boolean[4]));full.play(0);
+  long bench=System.nanoTime();for(int i=0;i<=5000;i++)full.tick(i*5*MS);bench=System.nanoTime()-bench;
+  check(emitted[0]==2501*4,"Binary slices include exact timestamps once across all tracks");
+  full.stop();check(!full.isActive(),"Dense loop stops normally");
+  System.out.println("Dense MIDI loop: 64,000 events, 5,001 ticks, "+(bench/1_000_000.0)+" ms (host benchmark, not Android latency)");
   System.out.println("MIDI Looper PASS: automatic playback, timing, four tracks, overdub, MIDI filters, sustain, mute, clear, BPM, send failure, reconnect and clock suspension");
  }
 }
