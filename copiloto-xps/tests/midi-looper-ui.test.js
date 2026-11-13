@@ -47,3 +47,5 @@ el('import').onclick();assert.deepEqual(calls.at(-1),['importLoopMidi']);emit('l
 console.log('Loop library UI PASS: named copies, stable song linkage, offline load, replacement confirmation, settings and errors');
 
 emit('loopState',{...stopped,counts:[0,0,0,0]});emit('xpsConnection',true);el('countin').checked=true;el('rec').onclick();assert.deepEqual(calls.at(-1),['loopRecordPrepared',0,120,3,4,true]);
+
+assert(el('bars').children.some(option=>option.value==='3')&&el('beats').children.some(option=>option.value==='8'),'Imported non-preset meter and length remain selectable for playback');

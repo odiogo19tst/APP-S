@@ -9,6 +9,7 @@
  const anchor=stage.querySelector('.graue-metronome')||stage.querySelector('.gx-stage-summary');
  if(anchor)anchor.insertAdjacentElement('afterend',panel);else stage.prepend(panel);
  const q=id=>panel.querySelector('#loop-'+id),tracks=panel.querySelector('.loop-tracks');
+ for(const [key,max,fallback] of [['beats',12,'4'],['bars',32,'2']]){const field=q(key),current=field.value;field.replaceChildren();for(let n=1;n<=max;n++){const option=document.createElement('option');option.value=String(n);option.textContent=String(n);field.append(option);}field.value=current||fallback;}
  let pendingLibrary=false,libraryItems=[],contextSongId='',contextSongTitle='',settingsReady=false;
  let selected=0,connected=false,state={playing:false,recording:false,queued:false,track:-1,counts:[0,0,0,0],muted:[false,false,false,false],position:0,message:'Pronto para gravar'},songKey=null;
  const trackButtons=[];
