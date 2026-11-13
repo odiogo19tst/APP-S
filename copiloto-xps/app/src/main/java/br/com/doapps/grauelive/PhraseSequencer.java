@@ -50,7 +50,13 @@ public final class PhraseSequencer {
    step=(int)(current%pattern.steps);nextStep=current+1;
    for(int t=0;t<TRACKS&&!failed;t++)if(!muted[t]){
     Track track=pattern.tracks.get(t);int note=track.notes[step],velocity=track.velocities[step];
-    if(velocity>0){release(t,note);if(!failed&&send(0x90+track.channel-1,note,velocity))ends[t][note]=now+interval*track.gate;}
+    if(velocity>0){
+     release(t,note);boolean shared=false;
+     for(int other=0;other<TRACKS;other++)if(other!=t&&ends[other][note]!=0&&pattern.tracks.get(other).channel==track.channel)shared=true;
+     // One physical Note On per shared voice, with independent track owners.
+     // Stacking identical Note Ons can leave voices stuck on some receivers.
+     if(!failed&&(shared||send(0x90+track.channel-1,note,velocity)))ends[t][note]=now+interval*track.gate;
+    }
    }
   }
   if(failed){playing=false;silence();message="Falha MIDI. Sequenciador parado; reconecte o USB.";}
