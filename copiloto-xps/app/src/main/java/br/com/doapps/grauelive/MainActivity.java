@@ -67,6 +67,11 @@ public class MainActivity extends Activity {
  }
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
  private MidiLooper liveLooper;
+ private PhraseSequencer phraseSequencer;
+ private final Runnable phraseTick=new Runnable(){public void run(){if(phraseSequencer==null)return;phraseSequencer.tick(System.nanoTime());if(phraseSequencer.playing())loopClock.postDelayed(this,4);else publishPhrase();}};
+ private final Runnable phraseUiTick=new Runnable(){public void run(){publishPhrase();if(phraseSequencer!=null&&phraseSequencer.playing())loopUi.postDelayed(this,100);}};
+ private void publishPhrase(){if(phraseSequencer==null)return;try{JSONArray mutes=new JSONArray();for(int i=0;i<8;i++)mutes.put(phraseSequencer.muted(i));emit("phraseState",new JSONObject().put("playing",phraseSequencer.playing()).put("step",phraseSequencer.step()).put("muted",mutes).put("message",phraseSequencer.message()));}catch(Exception ignored){}}
+ private void stopPhrase(){if(loopClock!=null)loopClock.removeCallbacks(phraseTick);loopUi.removeCallbacks(phraseUiTick);if(phraseSequencer!=null){phraseSequencer.stop();publishPhrase();}}
  private MidiLoopFiles loopFiles;private long loopSavedRevision=0;private byte[] loopExportBytes;
  private final ExecutorService loopStorage=Executors.newSingleThreadExecutor();
  private String loopStartupIssue="";
@@ -108,7 +113,7 @@ public class MainActivity extends Activity {
   }catch(Exception ignored){}
  }
  private void startLoopClock(){loopClock.post(()->{loopClock.removeCallbacks(loopTick);loopClock.post(loopTick);});loopUi.removeCallbacks(loopUiTick);loopUi.post(loopUiTick);}
- private void stopLiveLoop(){if(loopClock!=null)loopClock.removeCallbacks(loopTick);loopUi.removeCallbacks(loopUiTick);if(liveLooper!=null){liveLooper.stop();publishLoopState();}}
+ private void stopLiveLoop(){stopPhrase();if(loopClock!=null)loopClock.removeCallbacks(loopTick);loopUi.removeCallbacks(loopUiTick);if(liveLooper!=null){liveLooper.stop();publishLoopState();}}
  private boolean armed=false;
   private final java.util.concurrent.atomic.AtomicBoolean gemmaBusy=new java.util.concurrent.atomic.AtomicBoolean(false);
   private final java.util.concurrent.atomic.AtomicBoolean gemmaCancel=new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -153,6 +158,7 @@ public class MainActivity extends Activity {
  }});
   loopThread=new HandlerThread("GraueMidiClock",android.os.Process.THREAD_PRIORITY_AUDIO);loopThread.start();loopClock=new Handler(loopThread.getLooper());
   liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
+  phraseSequencer=new PhraseSequencer((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   try{loopFiles=new MidiLoopFiles(getFilesDir());MidiLoopFiles.Entry previous=loopFiles.checkpoint();if(previous!=null)liveLooper.restore(previous.session);loopSavedRevision=liveLooper.state(System.nanoTime()).revision;}catch(Exception e){loopStartupIssue="Sessão anterior não recuperada: "+e.getMessage();}
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
  if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
@@ -300,7 +306,21 @@ public class MainActivity extends Activity {
     }catch(Exception e){emit("status","Não foi possível abrir o link de música: "+e.getMessage());}
    });
   }
-  @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI antes de iniciar a batida.");return;}try{sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI antes de iniciar a batida.");return;}try{stopLiveLoop();sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
+  @JavascriptInterface public void startPhraseSequence(String json){
+   if(json==null||json.length()>40000)return;
+   runOnUiThread(()->{try{
+    if(!armed||midi==null||!midi.isConnected())throw new IllegalStateException("Conecte o XPS-10 por USB-MIDI antes de tocar a sequência.");
+    JSONObject o=new JSONObject(json);int steps=o.getInt("steps"),bpm=o.getInt("bpm");JSONArray rows=o.getJSONArray("tracks");if(rows.length()!=8)throw new IllegalArgumentException("Use oito pistas");
+    java.util.List<PhraseSequencer.Track> tracks=new java.util.ArrayList<>();
+    for(int i=0;i<8;i++){JSONObject row=rows.getJSONObject(i);JSONArray ns=row.getJSONArray("notes"),vs=row.getJSONArray("velocities");if(ns.length()!=steps||vs.length()!=steps||steps>64)throw new IllegalArgumentException("Passos inválidos");int[] n=new int[steps],v=new int[steps];for(int k=0;k<steps;k++){n[k]=ns.getInt(k);v[k]=vs.getInt(k);}tracks.add(new PhraseSequencer.Track(row.getInt("channel"),row.getInt("gate"),n,v));}
+    PhraseSequencer.Pattern pattern=new PhraseSequencer.Pattern(bpm,steps,tracks);
+    stopLiveLoop();sequencer.stop();stopAssist();phraseSequencer.start(pattern,System.nanoTime());loopClock.post(()->{loopClock.removeCallbacks(phraseTick);loopClock.post(phraseTick);});loopUi.post(phraseUiTick);
+   }catch(Exception e){emit("phraseError",e.getMessage());publishPhrase();}});
+  }
+  @JavascriptInterface public void stopPhraseSequence(){runOnUiThread(()->stopPhrase());}
+  @JavascriptInterface public void phraseSequenceState(){runOnUiThread(()->publishPhrase());}
+  @JavascriptInterface public void mutePhraseTrack(int track,boolean mute){runOnUiThread(()->{try{phraseSequencer.mute(track,mute);publishPhrase();}catch(Exception e){emit("phraseError",e.getMessage());}});}
   @JavascriptInterface public void loopState(){runOnUiThread(()->{publishLoopState();if(!loopStartupIssue.isEmpty()){emit("loopLibraryError",loopStartupIssue);loopStartupIssue="";}});}
   @JavascriptInterface public void listLoops(){loopStorage.execute(()->loopLibrary());}
   @JavascriptInterface public void saveLoop(String name,String songId,String songTitle){runOnUiThread(()->{
@@ -317,16 +337,16 @@ public class MainActivity extends Activity {
 
   @JavascriptInterface public void loopRecord(int track,int bpm,int beats,int bars){runOnUiThread(()->{
    if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 por USB para gravar MIDI.");return;}
-   try{if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track);startLoopClock();}
+   try{stopPhrase();if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track);startLoopClock();}
    catch(Exception e){emit("status",e.getMessage());publishLoopState();}
   });}
   @JavascriptInterface public void loopRecordPrepared(int track,int bpm,int beats,int bars,boolean countIn){runOnUiThread(()->{
    if(!armed||midi==null||!midi.isConnected()){emit("loopLibraryError","Conecte o XPS-10 por USB para gravar MIDI.");return;}
-   try{if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track,countIn);startLoopClock();}catch(Exception e){emit("loopLibraryError",e.getMessage());publishLoopState();}
+   try{stopPhrase();if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track,countIn);startLoopClock();}catch(Exception e){emit("loopLibraryError",e.getMessage());publishLoopState();}
   });}
   @JavascriptInterface public void loopPlay(int bpm,int beats,int bars){runOnUiThread(()->{
    if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 por USB para tocar o loop.");return;}
-   try{if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);if(liveLooper.play(System.nanoTime()))startLoopClock();else publishLoopState();}
+   try{stopPhrase();if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);if(liveLooper.play(System.nanoTime()))startLoopClock();else publishLoopState();}
    catch(Exception e){emit("status",e.getMessage());publishLoopState();}
   });}
   @JavascriptInterface public void loopStop(){runOnUiThread(()->stopLiveLoop());}
