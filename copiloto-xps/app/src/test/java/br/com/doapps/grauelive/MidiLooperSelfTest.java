@@ -94,6 +94,8 @@ public final class MidiLooperSelfTest {
   r.advance(2*SECOND);check(r.looper.state(r.now).message.contains("fora do intervalo"),"Out-of-window input differs from missing USB input");
   r.looper.clearAll();check(r.looper.state(r.now).receivedNotes==0&&r.looper.state(r.now).capturedNotes==0,"Erase resets diagnostics");
 
+  r=new Rig();r.looper.record(r.now,0,true);check(r.looper.state(r.now).countInBeats==2,"Optional count-in uses the current meter");r.input(0x90,80,100);r.advance(2*SECOND);r.input(0x90,60,90);r.advance(2100*MS);r.input(0x80,60,0);r.advance(3*SECOND);check(r.looper.snapshot(0).size()==2&&r.looper.snapshot(0).getFirst().note==60,"Count-in excludes early notes and records the first beat");
+
   r=new Rig();r.looper.record(r.now,0);r.advance(2*SECOND);check(!r.looper.isActive(),"Empty recording must not pretend to play");
   r.looper.record(r.now,0);for(int i=0;i<MidiLooper.MAX_EVENTS+10;i++)r.input(0x90,60,90);check(!r.looper.state(r.now).recording,"Unbounded recording rejected");
   System.out.println("MIDI Looper PASS: automatic playback, timing, four tracks, overdub, MIDI filters, sustain, mute, clear, BPM, send failure, reconnect and clock suspension");
