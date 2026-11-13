@@ -66,6 +66,26 @@ public class MainActivity extends Activity {
  }
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
  private MidiLooper liveLooper;
+ private MidiLoopFiles loopFiles;private long loopSavedRevision=0;private byte[] loopExportBytes;
+ private final ExecutorService loopStorage=Executors.newSingleThreadExecutor();
+ private String loopStartupIssue="";
+ private JSONObject loopEntry(MidiLoopFiles.Entry e)throws JSONException{
+  int count=0;for(java.util.List<MidiLooper.Event> track:e.session.tracks)count+=track.size();
+  return new JSONObject().put("id",e.id).put("name",e.name).put("songId",e.songId).put("songTitle",e.songTitle).put("savedAt",e.savedAt).put("bpm",e.session.bpm).put("beats",e.session.beats).put("bars",e.session.bars).put("events",count);
+ }
+ private void loopLibrary(){try{if(loopFiles==null)throw new IOException("Biblioteca indisponível");JSONArray items=new JSONArray();for(MidiLoopFiles.Entry e:loopFiles.list())items.put(loopEntry(e));emit("loopLibrary",items);}catch(Exception e){emit("loopLibraryError",e.getMessage());}}
+ private void checkpointLoop(){
+  if(loopFiles==null||liveLooper==null||loopStorage.isShutdown())return;
+  synchronized(liveLooper){MidiLooper.State state=liveLooper.state(System.nanoTime());if(state.recording||state.revision==loopSavedRevision)return;
+   MidiLooper.Session snapshot=liveLooper.session();long revision=state.revision;loopSavedRevision=revision;
+   try{loopStorage.execute(()->{try{loopFiles.checkpoint(snapshot);}catch(Exception e){synchronized(liveLooper){if(loopSavedRevision==revision)loopSavedRevision=-1;}emit("loopLibraryError","Falha ao salvar a sessão: "+e.getMessage());}});}catch(RejectedExecutionException ignored){ /* Activity is already closing; queued snapshots are retained. */ }
+  }
+ }
+ private void loadLoopSession(MidiLooper.Session session,JSONObject info){runOnUiThread(()->{
+  if(liveLooper.isActive()){emit("loopLibraryError","Pare o loop antes de carregar outro");return;}
+  liveLooper.restore(session);publishLoopState();emit("loopLoaded",info);
+ });}
+
  private HandlerThread loopThread;
  private Handler loopClock;
  private final Handler loopUi=new Handler(Looper.getMainLooper());
@@ -78,10 +98,11 @@ public class MainActivity extends Activity {
  private final Runnable loopUiTick=new Runnable(){public void run(){publishLoopState();if(liveLooper!=null&&liveLooper.isActive())loopUi.postDelayed(this,100);}};
  private void publishLoopState(){
   if(liveLooper==null)return;
+  checkpointLoop();
   MidiLooper.State state=liveLooper.state(System.nanoTime());
   try{JSONObject data=new JSONObject().put("playing",state.playing).put("recording",state.recording).put("queued",state.queued)
    .put("track",state.recordingTrack).put("bpm",state.bpm).put("beats",state.beats).put("bars",state.bars)
-   .put("receivedNotes",state.receivedNotes).put("capturedNotes",state.capturedNotes).put("position",state.position).put("counts",new JSONArray(state.counts)).put("muted",new JSONArray(state.muted)).put("message",state.message);
+   .put("countInBeats",state.countInBeats).put("receivedNotes",state.receivedNotes).put("capturedNotes",state.capturedNotes).put("position",state.position).put("counts",new JSONArray(state.counts)).put("muted",new JSONArray(state.muted)).put("message",state.message);
    emit("loopState",data);
   }catch(Exception ignored){}
  }
@@ -131,6 +152,7 @@ public class MainActivity extends Activity {
  }});
   loopThread=new HandlerThread("GraueMidiClock",android.os.Process.THREAD_PRIORITY_AUDIO);loopThread.start();loopClock=new Handler(loopThread.getLooper());
   liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
+  try{loopFiles=new MidiLoopFiles(getFilesDir());MidiLoopFiles.Entry previous=loopFiles.checkpoint();if(previous!=null)liveLooper.restore(previous.session);loopSavedRevision=liveLooper.state(System.nanoTime()).revision;}catch(Exception e){loopStartupIssue="Sessão anterior não recuperada: "+e.getMessage();}
   midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
  if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
  emit("status",t);
@@ -278,11 +300,28 @@ public class MainActivity extends Activity {
    });
   }
   @JavascriptInterface public void startSequence(String json){if(json.length()>20000)return;runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI antes de iniciar a batida.");return;}try{sequencer.start(json);}catch(Exception e){emit("status",e.getMessage());}});}
-  @JavascriptInterface public void loopState(){runOnUiThread(()->publishLoopState());}
+  @JavascriptInterface public void loopState(){runOnUiThread(()->{publishLoopState();if(!loopStartupIssue.isEmpty()){emit("loopLibraryError",loopStartupIssue);loopStartupIssue="";}});}
+  @JavascriptInterface public void listLoops(){loopStorage.execute(()->loopLibrary());}
+  @JavascriptInterface public void saveLoop(String name,String songId,String songTitle){runOnUiThread(()->{
+   try{if(liveLooper.isActive())throw new IOException("Pare o loop antes de salvar uma cópia");if(loopFiles==null)throw new IOException("Biblioteca indisponível");MidiLooper.Session snapshot=liveLooper.session();boolean any=false;for(java.util.List<MidiLooper.Event> t:snapshot.tracks)if(!t.isEmpty())any=true;if(!any)throw new IOException("Grave ou importe notas antes de salvar");
+    loopStorage.execute(()->{try{MidiLoopFiles.Entry entry=loopFiles.save(name,songId,songTitle,snapshot);loopLibrary();emit("loopLibrarySaved",loopEntry(entry));}catch(Exception e){emit("loopLibraryError",e.getMessage());}});
+   }catch(Exception e){emit("loopLibraryError",e.getMessage());}
+  });}
+  @JavascriptInterface public void loadLoop(String id){loopStorage.execute(()->{try{MidiLoopFiles.Entry entry=loopFiles.load(id);loadLoopSession(entry.session,loopEntry(entry));}catch(Exception e){emit("loopLibraryError",e.getMessage());}});}
+  @JavascriptInterface public void deleteLoop(String id){loopStorage.execute(()->{try{loopFiles.delete(id);loopLibrary();emit("loopLibraryInfo","Cópia apagada da biblioteca. A sessão atual foi preservada.");}catch(Exception e){emit("loopLibraryError",e.getMessage());}});}
+  @JavascriptInterface public void exportLoopMidi(){runOnUiThread(()->{
+   try{if(liveLooper.isActive())throw new IOException("Pare o loop antes de exportar");MidiLooper.Session snapshot=liveLooper.session();boolean any=false;for(java.util.List<MidiLooper.Event> t:snapshot.tracks)if(!t.isEmpty())any=true;if(!any)throw new IOException("Não há gravação para exportar");loopExportBytes=MidiLoopSmf.encode(snapshot);startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("audio/midi").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"Graue-loop.mid"),14);}catch(Exception e){emit("loopLibraryError",e.getMessage());}
+  });}
+  @JavascriptInterface public void importLoopMidi(){runOnUiThread(()->{if(liveLooper.isActive()){emit("loopLibraryError","Pare o loop antes de importar");return;}startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE),13);});}
+
   @JavascriptInterface public void loopRecord(int track,int bpm,int beats,int bars){runOnUiThread(()->{
    if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 por USB para gravar MIDI.");return;}
    try{if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track);startLoopClock();}
    catch(Exception e){emit("status",e.getMessage());publishLoopState();}
+  });}
+  @JavascriptInterface public void loopRecordPrepared(int track,int bpm,int beats,int bars,boolean countIn){runOnUiThread(()->{
+   if(!armed||midi==null||!midi.isConnected()){emit("loopLibraryError","Conecte o XPS-10 por USB para gravar MIDI.");return;}
+   try{if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);liveLooper.record(System.nanoTime(),track,countIn);startLoopClock();}catch(Exception e){emit("loopLibraryError",e.getMessage());publishLoopState();}
   });}
   @JavascriptInterface public void loopPlay(int bpm,int beats,int bars){runOnUiThread(()->{
    if(!armed||midi==null||!midi.isConnected()){emit("status","Conecte o XPS-10 por USB para tocar o loop.");return;}
@@ -807,7 +846,16 @@ public class MainActivity extends Activity {
   }
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
- @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
+ @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);
+ if(req==13||req==14){
+  if(result!=RESULT_OK||data==null||data.getData()==null){loopExportBytes=null;emit("loopLibraryInfo","Operação cancelada. Sessão preservada.");return;}
+  final byte[] export=loopExportBytes;loopExportBytes=null;
+  loopStorage.execute(()->{try{
+   if(req==14){if(export==null)throw new IOException("Exportação interrompida; tente novamente");try(OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Destino indisponível");out.write(export);}emit("loopLibraryInfo","MIDI exportado. O arquivo contém notas e controles; o timbre continua no teclado.");}
+   else{MidiLooper.Session imported;try(InputStream in=getContentResolver().openInputStream(data.getData())){imported=MidiLoopSmf.decode(MidiLoopFiles.read(in));}loadLoopSession(imported,new JSONObject().put("name","MIDI importado").put("bpm",imported.bpm).put("beats",imported.beats).put("bars",imported.bars));}
+  }catch(Exception e){emit("loopLibraryError","Importação/exportação não concluída: "+e.getMessage());}});return;
+ }
+ if(result!=RESULT_OK||data==null)return;worker.execute(()->{try{
  if(req==12){try(InputStream in=getContentResolver().openInputStream(data.getData());ByteArrayOutputStream output=new ByteArrayOutputStream()){
   if(in==null)throw new IOException("Arquivo não disponível");byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1){if(output.size()+n>1000000)throw new IOException("Backup de configurações maior que 1 MB");output.write(buffer,0,n);}
   JSONObject archive=new JSONObject(output.toString("UTF-8"));if(archive.optInt("graueSettingsBackup")!=1)throw new IOException("Não é um backup de dados do Grauê");JSONObject state=archive.getJSONObject("state");if(!(state.opt("songs") instanceof JSONArray))throw new IOException("Repertório ausente no backup");getPreferences(0).edit().putString("state",state.toString()).apply();runOnUiThread(()->web.reload());return;
@@ -867,5 +915,5 @@ public class MainActivity extends Activity {
  if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
  if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>1000000)throw new IOException("Arquivo maior que 1 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
  @Override protected void onStop(){super.onStop();stopLiveLoop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
- @Override protected void onDestroy(){stopLiveLoop();if(loopThread!=null)loopThread.quitSafely();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
+ @Override protected void onDestroy(){stopLiveLoop();if(loopThread!=null)loopThread.quitSafely();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();loopStorage.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
 }

@@ -3,3 +3,15 @@
 
 #gx-shell.gx-layout-v3 .gx-loop-secondary{flex-wrap:wrap}
 #gx-shell.gx-layout-v3 #loop-clear-all{background:#38252c;border-color:#70424e;color:#ffb2bd}
+
+#gx-shell .loop-library{margin-top:12px;border-top:1px solid var(--gx-line,#344c3f);padding-top:8px}
+#gx-shell .loop-library>summary{min-height:44px;padding:10px 0;font-size:12px;cursor:pointer}
+#gx-shell .loop-library .loop-library-buttons{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}
+#gx-shell .loop-library .loop-library-buttons button{min-height:44px;font-size:11px;padding:8px 10px}
+#gx-shell .loop-library .loop-link-label{display:flex;flex-direction:row;align-items:center;gap:8px}
+#gx-shell .loop-library input[type=checkbox]{width:22px;min-height:22px;height:22px}
+#gx-shell .loop-library #loop-name,#gx-shell .loop-library #loop-saved{width:100%;max-width:100%;min-height:44px}
+#gx-shell .loop-library:not([open])>:not(summary){display:none!important}
+
+#gx-shell .gx-midi-looper .loop-countin-label{display:flex;flex-direction:row;align-items:center;gap:8px}
+#gx-shell .gx-midi-looper .loop-countin-label input{width:22px;min-height:22px;height:22px}
