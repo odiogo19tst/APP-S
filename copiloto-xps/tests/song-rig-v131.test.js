@@ -29,7 +29,7 @@ assert.equal(cleaned.keyboardSetup.number,6);
 assert.equal(cleaned.keyboardSetup.auto,true);
 const linkedA=vm.runInContext('normalize('+JSON.stringify({...user,loopId:'song-a'})+')',ctxt),linkedB=vm.runInContext('normalize('+JSON.stringify({...user,loopId:'song-b'})+')',ctxt);
 assert.equal(linkedA.loopId,'song-a');assert.equal(linkedB.loopId,'song-b');assert.equal(linkedA.title,linkedB.title);assert.notEqual(linkedA.loopId,linkedB.loopId,'Loop associations survive normalization without conflating same-title songs');
-assert(app.includes('keyboardSetup:song.keyboardSetup||null'),'Legacy music save must retain setup');
+assert(app.includes('normalize({...song,'),'Legacy music save must retain all song metadata (runtime covered in interface.test.js)');
 assert(app.includes('item.keyboardSetup=songs[at].keyboardSetup||item.keyboardSetup'),'Reimport of a known URL must keep the existing setup');
 const ui=read('ux-v2.js'),html=read('index.html'),css=read('ux-v2.css');
 for(const id of ['gx-song-rig-type','gx-song-rig-number','gx-song-rig-save','gx-song-rig-clear','gx-song-rig-auto','gx-stage-rig-info'])assert(ui.includes('id="'+id+'"'),'Missing UI '+id);

@@ -7,6 +7,7 @@ class Element {
  close(){this.open=false;}
  setAttribute(){}
  replaceChildren(){this.children=[];}
+ querySelectorAll(tag){return this.children.flatMap(c=>[...(c.tagName===tag?[c]:[]),...(c.querySelectorAll?.(tag)||[])]);}
  getContext(){return {scale(){},fillRect(){}};}
 }
 const els={},html=fs.readFileSync(__dirname+'/../app/src/main/assets/index.html','utf8');for(const m of html.matchAll(/id="([^"]+)"/g))els[m[1]]=new Element();
@@ -111,3 +112,16 @@ for(const method of ['startSequence','stopSequence'])native[method]=(...a)=>call
 els.sequencePreset.onclick();assert.equal(els.sequenceGrid.children.length,136);els.sequenceBpm.value='90';els.sequenceStart.onclick();let pattern=JSON.parse(calls.at(-1)[1]);assert.equal(pattern.grid[0][0],110);assert.equal(pattern.grid[1][4],100);assert.equal(pattern.channel,10);
 ctx.window.receive('webCifra',{title:'Minha cifra',text:'C Am F G\nTexto de exemplo'});assert.equal(els.songTitle.textContent,'Minha cifra');assert.equal(els.songCategory.value,'Cifra Club');
 console.log('Advanced: 78 MFX mappings, internal effect writes, six pad assignments, arp, sequence and browser import passed');
+// Regression: identify saved songs by immutable ID, not their display title.
+ctx.window.receive('import',JSON.stringify({songs:[{loopId:'same-a',title:'Duplicada',chords:['C'],root:0},{loopId:'same-b',title:'Duplicada',chords:['D'],root:2,artist:'Artista B',youtubeUrl:'https://youtu.be/teste',scoreNotes:'Preservar',keyboardSetup:{type:'user',number:7,auto:true}}]}));
+vm.runInContext("select(songs.find(s=>s.loopId==='same-b'))",ctx);
+els.title.value='Renomeada';els.saveSong.onclick();
+let stored=calls.filter(c=>c[0]==='save').at(-1)[1];
+assert.equal(stored.songs.find(s=>s.loopId==='same-a').title,'Duplicada');
+assert.equal(stored.songs.find(s=>s.loopId==='same-b').title,'Renomeada');
+assert.equal(stored.songs.find(s=>s.loopId==='same-b').artist,'Artista B');
+assert.equal(stored.songs.find(s=>s.loopId==='same-b').keyboardSetup.number,7);
+const size=stored.songs.length;vm.runInContext('newSong()',ctx);els.title.value='Nova separada';els.saveSong.onclick();stored=calls.filter(c=>c[0]==='save').at(-1)[1];assert.equal(stored.songs.length,size+1);assert.equal(stored.songs.at(-1).keyboardSetup,null);
+ctx.window.receive('webCifra',{title:'Sem URL B',text:'D Em G A\nOutra letra'});stored=calls.filter(c=>c[0]==='save').at(-1)[1];assert(stored.songs.some(s=>s.title==='Minha cifra'));assert(stored.songs.some(s=>s.title==='Sem URL B'));
+const beforeBusy=els.mfxParameters.children[1].children[0];beforeBusy.value='32785';ctx.window.receive('hardwareBusy',true);assert.equal(els.mfxParameters.children[1].children[0],beforeBusy);assert.equal(beforeBusy.value,'32785');ctx.window.receive('hardwareBusy',false);
+console.log('Identity/draft regression PASS: same-title edit, rename metadata, new draft, missing URL imports and busy MFX fields');

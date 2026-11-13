@@ -59,6 +59,7 @@
  let active='stage',filter='all',section='cifra',soundSection='tones',selectedIndex=-1,partPage=0,transposeSteps=0;
  let liveMode=false,stageScoreOpen=true;
  const activeSongIndex=()=>{
+  if(song?.loopId)return songIndex(song);
   if(selectedIndex>=0&&selectedIndex<songs.length&&songs[selectedIndex]?.title===song?.title)return selectedIndex;
   const matches=songs.map((entry,i)=>entry?.title===song?.title?i:-1).filter(i=>i>=0);
   return matches.length===1?matches[0]:-1;
@@ -68,7 +69,7 @@
  let lastAudio=null,hw={},connected=false,recording=false,notesHistory=[],keyName='—',lastCh='—';
  let backupRows=[],backupSelection=new Set();
  let silentDismissedKey='',silentToneIndex=0,silentPending=false,silentSuggested=null,silentMusicKey='';
- const stageKey=()=>[song?.title||'',idx,root,minor].join(':');
+ const stageKey=()=>[song?.loopId||song?.title||'',idx,root,minor].join(':');
  function preferredTones(){
   const lib=window.ToneLibrary;
   if(!lib?.favorites||!lib?.list)return [];
@@ -152,6 +153,7 @@
   if(result.status==='unsupported'){updateRigStatus('🎹 '+name+' · ponte MIDI indisponível');notify('Esta versão do APK não consegue carregar a Performance.');return;}
   updateRigStatus('🎹 '+name+' · solicitado ao XPS-10 (aguardando leitura)');
  }
+ window.GraueOnSongSelected=()=>{transposeSteps=0;selectedIndex=songIndex(song);preparedBrainPlan=null;};
  function selectRepertoireSong(entry,index){
   selectedIndex=index;transposeSteps=0;
   select(entry);rigSelectionStatus='';
@@ -215,7 +217,7 @@
  $x('gx-live-song-select').onchange=()=>{const selected=$x('gx-live-song-select').value;if(selected==='')return;const i=Number(selected);if(!Number.isInteger(i)||i<0||i>=songs.length)return;selectRepertoireSong(songs[i],i);if(liveMode){const score=$x('gx-live-score');if(score)score.scrollTop=0;}};
  $x('gx-search').oninput=renderSongs;
  shell.querySelectorAll('[data-gx-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.gxFilter;shell.querySelectorAll('[data-gx-filter]').forEach(x=>x.classList.toggle('on',x===b));renderSongs();});
- $x('gx-add-song').onclick=()=>openLegacy('songs');
+ $x('gx-add-song').onclick=()=>{newSong();selectedIndex=-1;openLegacy('songs');};
  const renderLouve=()=>{
   const set=saved.louveSetlist,box=$x('gx-louve-state'),wasOpen=!!box.querySelector('details')?.open;box.replaceChildren();
   if(!set?.items?.length){box.hidden=true;return;}
@@ -249,7 +251,7 @@
  shell.querySelectorAll('[data-gx-rep]').forEach(b=>b.onclick=()=>{section=b.dataset.gxRep;shell.querySelectorAll('[data-gx-rep]').forEach(x=>x.classList.toggle('on',b===x));renderRepertoire();});
  for(const id of ['gx-open-cifra','gx-view-cifra'])$x(id).onclick=openCifra;
  $x('gx-import-cifra').onclick=()=>{if(window.Native&&window.Native.importCifra)window.Native.importCifra();else openCifra();};
- $x('gx-save-cifra').onclick=()=>{if(!song||!song.title){return;}let at=songs.findIndex(s=>s.title===song.title);if(at<0)songs.push({...song});else songs[at]={...song};persist();renderSongs();renderSongRig(true);$x('status').textContent='Música salva no repertório local.';};
+ $x('gx-save-cifra').onclick=()=>{if(!song||!song.title){return;}let at=songIndex(song);if(at<0)songs.push({...song});else songs[at]={...song};persist();renderSongs();renderSongRig(true);$x('status').textContent='Música salva no repertório local.';};
  $x('gx-song-rig-type').onchange=()=>{
   const preset=$x('gx-song-rig-type').value==='preset',field=$x('gx-song-rig-number');
   field.max=preset?'16':'128';
@@ -618,12 +620,15 @@
  $x('gx-perf-prev').onclick=()=>{perfPage=Math.max(0,perfPage-1);renderPerformanceBanks();};
  $x('gx-perf-next').onclick=()=>{perfPage=Math.min(userPerformances?7:0,perfPage+1);renderPerformanceBanks();};
  renderPerformanceBanks();
+ const oldSongFavorites=new Set(Array.isArray(saved.songFavorites)?saved.songFavorites:[]);
+ saved.songFavorites=songs.filter(s=>oldSongFavorites.has(s.loopId)||oldSongFavorites.has(s.title)).map(s=>s.loopId);
+ if(JSON.stringify([...oldSongFavorites])!==JSON.stringify(saved.songFavorites))persist();
  const songFavoriteSet=()=>new Set(Array.isArray(saved.songFavorites)?saved.songFavorites:[]);
  function renderStageSongOptions(){const dropdown=$x('gx-live-song-select');const catalog=songs.map((entry,i)=>i+':'+S(entry?.title)).join('|');if(dropdown.dataset.catalog!==catalog){dropdown.replaceChildren();songs.forEach((entry,i)=>{if(!entry)return;const option=document.createElement('option');option.value=String(i);option.textContent=S(entry.title||'Música '+(i+1));dropdown.append(option);});dropdown.dataset.catalog=catalog;}const current=activeSongIndex();if(current>=0)dropdown.value=String(current);else dropdown.selectedIndex=-1;}
  function renderSongs(){renderStageSongOptions();
   const box=$x('gx-songs'),q=$x('gx-search').value.trim().toLowerCase(),favs=songFavoriteSet();box.replaceChildren();
   let items=songs.map((s,i)=>({s,i})).filter(({s})=>(S(s.title)+' '+S(s.category)+' '+S(s.root)).toLowerCase().includes(q));
-  if(filter==='favorites')items=items.filter(({s})=>favs.has(s.title));
+  if(filter==='favorites')items=items.filter(({s})=>favs.has(s.loopId));
   if(filter==='setlist')items=items.filter(({s})=>S(s.category).toLowerCase().includes('setlist'));
   if(filter==='recent')items=items.slice(-12).reverse();
   if(!items.length){let p=document.createElement('p');p.className='gx-empty';p.textContent='Nenhuma música encontrada. Abra o Cifra Club e importe uma cifra.';box.append(p);}
@@ -632,8 +637,8 @@
    let pick=document.createElement('button'),star=document.createElement('button');
    pick.className='gx-song-pick';let title=document.createElement('strong');title.textContent=s.title;let sub=document.createElement('small');sub.textContent=s.category||'Sem categoria';pick.append(title,sub);
    pick.onclick=()=>selectRepertoireSong(s,i);
-   star.className='gx-song-star';star.textContent=favs.has(s.title)?'★':'☆';star.setAttribute('aria-label','Favoritar '+s.title);
-   star.onclick=()=>{let set=songFavoriteSet();set.has(s.title)?set.delete(s.title):set.add(s.title);saved.songFavorites=[...set];persist();renderSongs();};
+   star.className='gx-song-star';star.textContent=favs.has(s.loopId)?'★':'☆';star.setAttribute('aria-label','Favoritar '+s.title);
+   star.onclick=()=>{let set=songFavoriteSet();set.has(s.loopId)?set.delete(s.loopId):set.add(s.loopId);saved.songFavorites=[...set];persist();renderSongs();};
    row.append(pick,star);box.append(row);
   });
  }
@@ -949,9 +954,10 @@
   renderPerformanceBanks();
   $x('gx-device-state').textContent=hw['setup:0']?'● Performance respondendo por MIDI':'● XPS-10 • aguardando leitura';
  }
+ let scoreCacheRaw=null,scoreCacheText='',liveStateKey='';
  function syncStage(){
   $x('gx-score-key').value=String(root);$x('gx-stage-score-key').value=String(root);
-  const score=$x('gx-live-score'),scoreText=GraueLouve.cleanScoreText(S(song?.text||'')).trim()||'Cifra não disponível. Importe no menu Repertório, fora do Modo Ao Vivo.';if(score.textContent!==scoreText)score.textContent=scoreText;
+  const score=$x('gx-live-score'),rawScore=S(song?.text||'');if(rawScore!==scoreCacheRaw){scoreCacheRaw=rawScore;scoreCacheText=GraueLouve.cleanScoreText(rawScore).trim()||'Cifra não disponível. Importe no menu Repertório, fora do Modo Ao Vivo.';}if(score.textContent!==scoreCacheText)score.textContent=scoreCacheText;
   const stageDropdown=$x('gx-live-song-select');const matchingSong=activeSongIndex();if(matchingSong>=0&&stageDropdown.value!==String(matchingSong))stageDropdown.value=String(matchingSong);
   const hasRealSong=matchingSong>=0;
   $x('gx-song-name').textContent=hasRealSong?song.title:'Selecione uma música do repertório';
@@ -970,7 +976,7 @@
   $x('gx-key').textContent=hasRealSong?M.names[root]:'—';$x('gx-scale').textContent=hasRealSong?(minor?'Menor':'Maior'):'Nenhuma música selecionada';
   $x('gx-bpm').textContent=$x('tempo')?.value||'72';
   const loopEntry=hasRealSong?songs[matchingSong]:null;if(loopEntry&&!loopEntry.loopId){loopEntry.loopId=typeof window.crypto?.randomUUID==='function'?window.crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);persist();}if(loopEntry)song.loopId=loopEntry.loopId;
-  document.dispatchEvent(new CustomEvent('graue:live-state',{detail:{songId:loopEntry?.loopId||'',title:hasRealSong?song.title:null,bpm:Number($x('tempo')?.value)||72,meter:String(song?.timeSignature||song?.meter||song?.compasso||'4/4'),key:hasRealSong?M.names[root]:null,transpose:transposeSteps}}));
+  const liveDetail={songId:loopEntry?.loopId||'',title:hasRealSong?song.title:null,bpm:Number($x('tempo')?.value)||72,meter:String(song?.timeSignature||song?.meter||song?.compasso||'4/4'),key:hasRealSong?M.names[root]:null,transpose:transposeSteps};const nextLiveStateKey=JSON.stringify(liveDetail);if(nextLiveStateKey!==liveStateKey){liveStateKey=nextLiveStateKey;document.dispatchEvent(new CustomEvent('graue:live-state',{detail:liveDetail}));}
   $x('gx-next-chord').textContent=hasRealSong?(song.chords?.[(idx+1)%song.chords.length]||'—'):'—';
   $x('gx-section').textContent=hasRealSong?'Acorde '+String(idx+1):'Aguardando cifra';
   $x('gx-progress-bar').style.width=((idx+1)/Math.max(1,song.chords.length)*100)+'%';

@@ -1,4 +1,7 @@
 .sound-workspace .sound-flow-context{border-color:var(--accent,#dd718e);padding:12px}
+body.gx-ready.gx-legacy>header{display:none!important}
+.sound-workspace .sound-flow-context #readHardware{display:inline-block!important}
+.sound-workspace .gx-control-unread{display:none}
 .sound-flow-context>button{margin:3px}
 .sound-workspace .sound-flow-response{border-left:3px solid var(--accent,#dd718e);padding:9px 12px;background:#ffffff08;min-height:42px}
 .sound-workspace .sound-flow-help{grid-column:1/-1;margin:6px 0 12px;padding:12px;border:1px solid #ffffff24;border-radius:8px}
