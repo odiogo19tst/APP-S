@@ -20,7 +20,7 @@ async function boot(page,state={songs:notes,scenes:[]}){
  await page.goto(url);await page.waitForSelector('#gx-shell');
  await page.waitForFunction(()=>!!window.GraueSoundWorkspace&&!!document.getElementById('loop-import'));
 }
-async function tab(page,key){if(['coach','backups','settings'].includes(key))await page.locator('#gx-more-menu').evaluate(n=>n.open=true);await page.locator('[data-gx-tab="'+key+'"]').click();}
+async function tab(page,key){if(await page.locator('#central-exit').isVisible()){if(key==='sound')return;await page.locator('#central-exit').click();}if(['coach','backups','settings'].includes(key))await page.locator('#gx-more-menu').evaluate(n=>n.open=true);await page.locator('[data-gx-tab="'+key+'"]').click();}
 async function editor(page,key){await tab(page,'sound');await page.locator('#central-existing-editors').evaluate(n=>n.open=true);await page.locator('.gx-sound-chooser').evaluate(n=>n.open=true);await page.locator('[data-gx-sound="'+key+'"]').click();}
 async function noOverflow(page,label){const value=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert(value.scroll<=value.width+2,label+': horizontal overflow '+JSON.stringify(value));}
 async function run(){
@@ -28,7 +28,7 @@ async function run(){
  const browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const errors=[],results=[];
  try{
-  for(const size of [{width:390,height:844},{width:844,height:390},{width:1366,height:900}]){
+  for(const size of [{width:390,height:844},{width:844,height:390},{width:1366,height:900},{width:1672,height:941}]){
    const page=await browser.newPage({viewport:size});page.on('pageerror',e=>errors.push(size.width+': '+e.stack));
    await boot(page);await noOverflow(page,'stage '+size.width);
    assert.equal(await page.locator('[data-gx-screen].on').count(),1);
@@ -58,8 +58,9 @@ async function run(){
    await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.auditLiveEvents),0,'Idle stage must not rebroadcast unchanged state');
    // Inject a readback fixture to exercise actual handlers and MFX draft lifetime.
    await page.evaluate(()=>{
-    const hw={'setup:0':Array(80).fill(0),'common:0':Array(80).fill(0),'chorus:0':Array(100).fill(0),'reverb:0':Array(100).fill(0),completeBlocks:56,availableBlocks:56,validSysexPackets:56,readAt:Date.now()};hw['setup:0'][0]=1;hw['setup:0'][18]=64;hw['setup:0'][19]=64;window.auditHardware=hw;
+    const hw={'setup:0':Array(80).fill(0),'common:0':Array(80).fill(0),'chorus:0':Array(100).fill(0),'reverb:0':Array(100).fill(0),completeBlocks:56,availableBlocks:56,validSysexPackets:56,readAt:Date.now()};hw['setup:0'][0]=1;hw['setup:0'][18]=64;hw['setup:0'][19]=64;window.auditHardware=hw;Array.from('Piano + Pad').forEach((c,i)=>hw['common:0'][i]=c.charCodeAt(0));for(const [i,name] of ['Piano','Pad','Strings','Baixo'].entries()){hw['patch:'+i]=Array(80).fill(0);Array.from(name).forEach((c,j)=>hw['patch:'+i][j]=c.charCodeAt(0));}
     for(let i=0;i<16;i++){const p=Array(80).fill(0),z=Array(40).fill(0);p[0]=i;p[1]=1;p[4]=87;p[5]=64;p[7]=100;p[21]=64;z[1]=1;z[13]=127;hw['part:'+i]=p;hw['zone:'+i]=z;}
+    hw['zone:0'][12]=36;hw['zone:0'][13]=59;hw['zone:1'][12]=60;hw['zone:1'][13]=96;
     for(let i=0;i<3;i++){const b=Array(160).fill(0);b[0]=1;for(let n=17;n<b.length;n+=4)b[n]=8;hw['mfx:'+i]=b;}
     window.receive('xpsConnection',true);window.receive('armed',true);window.receive('hardware',hw);
    });
@@ -90,6 +91,20 @@ async function run(){
    await page.locator('[data-central-tab="system"]').click();assert.equal(await page.locator('.central-limits button:disabled').count(),2);
    await page.locator('[data-central-tab="overview"]').click();await page.locator('#central-chord-buttons button').first().click();assert.equal(await page.evaluate(()=>window.nativeCalls.at(-1).method),'playAssistChord');
    await page.evaluate(()=>{window.receive('midi',[144,60,90]);window.receive('midi',[145,60,80]);window.receive('midi',[128,60,0]);});assert.equal(await page.locator('#central-keys rect[data-note="60"]').getAttribute('fill'),'#9aebc6');await page.evaluate(()=>window.receive('midi',[129,60,0]));assert.notEqual(await page.locator('#central-keys rect[data-note="60"]').getAttribute('fill'),'#9aebc6');
+   assert.equal(await page.locator('[data-quick-part]').count(),4);
+   assert.equal(await page.locator('#central-chord-buttons button').count(),4);
+   const beforeQuick=(await page.evaluate(midiCalls)).length;
+   await page.locator('[data-quick-part="0"]').fill('87');await page.locator('[data-quick-part="0"]').dispatchEvent('change');
+   assert.equal((await page.evaluate(midiCalls)).length,beforeQuick,'Fader only prepares');
+   assert.equal(await page.locator('.central-quick-part output').first().innerText(),'87');
+   await page.locator('.central-quick-part>button').first().click();assert.equal(await page.locator('.central-quick-part output').first().innerText(),'0');
+   await page.locator('.central-quick-part>button').first().click();assert.equal(await page.locator('.central-quick-part output').first().innerText(),'87');
+   await page.locator('#central-discard').click();
+   await page.locator('#central-scene-shortcuts button').nth(1).click();assert.equal(await page.locator('#central-scene-name').inputValue(),'Refrão');assert.equal((await page.evaluate(midiCalls)).length,beforeQuick);
+   await page.locator('[data-central-tab="overview"]').click();
+   await page.locator('#central-save-open').click();assert(await page.locator('#central-scene-name').isVisible());await page.locator('[data-central-tab="overview"]').click();
+   if(size.width>=760){const pos=await page.evaluate(()=>{const r=s=>{const b=document.querySelector(s).getBoundingClientRect();return {x:b.x,right:b.right,y:b.y,bottom:b.bottom};};return {nav:r('.central-nav'),mix:r('.central-mix-card'),chord:r('.central-chords'),fx:r('.central-quick-effects'),footer:r('.central-toolbar'),seq:r('.central-sequence-preview')};});assert(pos.nav.right<=pos.mix.x+2,'Menu à esquerda');assert(pos.mix.right<=pos.chord.x+2,'Acordes à direita');assert(pos.fx.y>=pos.chord.bottom,'Efeitos sob acordes');assert(pos.footer.y>=pos.seq.bottom,'Ações abaixo da sequência');}
+   if(size.width===1672){const height=await page.locator('#gx-control-center').evaluate(n=>n.getBoundingClientRect().height);assert(height<=size.height,'Central fits reference height: '+height);}
    await noOverflow(page,'central overview '+size.width);await page.screenshot({path:path.join(out,size.width+'-central.png'),fullPage:true});await tab(page,'stage');
    await page.screenshot({path:path.join(out,size.width+'-stage.png'),fullPage:true});
    results.push({viewport:size,pass:true});await page.close();
@@ -98,6 +113,6 @@ async function run(){
   for(const value of [null,[],{songs:[null,{title:'Inválida'},...notes],scenes:[null]}]){const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.stack));await boot(p,value);if(value?.songs?.includes(null)){const recovery=await p.evaluate(()=>window.lastSaved);assert.equal(recovery.recoverySongs.length,2);assert.equal(recovery.recoveryScenes.length,1);assert.equal(recovery.songs.length,2);}await p.close();}
   assert.deepEqual(errors,[],'Browser runtime errors');
  }catch(e){for(const page of browser.contexts().flatMap(c=>c.pages())){await page.screenshot({path:path.join(out,'failure.png'),fullPage:true}).catch(()=>{});fs.writeFileSync(path.join(out,'failure.html'),await page.content());}throw e;}finally{fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({results,errors},null,2));await browser.close();}
- console.log('Browser audit PASS: 3 viewports, all pages, editor routes, identities, drafts, confirmation and passive idle. Hardware bridge simulated.');
+ console.log('Browser audit PASS: 4 viewports, all pages, editor routes, identities, drafts, confirmation and passive idle. Hardware bridge simulated.');
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});
