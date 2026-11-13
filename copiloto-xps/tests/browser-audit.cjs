@@ -104,6 +104,7 @@ async function run(){
    await page.locator('[data-central-tab="overview"]').click();
    await page.locator('#central-save-open').click();assert(await page.locator('#central-scene-name').isVisible());await page.locator('[data-central-tab="overview"]').click();
    if(size.width>=760){const pos=await page.evaluate(()=>{const r=s=>{const b=document.querySelector(s).getBoundingClientRect();return {x:b.x,right:b.right,y:b.y,bottom:b.bottom};};return {nav:r('.central-nav'),mix:r('.central-mix-card'),chord:r('.central-chords'),fx:r('.central-quick-effects'),footer:r('.central-toolbar'),seq:r('.central-sequence-preview')};});assert(pos.nav.right<=pos.mix.x+2,'Menu à esquerda');assert(pos.mix.right<=pos.chord.x+2,'Acordes à direita');assert(pos.fx.y>=pos.chord.bottom,'Efeitos sob acordes');assert(pos.footer.y>=pos.seq.bottom,'Ações abaixo da sequência');}
+   if(size.width===1672){const height=await page.locator('#gx-control-center').evaluate(n=>n.getBoundingClientRect().height);assert(height<=size.height,'Central fits reference height: '+height);}
    await noOverflow(page,'central overview '+size.width);await page.screenshot({path:path.join(out,size.width+'-central.png'),fullPage:true});await tab(page,'stage');
    await page.screenshot({path:path.join(out,size.width+'-stage.png'),fullPage:true});
    results.push({viewport:size,pass:true});await page.close();
