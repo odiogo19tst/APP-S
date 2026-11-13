@@ -1,0 +1,47 @@
+#gx-shell #gx-control-center{min-width:0;margin:0 0 18px;padding:14px;border:1px solid var(--gx-line,#34464b);border-radius:14px;background:var(--gx-panel,#141e25)}
+#gx-shell .central-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+#gx-shell .central-heading h2{font-size:24px;margin:5px 0}
+#gx-shell .central-heading small{font-size:10px;letter-spacing:1.2px}
+#gx-shell #central-connection{font-size:12px;border:1px solid #ffffff30;padding:8px 12px;border-radius:20px}
+#gx-shell #central-status{padding:10px 12px;border-left:3px solid var(--gx-mint,#9aebc6);background:#ffffff06;font-size:13px;min-height:42px}
+#gx-shell .central-layout{display:grid;grid-template-columns:155px minmax(0,1fr);gap:16px;min-width:0}
+#gx-shell .central-nav{position:static;display:flex;flex-direction:column;background:none;overflow:visible;gap:7px;padding:0}
+#gx-shell .central-nav button{text-align:left;min-height:44px;flex:none;font-size:13px}
+#gx-shell #gx-control-center button.on,#gx-shell .central-step-pages button.on{background:linear-gradient(#714050,#472730);border-color:#d6657e;color:#ffe0e8}
+#gx-shell .central-body,#gx-shell .central-body>section{min-width:0}
+#gx-shell .central-body>section[hidden]{display:none!important}
+#gx-shell #gx-control-center h3{font-size:18px;line-height:1.4;margin:8px 0 12px}
+#gx-shell #gx-control-center p{font-size:13px;line-height:1.6;margin:10px 0}
+#gx-shell #gx-control-center article{padding:14px;border-radius:12px;margin:14px 0;background:#ffffff03;border-color:#ffffff20}
+#gx-shell #gx-control-center button{min-height:44px;font-size:12px;padding:10px 12px}
+#gx-shell #gx-control-center label{font-size:12px;margin:8px 0;min-width:0}
+#gx-shell #gx-control-center label>span{font-size:12px}
+#gx-shell #gx-control-center input:not([type=checkbox]),#gx-shell #gx-control-center select{width:100%!important;min-height:44px;font-size:14px;max-width:100%;margin-top:5px}
+#gx-shell .central-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#gx-shell .central-overview button{text-align:left;min-height:75px!important;font-size:15px!important}
+#gx-shell .central-overview small{display:block;font-size:11px;letter-spacing:0;margin-top:5px}
+#gx-shell .central-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;min-width:0}
+#gx-shell .central-fields label:has(input[type=checkbox]){display:flex;align-items:center;gap:8px;min-height:44px;padding:10px;border:1px solid #ffffff20;border-radius:6px}
+#gx-shell .central-chord-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+#gx-shell .central-chord-buttons button{font-size:20px!important;min-height:55px!important}
+#gx-shell #central-keys svg{width:100%;height:auto;display:block}
+#gx-shell .central-parts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#gx-shell .central-parts label{padding:10px;background:#ffffff05;border:1px solid #ffffff20;border-radius:8px}
+#gx-shell .central-scene{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px;border:1px solid #ffffff20;border-radius:8px;margin:8px 0}
+#gx-shell .central-scene strong{font-size:15px;flex:1 1 120px}
+#gx-shell .central-toolbar{position:sticky;bottom:8px;background:#111c24f5;border:1px solid #ffffff25;border-radius:10px;padding:12px;margin-top:18px;z-index:5}
+#gx-shell #central-pending{display:block;font-size:12px;margin-bottom:8px}
+#gx-shell .central-toolbar>div,#gx-shell .central-transport{display:flex;gap:8px;flex-wrap:wrap}
+#gx-shell .central-toolbar small{display:block;font-size:10px;line-height:1.5;letter-spacing:0;margin-top:8px}
+#gx-shell #central-apply{background:var(--gx-mint,#9aebc6);color:#092118}
+#gx-shell #gx-control-center button:disabled{opacity:.45;cursor:default}
+#gx-shell .central-grid-scroll{overflow:auto;max-width:100%;margin:10px 0;overscroll-behavior-x:contain}
+#gx-shell .central-seq-row{display:grid;grid-template-columns:105px 58px repeat(16,44px);gap:4px;margin-bottom:5px;width:max-content}
+#gx-shell .central-seq-row button{padding:5px!important;min-height:44px;font-size:11px!important}
+#gx-shell .central-step.central-step-on{background:#714050;border-color:#d6657e}
+#gx-shell .central-step.central-current-step{outline:2px solid var(--gx-mint,#9aebc6);outline-offset:-3px}
+#gx-shell .central-step-pages{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}
+#gx-shell .central-limits button{display:block;margin:8px 0;width:100%;text-align:left}
+#gx-shell .central-existing-editors{border:1px solid #ffffff25;border-radius:12px;margin-bottom:15px;padding:12px}
+#gx-shell .central-existing-editors>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:14px}
+@media(max-width:700px){#gx-shell #gx-control-center{padding:11px}#gx-shell .central-layout{display:block}#gx-shell .central-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:12px 0}#gx-shell .central-nav button{text-align:center;padding:8px 5px!important;font-size:11px!important}#gx-shell .central-parts{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell .central-fields{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell .central-toolbar{position:static}#gx-shell .central-toolbar>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell .central-heading h2{font-size:21px}}
