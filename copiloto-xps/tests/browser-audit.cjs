@@ -122,6 +122,24 @@ async function run(){
    await page.screenshot({path:path.join(out,size.width+'-stage.png'),fullPage:true});
    results.push({viewport:size,pass:true});await page.close();
   }
+  // Regression: Louve status/retry controls used to consume a 290px capped
+  // library after its details wrapper broke the old direct-child CSS fix.
+  for(const size of [{width:390,height:844},{width:360,height:740},{width:844,height:390},{width:1366,height:900}]){
+   const page=await browser.newPage({viewport:size});page.on('pageerror',e=>errors.push('library '+size.width+': '+e.stack));
+   const songs=Array.from({length:35},(_,i)=>({...notes[0],loopId:'library-'+i,title:'Música '+String(i+1).padStart(2,'0')+' — Louvor e Adoração'}));
+   const items=songs.slice(0,3).map((s,i)=>({title:s.title,key:'C',bpm:72,status:i===2?'failed':'done',keyMatched:true,error:i===2?'Importação pendente':''}));
+   await boot(page,{songs,scenes:[],louveSetlist:{title:'Louvor e Adoração',items}});await tab(page,'repertoire');
+   const list=page.locator('#gx-songs');assert.equal(await list.locator('.gx-song-pick').count(),35);assert(await page.locator('#gx-louve-retry').isVisible());
+   const measure=await list.evaluate(n=>{const p=n.parentElement,b=n.getBoundingClientRect(),r=p.getBoundingClientRect();return{height:n.clientHeight,content:n.scrollHeight,top:b.top,bottom:b.bottom,parentBottom:r.bottom,screen:innerHeight};});
+   assert(measure.height>=Math.min(150,size.height*.40),'Songs retain usable height: '+JSON.stringify(measure));assert(measure.content>measure.height,'Long list scrolls');assert(measure.bottom<=measure.parentBottom+2,'List is not clipped by library');
+   await list.scrollIntoViewIfNeeded();await list.evaluate(n=>n.scrollTop=n.scrollHeight);await list.locator('.gx-song-pick').last().click();
+   assert.match(await page.locator('#gx-cifra-title').innerText(),/Música 35/,'Last song remains selectable');
+   await page.locator('#gx-search').fill('Música 02');assert.equal(await list.locator('.gx-song-pick').count(),1);await list.locator('.gx-song-pick').click();assert.match(await page.locator('#gx-cifra-title').innerText(),/Música 02/);
+   await page.locator('#gx-search').fill('');await list.scrollIntoViewIfNeeded();await list.evaluate(n=>n.scrollTop=0);await noOverflow(page,'long repertoire '+size.width);
+   await page.screenshot({path:path.join(out,size.width+'-repertoire-list.png'),fullPage:true});
+   await page.locator('.gx-repertoire-library>summary').click();assert(!await list.isVisible());await page.locator('.gx-repertoire-library>summary').click();assert(await list.isVisible());
+   assert.equal((await page.evaluate(midiCalls)).length,0,'Library browsing remains passive');results.push({viewport:size,repertoire35:true,pass:true});await page.close();
+  }
   // Valid JSON that is not a state object must not break startup.
   for(const value of [null,[],{songs:[null,{title:'Inválida'},...notes],scenes:[null]}]){const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.stack));await boot(p,value);if(value?.songs?.includes(null)){const recovery=await p.evaluate(()=>window.lastSaved);assert.equal(recovery.recoverySongs.length,2);assert.equal(recovery.recoveryScenes.length,1);assert.equal(recovery.songs.length,2);}await p.close();}
   assert.deepEqual(errors,[],'Browser runtime errors');
