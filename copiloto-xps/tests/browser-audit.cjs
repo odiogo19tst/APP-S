@@ -67,6 +67,11 @@ async function run(){
    await editor(page,'effects');await page.locator('.sound-flow-details').evaluate(n=>n.open=true);
    const input=page.locator('#mfxParameters input').first();assert(await input.count());
    await input.fill('1');await page.evaluate(()=>window.receive('hardwareBusy',true));assert.equal(await input.inputValue(),'1','Busy may not erase a prepared MFX value');
+   await page.evaluate(()=>window.receive('userReadState',{running:true,sent:1,received:0,total:256,message:'USER: 0 respondidas / 1 consulta enviada'}));
+   assert(await page.locator('#cancelHardware').isEnabled(),'Cancel stays enabled during USER scan');assert(await page.locator('#readUserTones').isDisabled());
+   const cancelCount=await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='cancelHardware').length);await page.locator('#cancelHardware').click();assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='cancelHardware').length),cancelCount+1);
+   await page.evaluate(()=>window.receive('userReadState',{running:false,sent:1,received:0,total:256,message:'Primeira posição sem resposta; cache preservado.'}));assert(await page.locator('#cancelHardware').isDisabled());assert(await page.locator('#readUserTones').isEnabled());
+
    await page.evaluate(()=>window.receive('hardwareBusy',false));
    await page.locator('#mfxParameters button').first().click();const sent=(await page.evaluate(midiCalls)).at(-1);assert.equal(sent.method,'editHardware');assert.equal(JSON.parse(sent.args[0])[0].section,'mfxparam');
    await page.evaluate(()=>window.receive('status','Não foi possível confirmar todos os valores enviados.'));assert.match(await page.locator('#sound-flow-response').innerText(),/Não foi possível/);

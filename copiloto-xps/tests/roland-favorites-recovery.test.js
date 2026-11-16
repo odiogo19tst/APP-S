@@ -13,8 +13,8 @@ assert(ui.includes("rolandFavoriteEntriesDecoded:0"),'Missing explicit physical 
 assert(ui.includes("window.Native?.getMidiDiagnostics?.()"),'No safe diagnostics');
 assert(ui.includes("window.Native?.importXpsBackups?.()"),'No native backup import from Roland panel');
 assert(midi.includes('public boolean hasValidSysex()')&&midi.includes('validSysexPackets++'),'Protocol must distinguish connection from response');
-assert(midi.includes('if(!hasValidSysex())'),'No full 256 USER requests with absent SysEx');
-assert(native.includes('else if(xps.hasValidSysex())'),'Auto 256 read must be gated on actual SysEx response');
+assert(midi.includes('if(!hasConfirmedSetup())'),'USER reads require a live complete Setup');
+assert(native.includes('else if(xps.hasConfirmedSetup())'),'Auto 256 read must be gated on actual SysEx response');
 assert(native.includes('@JavascriptInterface public void getMidiDiagnostics()'),'No native USB report');
 assert(native.includes('.put("validSysexPackets",xps.validSysexCount())'),'Report must count actual packets');
 assert(backup.includes('String originalName(String sha)'),'Backup export should preserve filename');

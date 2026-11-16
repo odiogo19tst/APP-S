@@ -8,7 +8,7 @@ public final class XpsController {
  private final List<XpsProtocol.Block> readable=XpsProtocol.readable();
  private final IO io;private final Handler h=new Handler(Looper.getMainLooper());
  private final Map<Integer,Integer> state=new HashMap<>();private Map<Integer,Integer> undo=new LinkedHashMap<>();
- private Map<Integer,Integer> expected=new LinkedHashMap<>();private int generation=0;private boolean busy=false;
+ private Map<Integer,Integer> expected=new LinkedHashMap<>();private int generation=0;private boolean busy=false;private UserToneReadSession userRead;
  private int deepPart=-1,deepRevision=0;private boolean deepValid=false;private int[] deepIdentity;
  private Map<Integer,Integer> patchUndo=new LinkedHashMap<>(),patchUndoExpected=new LinkedHashMap<>();
  public boolean isBusy(){return busy;}
@@ -77,7 +77,28 @@ public final class XpsController {
   }catch(JSONException ignored){}
  }
  private List<XpsProtocol.Block> performanceBlocks(){List<XpsProtocol.Block> b=XpsProtocol.blocks();b.addAll(XpsProtocol.patches());return b;}
- public void readUsers(){if(!hasValidSysex()){io.emit("status","USB-MIDI detectado, mas o XPS-10 não respondeu SysEx. Não vou enviar 256 consultas sem confirmação. Verifique driver GENERIC, modo MIDI e Device ID.");return;}if(busy){io.emit("status","Aguarde a operação atual.");return;}busy=true;io.emit("hardwareBusy",true);int token=++generation,delay=0;for(XpsProtocol.Block b:XpsProtocol.users()){for(int i=0;i<b.size;i++)state.remove(b.start+i);h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Sem porta MIDI de saída.");return;}if(b.index%32==0)io.emit("status","Consultando timbres de usuário: "+(b.index+1)+" / 256…");},delay);delay+=100;}h.postDelayed(()->{if(token!=generation)return;busy=false;io.emit("hardwareBusy",false);JSONArray tones=new JSONArray();for(XpsProtocol.Block b:XpsProtocol.users()){StringBuilder name=new StringBuilder();boolean complete=true;for(int i=0;i<12;i++){Integer c=state.get(b.start+i);if(c==null){complete=false;break;}name.append(c>=32&&c<=126?(char)(int)c:' ');}if(complete)try{JSONObject t=new JSONObject();t.put("code",String.format(java.util.Locale.ROOT,"USER%03d",b.index+1));t.put("name",name.toString().trim());t.put("category","USER");t.put("msb",87);t.put("lsb",b.index/128);t.put("program",b.index%128+1);tones.put(t);}catch(JSONException ignored){}}io.emit("userTones",tones);io.emit("status",tones.length()+" de 256 posições de usuário responderam. Posições sem resposta não foram inventadas.");},delay+1500);}
+ public boolean hasConfirmedSetup(){if(!hasValidSysex())return false;XpsProtocol.Block b=XpsProtocol.block("setup",0);for(int i=0;i<b.size;i++)if(!state.containsKey(b.start+i))return false;return true;}
+ public void readUsers(){
+  if(!hasConfirmedSetup()){io.emit("status","Leia primeiro o estado atual do XPS-10. A leitura USER não começou porque o bloco Setup não foi confirmado.");return;}
+  if(busy){io.emit("status","Aguarde a operação atual.");return;}
+  expected.clear();busy=true;io.emit("hardwareBusy",true);int token=++generation;
+  for(XpsProtocol.Block b:XpsProtocol.users())for(int i=0;i<b.size;i++)state.remove(b.start+i);
+  userRead=new UserToneReadSession(SystemClock.elapsedRealtime());publishUserRead();pollUserRead(token);
+ }
+ private void publishUserRead(){if(userRead==null)return;try{io.emit("userReadState",new JSONObject().put("running",userRead.active()).put("sent",userRead.sent()).put("received",userRead.received()).put("total",256).put("message",userRead.active()?"USER: "+userRead.received()+" respondidas / "+userRead.sent()+" consultas enviadas":userRead.reason()));}catch(JSONException ignored){}}
+ private void pollUserRead(int token){
+  if(token!=generation||userRead==null)return;
+  int index=userRead.poll(SystemClock.elapsedRealtime());
+  if(index>=0){if(!io.send(XpsProtocol.request(XpsProtocol.users().get(index)))){abort("Sem porta MIDI para ler USER; cache preservado.");return;}publishUserRead();}
+  if(!userRead.active()){finishUserRead();return;}
+  h.postDelayed(()->pollUserRead(token),20);
+ }
+ private void finishUserRead(){
+  if(userRead==null)return;busy=false;io.emit("hardwareBusy",false);publishUserRead();JSONArray tones=new JSONArray();
+  for(XpsProtocol.Block b:XpsProtocol.users()){StringBuilder name=new StringBuilder();boolean complete=true;for(int i=0;i<12;i++){Integer c=state.get(b.start+i);if(c==null){complete=false;break;}name.append(c>=32&&c<=126?(char)(int)c:' ');}if(complete&&!name.toString().trim().isEmpty())try{JSONObject t=new JSONObject();t.put("code",String.format(java.util.Locale.ROOT,"USER%03d",b.index+1));t.put("name",name.toString().trim());t.put("category","USER");t.put("msb",87);t.put("lsb",b.index/128);t.put("program",b.index%128+1);tones.put(t);}catch(JSONException ignored){}}
+  io.emit("userTones",tones);io.emit("status",userRead.reason()+" "+tones.length()+" nomes USER recebidos nesta leitura.");userRead=null;
+ }
+
  /** A tap is an explicit authorization to audition a tone, not a request to save in USER memory. */
  public boolean hasPerformancePart(int part){
   if(part<0||part>15)return false;
@@ -122,7 +143,7 @@ public final class XpsController {
    write(edits.toString(),true); // single explicit tap; guarded snapshot+readback, never WRITE to user memory
   }catch(JSONException e){io.emit("status","Não foi possível selecionar o timbre: "+e.getMessage());}
  }
- public void reset(){invalidatePatch();patchObserveEnabled=false;patchObserveCount=0;io.emit("patchObserveState",false);generation++;state.clear();undo.clear();expected.clear();busy=false;validSysexPackets=0;io.emit("hardwareReset",true);}
+ public void reset(){if(userRead!=null){userRead.cancel();publishUserRead();userRead=null;}invalidatePatch();patchObserveEnabled=false;patchObserveCount=0;io.emit("patchObserveState",false);generation++;state.clear();undo.clear();expected.clear();busy=false;validSysexPackets=0;io.emit("hardwareReset",true);}
  public void accept(byte[] packet){
   XpsProtocol.Data d=XpsProtocol.decode(packet);if(d==null)return;
   emitPatchObservation(d);
@@ -141,6 +162,7 @@ public final class XpsController {
     }
    }
   }
+  if(userRead!=null&&userRead.active()&&userRead.pending()>=0){int index=userRead.pending();XpsProtocol.Block b=XpsProtocol.users().get(index);boolean nameComplete=true;for(int i=0;i<12;i++)if(!state.containsKey(b.start+i)){nameComplete=false;break;}if(nameComplete&&userRead.acknowledge(index,SystemClock.elapsedRealtime()))publishUserRead();}
   if(deepPart>=0&&!patchIdentityMatches())invalidatePatch();
   else if(deepChanged){deepRevision++;if(!busy)publishPatch();}
   // On the actual XPS-10, MIDI Tx Edit Data can forward physical slider/edit changes as SysEx.
@@ -178,9 +200,9 @@ public final class XpsController {
   h.postDelayed(()->{
    if(token!=generation)return;
    busy=false;io.emit("hardwareBusy",false);
-   if(!hasValidSysex()){
+   if(!hasConfirmedSetup()){
     io.emit("hardware",snapshot());
-    io.emit("status","USB-MIDI conectado, porém sem resposta SysEx. Consulta completa não iniciada; verifique driver USB GENERIC, Device ID e cabos. O backup ainda pode ser importado.");
+    io.emit("status","USB-MIDI conectado, mas o Setup atual não foi confirmado por SysEx. Varredura não iniciada; verifique driver USB GENERIC, Device ID e cabos. O backup ainda pode ser importado.");
     return;
    }
    io.emit("status","SysEx confirmado. Lendo blocos do estado ativo, sem alterar a memória USER.");
@@ -198,8 +220,8 @@ public final class XpsController {
  private void readBlocks(List<XpsProtocol.Block> requested,boolean full){final int patchReadPart=deepPart;final boolean fullPatchRead=patchReadPart>=0&&PatchParameters.blocks(patchReadPart).stream().allMatch(pb->requested.stream().anyMatch(rb->rb.start==pb.start&&rb.size==pb.size));busy=true;if(full)state.clear();else for(XpsProtocol.Block b:requested)for(int i=0;i<b.size;i++)state.remove(b.start+i);io.emit("hardwareBusy",true);io.emit("status","Lendo XPS-10… aguarde a resposta do teclado.");int token=++generation,delay=0;for(XpsProtocol.Block b:requested){h.postDelayed(()->{if(token!=generation)return;if(!io.send(XpsProtocol.request(b))){abort("Porta MIDI indisponível para leitura.");}},delay);delay+=100;}
   h.postDelayed(()->{if(token!=generation)return;busy=false;io.emit("hardwareBusy",false);JSONObject result=snapshot();io.emit("hardware",result);boolean verified=!expected.isEmpty()&&expected.entrySet().stream().allMatch(e->e.getValue().equals(state.get(e.getKey())));String message=state.isEmpty()?"Sem resposta SysEx. Confira USB, modo MIDI e Device ID 17 (10h).":expected.isEmpty()?"Leitura recebida. Blocos ausentes permanecem indisponíveis.":verified?"Alteração confirmada pela leitura do XPS-10.":"Não foi possível confirmar todos os valores enviados. Leia novamente e confira o teclado.";io.emit("status",message);expected.clear();if(deepPart>=0){if(fullPatchRead&&deepPart==patchReadPart)deepValid=patchIdentityMatches();publishPatch();}},delay+700);
  }
- private void abort(String message){deepValid=false;deepRevision++;publishPatch();generation++;busy=false;io.emit("hardwareBusy",false);io.emit("status",message);io.emit("hardware",snapshot());}
- public void cancelWrites(){if(busy)abort("Operação interrompida. Parte dos comandos pode ter sido enviada; leia novamente.");}
+ private void abort(String message){if(userRead!=null){userRead.cancel();publishUserRead();userRead=null;}deepValid=false;deepRevision++;publishPatch();generation++;busy=false;io.emit("hardwareBusy",false);io.emit("status",message);io.emit("hardware",snapshot());}
+ public void cancelWrites(){if(userRead!=null&&userRead.active()){userRead.cancel();generation++;finishUserRead();return;}if(busy)abort("Operação interrompida. Parte dos comandos pode ter sido enviada; leia novamente.");}
  public void write(String json,boolean armed){if(!armed){io.emit("status","USB-MIDI não conectado. Conecte o XPS-10 para testar a edição.");return;}if(busy){io.emit("status","Aguarde a operação atual.");return;}
   try{JSONArray items=new JSONArray(json);if(items.length()<1||items.length()>128)throw new IllegalArgumentException("Quantidade inválida de parâmetros");Map<Integer,Integer> target=new LinkedHashMap<>();for(int i=0;i<items.length();i++){JSONObject o=items.getJSONObject(i);String section=o.getString("section");if(section.equals("mfxparam")){int unit=o.getInt("index"),type=o.getInt("effect");if(!Integer.valueOf(type).equals(state.get(XpsProtocol.block("mfx",unit).start)))throw new IllegalArgumentException("O tipo MFX mudou. Leia novamente.");int a=MfxParameters.address(unit,type,o.getInt("offset"),o.getInt("value"));int[] v=MfxParameters.nibbles(o.getInt("value"));for(int n=0;n<4;n++)if(target.put(a+n,v[n])!=null)throw new IllegalArgumentException("Parâmetro duplicado");}else if(section.equals("masterTune")){if(o.getInt("index")!=0||o.getInt("offset")!=0)throw new IllegalArgumentException("Alvo de afinação inválido");int[] v=XpsProtocol.masterTune(o.getInt("value"));int a=XpsProtocol.block("system",0).start;for(int n=0;n<4;n++)if(target.put(a+n,v[n])!=null)throw new IllegalArgumentException("Parâmetro duplicado");}else{int a=XpsProtocol.writeAddress(section,o.getInt("index"),o.getInt("offset"),o.getInt("value"));if(target.put(a,o.getInt("value"))!=null)throw new IllegalArgumentException("Parâmetro duplicado");}}
    for(int i=0;i<3;i++){int a=XpsProtocol.block("mfx",i).start;if(target.containsKey(a))for(int k=17;k<145;k++)if(target.containsKey(a+k))throw new IllegalArgumentException("Troque o tipo MFX e leia antes de editar seus parâmetros");}

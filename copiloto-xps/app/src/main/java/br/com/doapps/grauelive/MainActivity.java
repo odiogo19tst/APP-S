@@ -149,7 +149,7 @@ public class MainActivity extends Activity {
   if("hardware".equals(k)&&autoUserRead){
    autoUserRead=false;
    if(hasCachedUsers())emitCachedUsers();
-   else if(xps.hasValidSysex())new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
+   else if(xps.hasConfirmedSetup())new Handler(Looper.getMainLooper()).postDelayed(()->xps.readUsers(),120);
    else emit("status","USB-MIDI conectado, mas sem resposta SysEx. Leitura de USER/Favorites não iniciada; verifique o teclado.");
   }
   if("userTones".equals(k)&&d instanceof JSONArray){
@@ -530,7 +530,7 @@ public class MainActivity extends Activity {
   }
 
   @JavascriptInterface public void readUserTones(){runOnUiThread(()->{
-    if(!xps.hasValidSysex()){emit("status","O XPS-10 ainda não confirmou SysEx. Conecte o MIDI e confirme resposta antes de ler USER.");return;}
+    if(!xps.hasConfirmedSetup()){emit("status","Leia primeiro o estado atual do XPS-10 antes de consultar USER.");return;}
     autoUserRead=false;xps.readUsers();
   });}
   @JavascriptInterface public void getMidiDiagnostics(){
