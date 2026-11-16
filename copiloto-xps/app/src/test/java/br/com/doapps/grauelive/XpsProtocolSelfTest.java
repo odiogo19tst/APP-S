@@ -31,6 +31,17 @@ public class XpsProtocolSelfTest {
   check(XpsProtocol.writeAddress("system",0,4,40)==XpsProtocol.address(2,0,0,4),"global key shift");
   check(XpsProtocol.writeAddress("systemController",0,7,24)==XpsProtocol.address(2,0,64,7),"pedal favorite down");
   check(XpsProtocol.isSystemAddress(XpsProtocol.address(2,0,0,0)),"global mode independent");check(!XpsProtocol.isSystemAddress(a),"part still Performance only");
+  for(int[] f:new int[][]{{9,16,112},{10,14,114},{11,0,2},{12,0,2},{13,0,25},{14,0,2},{22,1,127},{34,0,127},{35,0,127},{36,0,127},{37,0,127},{48,0,127}}){
+   for(int v:new int[]{f[1],f[2]})check(XpsProtocol.writeAddress("part",15,f[0],v)==XpsProtocol.block("part",15).start+f[0],"part field address");
+   reject(()->XpsProtocol.writeAddress("part",0,f[0],f[1]-1));reject(()->XpsProtocol.writeAddress("part",0,f[0],f[2]+1));
+  }
+  for(int offset:new int[]{2,3,15,16,23,24,25,26})reject(()->XpsProtocol.writeAddress("part",0,offset,64));
+  check(Arrays.equals(XpsProtocol.partPortamento(128),new int[]{8,0}),"portamento PATCH");
+  check(Arrays.equals(XpsProtocol.partPortamento(127),new int[]{7,15}),"portamento max time");
+  check(Arrays.equals(XpsProtocol.partPortamento(0),new int[]{0,0}),"portamento zero");
+  reject(()->XpsProtocol.partPortamento(-1));reject(()->XpsProtocol.partPortamento(129));
+  byte[] portamentoPacket=XpsProtocol.packet(0x12,XpsProtocol.address(16,0,32,15),XpsProtocol.partPortamento(128));
+  check(Arrays.equals(portamentoPacket,new byte[]{(byte)0xf0,0x41,0x10,0,0,0x3a,0x12,0x10,0,0x20,0x0f,8,0,0x39,(byte)0xf7}),"golden portamento SysEx");
   System.out.println("XPS protocol: addresses, sizes, checksum, stream and write allowlist passed");
  }
 }
