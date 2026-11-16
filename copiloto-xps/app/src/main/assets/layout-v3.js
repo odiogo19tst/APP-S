@@ -10,7 +10,7 @@
  shell.classList.add('gx-layout-v3');
  const nav=q('.gx-nav'),menu=doc.createElement('details'),summary=doc.createElement('summary'),items=doc.createElement('div');
  menu.className='gx-more-menu';menu.id='gx-more-menu';summary.append(icon('more'));const moreText=doc.createElement('span');moreText.textContent='Mais';summary.append(moreText);items.className='gx-more-items';menu.append(summary,items);
- for(const [key,text] of [['stage','Palco'],['repertoire','Repertório'],['sound','Sons'],['drums','Pads']])label(q('[data-gx-tab="'+key+'"]'),key,text);
+ for(const [key,text] of [['stage','Início'],['repertoire','Repertório'],['sound','Sons'],['drums','Pads']])label(q('[data-gx-tab="'+key+'"]'),key,text);
  for(const [key,text] of [['coach','Jarvis Musical'],['backups','Backups'],['settings','Ajustes']]){const button=q('[data-gx-tab="'+key+'"]');if(button){button.textContent=text;items.append(button);}}
  const refresh=id('gx-midi-refresh');if(refresh)items.append(refresh);
  nav?.append(menu);

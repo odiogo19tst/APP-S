@@ -16,7 +16,7 @@ assert.match(ux,/gx-stage-prep-only/,'Separar preparação');
 assert.match(ux,/const setLiveMode=enabled=>/,'Ativar apresentação sem abrir outro editor');
 assert.match(ux,/if\(liveMode&&name!=='stage'\)/,'Bloquear navegação acidental durante o show');
 assert.doesNotMatch(ux,/gx-show-mode'\)\.onclick=\(\)=>callOld\('liveFocus'\)/,'Modo ao vivo não pode abrir o modo antigo');
-assert.match(css,/#gx-shell\.gx-live-mode \.gx-nav/,'Menus não aparecem durante o show');
+const dock=fs.readFileSync(path.join(root,'navigation-dock.css'),'utf8');assert.match(dock,/display:grid!important/,'Dock compartilhado permanece disponível no Ao Vivo');
 assert.match(css,/#gx-shell\.gx-live-mode \.gx-stage-prep-only/,'Editor de partes oculto durante o show');
 assert.match(legacy,/f\('liveArm'\)\.hidden=true/,'O legado não deve pedir rearmar MIDI');
 assert.match(app,/\$\('arm'\)\.disabled=true/,'Checkbox antigo desativado');
