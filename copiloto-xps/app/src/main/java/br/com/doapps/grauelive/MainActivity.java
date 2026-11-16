@@ -122,7 +122,14 @@ public class MainActivity extends Activity {
  private final java.util.Set<Integer> chromaticMidiNotes=new java.util.HashSet<>(); private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1,exportRolandBank=-1; private String exportKitSettings="{}";
  private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
- @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(128);
+ private void navigateBack(){
+  if(web==null||!pageReady){finish();return;}
+  web.evaluateJavascript("(function(){return !!(window.GraueNavigation&&window.GraueNavigation.back());})()",handled->{if(!"true".equals(handled))finish();});
+ }
+ @Override public void onBackPressed(){navigateBack();}
+ @Override public void onCreate(Bundle b){super.onCreate(b);
+  if(Build.VERSION.SDK_INT>=33)getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,this::navigateBack);
+getWindow().addFlags(128);
   backupArchive=new BackupArchive(this);padSamples=new PadSampleEngine(this);chromaticPad=new ChromaticPadEngine(this);jarvisGateway=new JarvisCloudGateway(this);directApi=new JarvisDirectOpenAI(this);
   getWindow().setStatusBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));

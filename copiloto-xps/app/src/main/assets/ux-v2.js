@@ -1190,6 +1190,11 @@
  if(window.Native?.listBackups)window.Native.listBackups();
  // O sequenciador progride por BPM; atualizar continuamente o resumo sem redesenhar o mixer.
  window.GraueStageUX={state:()=>({songId:activeSongEntry()?.loopId||'',title:song?.title||'',root,minor,bpm:Number($x('tempo')?.value)||72,transpose:transposeSteps,connected:usbConnected,hw}),chooseTone:t=>chooseTone(t),refreshFavorites:()=>{renderFavorites();renderToneList();}};
+ // Navigation changes only the visible page; song, drafts and MIDI stay intact.
+ window.GraueNavigation={
+  home:()=>{for(const d of document.querySelectorAll('dialog[open]'))d.close();document.body.classList.remove('gx-legacy');const menu=document.getElementById('gx-more-menu');if(menu)menu.open=false;switchTab('stage');window.scrollTo(0,0);return true;},
+  back:()=>{const dialog=document.querySelector('dialog[open]');if(dialog){dialog.close();return true;}if(document.body.classList.contains('gx-legacy')){document.getElementById('gx-return')?.click();return true;}if(active!=='stage')return window.GraueNavigation.home();const menu=document.getElementById('gx-more-menu');if(menu?.open){menu.open=false;return true;}return false;}
+ };
  window.GraueCurrentChord=()=>String(song?.chords?.[idx]||'');
  setInterval(()=>{if(active==='stage'&&document.visibilityState!=='hidden')syncStage();},300);
 })();
