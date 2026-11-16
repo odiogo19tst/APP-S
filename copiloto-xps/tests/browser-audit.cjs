@@ -105,6 +105,7 @@ async function run(){
    page.once('dialog',d=>d.accept());await page.locator('#loop-clear-all').click();assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='loopClearAll').length),1);
    // Real central UI, simulated transport. Drafts must not send prematurely.
    await tab(page,'sound');await page.locator('[data-central-tab="parts"]').click();
+   await page.locator('#central-parts').evaluate(n=>n.closest('details').open=true);
    const beforeDraft=(await page.evaluate(midiCalls)).length;
    await page.locator('[data-central-level="0"]').fill('99');await page.locator('[data-central-level="0"]').dispatchEvent('change');assert.equal((await page.evaluate(midiCalls)).length,beforeDraft);
    await page.locator('#central-apply').click();let centralSent=(await page.evaluate(midiCalls)).at(-1);assert.equal(JSON.parse(centralSent.args[0])[0].value,99);
