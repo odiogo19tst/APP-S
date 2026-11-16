@@ -47,3 +47,5 @@ console.log('Control center model PASS: 119 validated scene parameters, Performa
  assert(!model.canApply([model.command('part',0,9,64)],{...hw,'part:0':Array(49).fill(0)}),'Out-of-range readback may not enable writes');
 }
 console.log('35 per-part fields: limits, reserved bytes, missing readback, portamento nibble decoding PASS');
+
+{const edits=Array.from({length:150},(_,i)=>({value:i})),batch=model.pendingBatch(edits);assert.equal(batch.length,128);assert.equal(edits.length,150);assert.deepEqual(batch.at(-1),edits[127]);}
