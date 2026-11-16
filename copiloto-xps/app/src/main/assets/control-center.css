@@ -142,3 +142,6 @@ body.gx-ready:has(#gx-shell.gx-central-focus){max-width:none;margin:0;background
  #gx-shell #gx-control-center #central-connect{grid-column:2;grid-row:2;width:100%;min-width:0;flex-wrap:wrap;justify-content:center;gap:3px 7px}
  #gx-shell #gx-control-center #central-mode:not([hidden]){grid-column:1 / -1;grid-row:3}
 }
+/* clip avoids creating an unscrolled ancestor that defeats sticky headers. */
+body.gx-ready:has(#gx-shell.gx-central-focus){overflow-x:clip;overflow-y:visible}
+#gx-shell.gx-layout-v3.gx-central-focus{overflow-x:clip;overflow-y:visible}
