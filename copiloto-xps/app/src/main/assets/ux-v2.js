@@ -162,7 +162,8 @@
  }
  const switchTab=name=>{if(liveMode&&name!=='stage'){notify('Saia do Ao Vivo para configurar ou editar. Sua música continua selecionada.');return;}active=name;screens.forEach(n=>n.classList.toggle('on',n.dataset.gxScreen===name));tabs.forEach(n=>n.classList.toggle('on',n.dataset.gxTab===name));sync();if(name==='backups'&&window.Native?.listBackups)window.Native.listBackups();};
  const setLiveMode=enabled=>{liveMode=!!enabled;shell.classList.toggle('gx-live-mode',liveMode);$x('gx-show-mode').textContent=liveMode?'← Sair do Ao Vivo':'▶ Entrar no Ao Vivo';$x('gx-show-mode').setAttribute('aria-pressed',String(liveMode));if(liveMode){switchTab('stage');if(!stageScoreOpen)$x('gx-live-score-toggle').click();renderStageSongOptions();}else{const scrollButton=$x('gx-stage-scroll-toggle');if(scrollButton&&scoreScrolling)scrollButton.click();}window.Native?.showMode?.(liveMode);syncStage();};
- tabs.forEach(b=>b.onclick=()=>switchTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');$x('gx-show-mode').onclick=()=>setLiveMode(!liveMode);
+ const goToTab=name=>{document.body.classList.remove('gx-legacy');if(liveMode)setLiveMode(false);switchTab(name);window.scrollTo(0,0);};
+ tabs.forEach(b=>b.onclick=()=>goToTab(b.dataset.gxTab));$x('gx-open-settings').onclick=()=>switchTab('settings');$x('gx-show-mode').onclick=()=>setLiveMode(!liveMode);
  const openLegacy=(tab,page='tones')=>{if(liveMode){notify('Saia do Ao Vivo para abrir os editores.');return;}document.body.classList.add('gx-legacy');let b=document.querySelector('[data-tab="'+tab+'"]');if(b)b.click();if(tab==='sound')window.GraueSoundWorkspace?.open(page);window.scrollTo(0,0);};
  const read=()=>callOld('readHardware');
  const arm=()=>{}; // connection owns MIDI send/receive readiness
@@ -1192,8 +1193,8 @@
  window.GraueStageUX={state:()=>({songId:activeSongEntry()?.loopId||'',title:song?.title||'',root,minor,bpm:Number($x('tempo')?.value)||72,transpose:transposeSteps,connected:usbConnected,hw}),chooseTone:t=>chooseTone(t),refreshFavorites:()=>{renderFavorites();renderToneList();}};
  // Navigation changes only the visible page; song, drafts and MIDI stay intact.
  window.GraueNavigation={
-  home:()=>{for(const d of document.querySelectorAll('dialog[open]'))d.close();document.body.classList.remove('gx-legacy');const menu=document.getElementById('gx-more-menu');if(menu)menu.open=false;switchTab('stage');window.scrollTo(0,0);return true;},
-  back:()=>{const dialog=document.querySelector('dialog[open]');if(dialog){dialog.close();return true;}if(document.body.classList.contains('gx-legacy')){document.getElementById('gx-return')?.click();return true;}if(active!=='stage')return window.GraueNavigation.home();const menu=document.getElementById('gx-more-menu');if(menu?.open){menu.open=false;return true;}return false;}
+  home:()=>{for(const d of document.querySelectorAll('dialog[open]'))d.close();document.body.classList.remove('gx-legacy');const menu=document.getElementById('gx-more-menu');if(menu)menu.open=false;goToTab('stage');return true;},
+  back:()=>{const dialog=document.querySelector('dialog[open]');if(dialog){dialog.close();return true;}if(document.body.classList.contains('gx-legacy')){document.getElementById('gx-return')?.click();return true;}if(liveMode){setLiveMode(false);return true;}if(active!=='stage')return window.GraueNavigation.home();const menu=document.getElementById('gx-more-menu');if(menu?.open){menu.open=false;return true;}return false;}
  };
  window.GraueCurrentChord=()=>String(song?.chords?.[idx]||'');
  setInterval(()=>{if(active==='stage'&&document.visibilityState!=='hidden')syncStage();},300);

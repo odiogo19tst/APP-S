@@ -23,6 +23,8 @@ async function boot(page,state={songs:notes,scenes:[]}){
 async function tab(page,key){if(await page.locator('#central-exit').isVisible()){if(key==='sound')return;await page.locator('#central-exit').click();}if(['coach','backups','settings'].includes(key))await page.locator('#gx-more-menu').evaluate(n=>n.open=true);await page.locator('[data-gx-tab="'+key+'"]').click();}
 async function editor(page,key){await tab(page,'sound');await page.locator('#central-existing-editors').evaluate(n=>n.open=true);await page.locator('.gx-sound-chooser').evaluate(n=>n.open=true);await page.locator('[data-gx-sound="'+key+'"]').click();}
 async function noOverflow(page,label){const value=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert(value.scroll<=value.width+2,label+': horizontal overflow '+JSON.stringify(value));}
+async function dockTab(page,key){if(['coach','backups','settings'].includes(key))await page.locator('#gx-more-menu').evaluate(n=>n.open=true);await page.locator('[data-gx-tab="'+key+'"]').click();}
+async function checkDock(page,label,size){const nav=page.locator('#gx-shell>.gx-nav');assert(await nav.isVisible(),label+': dock visible');const box=await nav.boundingBox();assert(box&&box.y>=0&&Math.abs(box.y+box.height-size.height)<=2,label+': dock fixed to viewport bottom '+JSON.stringify(box));assert.match(await page.locator('[data-gx-tab="stage"]').innerText(),/Início/);}
 async function run(){
  const executable=process.env.GRAUE_CHROME||['/usr/bin/google-chrome','/usr/bin/chromium'].find(fs.existsSync);
  const browser=await chromium.launch({executablePath:executable,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
@@ -33,7 +35,13 @@ async function run(){
    await boot(page);await noOverflow(page,'stage '+size.width);
    assert.equal(await page.locator('[data-gx-screen].on').count(),1);
    const initial=await page.evaluate(midiCalls);assert.equal(initial.length,0,'Startup must be passive');
-   for(const key of ['repertoire','sound','drums','coach','backups','settings','stage']){await tab(page,key);await noOverflow(page,key+' '+size.width);}
+   for(const key of ['repertoire','sound','drums','coach','backups','settings','stage']){
+    await dockTab(page,key);await noOverflow(page,key+' '+size.width);await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));await checkDock(page,key,size);
+    if(key==='drums')await page.screenshot({path:path.join(out,size.width+'-pads-dock.png')});
+    await dockTab(page,'stage');assert(await page.locator('[data-gx-screen="stage"]').evaluate(n=>n.classList.contains('on')));
+   }
+   for(const d of await page.locator('dialog').all())assert(await d.locator('button').filter({hasText:/Fechar|Voltar|Cancelar|✕|×/i}).count(),'Each modal has an explicit close/back button');
+
    // Home is named and remains reachable after scrolling the central screen.
    await tab(page,'sound');assert.match(await page.locator('#central-exit').innerText(),/Menu inicial/);
    const homeSong=(await page.evaluate(()=>window.GraueStageUX.state())).songId;
@@ -48,7 +56,10 @@ async function run(){
    for(const [route,expected] of [['effects','effects'],['split','mix'],['arpeggio','rhythm']]){
     await editor(page,route);assert(await page.locator('#sound-page-'+expected).isVisible());
     assert(await page.locator('#hardwarePart').isVisible());assert(await page.locator('#readHardware').isVisible());await noOverflow(page,'editor '+route+' '+size.width);
-    await page.screenshot({path:path.join(out,size.width+'-'+route+'.png'),fullPage:true});await page.locator('#gx-return').click();
+    await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));await checkDock(page,'full editor '+route,size);
+    if(route==='effects')await page.screenshot({path:path.join(out,size.width+'-editor-dock.png')});
+    await page.screenshot({path:path.join(out,size.width+'-'+route+'.png'),fullPage:true});
+    await dockTab(page,'drums');assert.equal(await page.evaluate(()=>document.body.classList.contains('gx-legacy')),false);assert(await page.locator('[data-gx-screen="drums"]').evaluate(n=>n.classList.contains('on')));await dockTab(page,'stage');
    }
    assert.equal((await page.evaluate(midiCalls)).length,0,'Navigation may not send MIDI');
    // Same-title save, favorite and rename must affect only the chosen identity.
@@ -64,7 +75,7 @@ async function run(){
    await page.locator('#gx-return').click();await tab(page,'stage');assert.equal(await page.locator('#gx-transpose').innerText(),'0','New song must not inherit the previous transposition display');
    // Modal tools and live mode are reversible and leave one visible page.
    await page.locator('.gx-stage-tool-grid button').first().click();assert(await page.locator('.gx-tool-dialog').isVisible());await page.keyboard.press('Escape');
-   await page.locator('#gx-show-mode').click();assert.equal(await page.locator('#gx-show-mode').getAttribute('aria-pressed'),'true');await page.screenshot({path:path.join(out,size.width+'-live.png'),fullPage:true});await noOverflow(page,'live '+size.width);await page.locator('[data-gx-tab="sound"]').evaluate(n=>n.click());assert(await page.locator('[data-gx-screen="stage"]').evaluate(n=>n.classList.contains('on')));await page.locator('#gx-show-mode').click();
+   await page.locator('#gx-show-mode').click();assert.equal(await page.locator('#gx-show-mode').getAttribute('aria-pressed'),'true');await page.screenshot({path:path.join(out,size.width+'-live.png'),fullPage:true});await noOverflow(page,'live '+size.width);await checkDock(page,'Ao Vivo',size);await dockTab(page,'sound');assert(await page.locator('[data-gx-screen="sound"]').evaluate(n=>n.classList.contains('on')));assert.equal(await page.locator('#gx-show-mode').getAttribute('aria-pressed'),'false');await dockTab(page,'stage');
    await page.evaluate(()=>{window.auditLiveEvents=0;document.addEventListener('graue:live-state',()=>window.auditLiveEvents++);});
    await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>window.auditLiveEvents),0,'Idle stage must not rebroadcast unchanged state');
    // Inject a readback fixture to exercise actual handlers and MFX draft lifetime.
