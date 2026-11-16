@@ -8,7 +8,7 @@
  context.append(make('h3','Antes de ajustar · confira a parte'));
  const tone=id('applyTone')?.closest('article');
  // Keep the real selectors, callbacks and readback nodes shared by all five steps.
- for(const key of ['readHardware','performanceMode','undoHardware']){const node=id(key);if(node)context.append(node);}
+ for(const key of ['readHardware','performanceMode','undoHardware','cancelHardware']){const node=id(key);if(node)context.append(node);}
  if(id('hardwareStatus'))context.append(id('hardwareStatus'));
  const part=id('hardwarePart')?.closest('label');if(part)context.append(part);
  if(id('partSummary'))context.append(id('partSummary'));
@@ -46,6 +46,7 @@
  const prior=window.receive;window.receive=(type,data)=>{
   if(prior)prior(type,data);
   if(type==='status')response.textContent=String(data||'');
+  if(type==='userReadState'&&data)response.textContent=String(data.message||'');
   if(type==='hardware'||type==='hardwareReset'){
    for(const note of notices.values())note.textContent=type==='hardware'?'Campos atualizados pela leitura. Confira a resposta do teclado acima.':'Conexão alterada. Leia o teclado antes de aplicar.';
   }

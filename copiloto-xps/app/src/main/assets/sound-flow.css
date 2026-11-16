@@ -14,3 +14,5 @@ body.gx-ready.gx-legacy>header{display:none!important}
 .sound-flow-advanced summary{padding:12px 4px;cursor:pointer}
 #gx-shell.gx-layout-v3 .gx-sound-nav .sound-flow-advanced button{margin:4px;min-height:44px}
 @media(max-width:600px){.sound-workspace-tabs{scroll-snap-type:x proximity}.sound-workspace-tabs button{scroll-snap-align:start}.sound-flow-context>button{font-size:11px}.sound-workspace .sound-flow-context{padding:10px}.sound-flow-details article{padding:8px!important}.sound-workspace .sound-flow-step-actions button{flex:1}}
+
+body.gx-legacy #cancelHardware:not(:disabled){background:#71374d;color:#fff1f6;border:1px solid #ed93b4;opacity:1}body.gx-legacy #sound button,body.gx-legacy #sound select,body.gx-legacy #sound input{color:#e8edf1}body.gx-legacy #sound button:disabled{color:#bec8d2;opacity:.65}
