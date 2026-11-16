@@ -29,3 +29,21 @@ console.log('Control center model PASS: 119 validated scene parameters, Performa
  assert(!model.canApply([tune],{}),'No writes without readback');
  const injected={...scene,edits:[...scene.edits]};injected.edits[0]=model.command('system',0,5,127);assert.throws(()=>model.scene(injected),'Scenes may not inject global settings');
 }
+// Per-part expansion uses the same staged edits and observed values.
+{
+ const hw={'setup:0':[1],validSysexPackets:3,'part:0':Array(49).fill(64)};
+ hw['part:0'].splice(15,2,8,0);
+ assert.equal(model.partFields.length,35);
+ assert.equal(model.partValue(hw,{section:'partPortamento',index:0}),128);
+ for(const f of model.partFields){
+  for(const display of [f.min,f.max]){const raw=model.partRaw(f,display),e=model.command(f.section,15,f.offset,raw);assert.equal(e.index,15);assert.equal(e.value,raw);}
+  assert.throws(()=>model.partRaw(f,''));assert.throws(()=>model.partRaw(f,f.min-1));assert.throws(()=>model.partRaw(f,f.max+1));assert.throws(()=>model.partRaw(f,0.5));
+ }
+ const request=model.command('partPortamento',0,15,128);assert(model.canApply([request],hw));assert(model.editsMatch([request],hw));
+ hw['part:0'][15]=7;assert(!model.editsMatch([request],hw));hw['part:0'][16]=16;assert.equal(model.partValue(hw,request),undefined);assert(!model.canApply([request],hw));
+ assert.throws(()=>model.command('partPortamento',0,16,64));assert.throws(()=>model.command('partPortamento',16,15,64));
+ for(const offset of [2,3,15,16,23,24,25,26])assert.throws(()=>model.command('part',0,offset,64),'Reserved/packed bytes cannot be written separately');
+ assert(!model.canApply([model.command('part',0,9,64)],{...hw,'part:0':undefined}));
+ assert(!model.canApply([model.command('part',0,9,64)],{...hw,'part:0':Array(49).fill(0)}),'Out-of-range readback may not enable writes');
+}
+console.log('35 per-part fields: limits, reserved bytes, missing readback, portamento nibble decoding PASS');

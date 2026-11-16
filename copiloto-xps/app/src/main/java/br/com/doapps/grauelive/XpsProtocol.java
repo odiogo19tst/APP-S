@@ -31,6 +31,12 @@ public final class XpsProtocol {
    case "rhythmGroup":for(int pad=0;pad<6;pad++){int start=21+6*pad;if(offset==start&&value>=1)ok=true;if((offset==start+2||offset==start+3)&&value<=15)ok=true;}break;
    case "part":
     if(offset==0)ok=value<=15;else if(offset==1||offset==0x1b)ok=value<=1;
+    else if(offset==9)ok=value>=16&&value<=112;
+    else if(offset==10)ok=value>=14&&value<=114;
+    else if(offset==11||offset==12||offset==14)ok=value<=2;
+    else if(offset==13)ok=value<=25;
+    else if(offset==22)ok=value>=1;
+    else if(offset>=34&&offset<=48)ok=true;
     else if(offset==0x15)ok=value>=61&&value<=67;
     else if(offset==0x1f)ok=value==0||value==1||value==13;
     else if(offset==0x20)ok=value<=2;
@@ -43,6 +49,8 @@ public final class XpsProtocol {
   }
   if(!ok)throw new IllegalArgumentException("Parâmetro não permitido");return b.start+offset;
  }
+ /** Portamento time is two nibbles; 128 inherits the Patch value. */
+ public static int[] partPortamento(int value){if(value<0||value>128)throw new IllegalArgumentException("Portamento fora de 0–128");return new int[]{value>>4,value&15};}
  /** Master Tune uses four nibbles (manual p.11): 24..2024, center1024 = 440Hz. */
  public static int[] masterTune(int value){if(value<24||value>2024)throw new IllegalArgumentException("Afinação fora de -100 a +100 cents");return new int[]{(value>>12)&15,(value>>8)&15,(value>>4)&15,value&15};}
  public static boolean isSystemAddress(int address){for(Block b:blocks())if((b.section.equals("system")||b.section.equals("systemController"))&&address>=b.start&&address<b.start+b.size)return true;return false;}

@@ -64,6 +64,28 @@ async function run(){
     for(let i=0;i<3;i++){const b=Array(160).fill(0);b[0]=1;for(let n=17;n<b.length;n+=4)b[n]=8;hw['mfx:'+i]=b;}
     window.receive('xpsConnection',true);window.receive('armed',true);window.receive('hardware',hw);
    });
+   // Expanded controls reuse Central Parts; selection alone never sends MIDI.
+   await tab(page,'sound');await page.locator('[data-central-tab="parts"]').click();
+   const beforePartEdits=await page.evaluate(midiCalls);await page.locator('#central-part').selectOption('3');
+   assert.equal((await page.evaluate(midiCalls)).length,beforePartEdits.length);
+   assert.equal(await page.locator('[data-part-field]').count(),35);
+   assert.match(await page.locator('#central-part-edit-title').innerText(),/Parte 4/);
+   const coarse=page.locator('[data-part-field="part:9"]');assert(await coarse.isDisabled(),'Invalid readback is unavailable');
+   await page.evaluate(()=>{const p=window.auditHardware['part:3'];p[9]=64;p[10]=64;p[11]=2;p[12]=2;p[13]=25;p[14]=2;p[15]=8;p[16]=0;p[22]=64;window.receive('hardware',window.auditHardware);});
+   assert(await coarse.isEnabled());assert.equal(await coarse.inputValue(),'0');
+   await coarse.fill('12');await coarse.dispatchEvent('change');
+   const portamento=page.locator('[data-part-field="partPortamento:15"]');assert.equal(await portamento.inputValue(),'128');
+   await portamento.fill('100');await portamento.dispatchEvent('change');
+   await page.locator('#central-part').selectOption('0');await page.locator('#central-part').selectOption('3');assert.equal(await coarse.inputValue(),'12','Draft follows the selected part');
+   const countBeforeApply=(await page.evaluate(midiCalls)).length;assert.equal(countBeforeApply,beforePartEdits.length,'Preparing knobs sends nothing');
+   await page.locator('#central-apply').click();const partRequest=(await page.evaluate(midiCalls)).at(-1);assert.deepEqual(JSON.parse(partRequest.args[0]),[{section:'part',index:3,offset:9,value:76},{section:'partPortamento',index:3,offset:15,value:100}]);
+   await page.evaluate(()=>window.receive('hardwareBusy',true));assert(await portamento.isDisabled());
+   await page.evaluate(()=>{const p=window.auditHardware['part:3'];p[9]=76;p[15]=6;p[16]=4;window.receive('hardware',window.auditHardware);window.receive('hardwareBusy',false);});
+   assert.match(await page.locator('#central-status').innerText(),/correspondem/);assert(await page.locator('#central-apply').isDisabled());
+   await page.locator('#central-open-synthesis').click();assert.equal(await page.locator('.gx-synth-part-select select').inputValue(),'3','Detailed editor inherits central part');
+   await page.locator('[data-central-tab="parts"]').click();await noOverflow(page,'part control '+size.width);await page.screenshot({path:path.join(out,size.width+'-part-control.png'),fullPage:true});
+   await page.locator('[data-central-tab="system"]').click();await page.locator('#central-coverage').locator('..').evaluate(n=>n.open=true);assert.match(await page.locator('#central-coverage').innerText(),/35 \/ 35 valores recebidos/);
+   const beforeDiagnostic=(await page.evaluate(midiCalls)).length;await page.locator('#central-open-diagnostic').click();assert(await page.locator('.gx-synth-capture').evaluate(n=>n.open));assert.equal((await page.evaluate(midiCalls)).length,beforeDiagnostic,'Opening diagnosis does not send edits');
    await editor(page,'effects');await page.locator('.sound-flow-details').evaluate(n=>n.open=true);
    const input=page.locator('#mfxParameters input').first();assert(await input.count());
    await input.fill('1');await page.evaluate(()=>window.receive('hardwareBusy',true));assert.equal(await input.inputValue(),'1','Busy may not erase a prepared MFX value');
