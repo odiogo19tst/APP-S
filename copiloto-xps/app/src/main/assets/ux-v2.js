@@ -1189,6 +1189,7 @@
  if(window.Native?.getDirectApiState)window.Native.getDirectApiState();
  if(window.Native?.listBackups)window.Native.listBackups();
  // O sequenciador progride por BPM; atualizar continuamente o resumo sem redesenhar o mixer.
+ window.GraueStageUX={state:()=>({songId:activeSongEntry()?.loopId||'',title:song?.title||'',root,minor,bpm:Number($x('tempo')?.value)||72,transpose:transposeSteps,connected:usbConnected,hw}),chooseTone:t=>chooseTone(t),refreshFavorites:()=>{renderFavorites();renderToneList();}};
  window.GraueCurrentChord=()=>String(song?.chords?.[idx]||'');
  setInterval(()=>{if(active==='stage'&&document.visibilityState!=='hidden')syncStage();},300);
 })();
