@@ -64,3 +64,6 @@ assert(transpose(textWithCRLF,2,music.parse,music.transpose).includes('[Intro] A
 assert(!transpose(textWithCRLF,2,music.parse,music.transpose).includes('\nG\r\nUm verso'),'Primeiro acorde após [Verso] deve ser transposto');
 
 console.log('Grauê: intro, acordes isolados, inversões e letras transpostos sem perdas');
+const labeled='Tom: C\nIntro: C Am F G\nRefrão: F G C\nA casa é sua';
+const labeledUp=transpose(labeled,1,music.parse,music.transpose);
+assert(labeledUp.includes('Tom: C#'));assert(labeledUp.includes('Intro: C# Bbm F# Ab'));assert(labeledUp.includes('Refrão: F# Ab C#'));assert(labeledUp.includes('A casa é sua'));

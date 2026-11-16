@@ -22,7 +22,8 @@
     ?parts[1]+transposeChord(parts[2],semitones)+parts[3]:word;
   });
   // [Am]letra e [G/B]letra: ChordPro.
-  const chordPro=text.replace(/\[([^\]\r\n]+)\]/g,(whole,tag)=>{
+  const metadata=text.replace(/^(\s*(?:Tom|Tonalidade)\s*:\s*)([A-G](?:#|b)?m?)(?=\s|$)/gmi,(_all,label,chord)=>label+transposeChord(chord,semitones));
+  const chordPro=metadata.replace(/\[([^\]\r\n]+)\]/g,(whole,tag)=>{
    const chord=tag.trim();
    return isChord(chord)?'['+transposeChord(chord,semitones)+']':whole;
   });
@@ -40,7 +41,7 @@
   const labeledContent=line=>{
    // Header + chords on the same line, e.g. "[Intro] G C G C".
    const m=line.match(/^(\s*\[([^\]\r\n]+)\]\s*)(.*)$/);
-   if(!m||isChord(m[2].trim())||!m[3].trim())return null;
+   if(!m||isChord(m[2].trim())||!m[3].trim()){const colon=line.match(/^(\s*(?:Intro(?:dução)?|Verso|Refr[aã]o|Ponte|Final|Solo|Interl[uú]dio)\s*:\s*)(.+)$/i);return colon?{head:colon[1],tail:colon[2]}:null;}
    return {head:m[1],tail:m[3]};
   };
   const evidence=line=>{
