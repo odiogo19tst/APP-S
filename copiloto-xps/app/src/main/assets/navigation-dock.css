@@ -1,11 +1,13 @@
-/* One retained dock for every main screen and full-page editor. */
-body.gx-ready{--gx-dock-height:66px;--gx-dock-space:calc(var(--gx-dock-height) + env(safe-area-inset-bottom,0px) + 16px)}
+/* One retained dock for every main screen and full-page editor.
+ * Android MainActivity already consumes system-bar insets on rootLayout.
+ * Do not add CSS safe-area-inset-bottom again inside this WebView. */
+body.gx-ready{--gx-dock-height:66px;--gx-dock-space:calc(var(--gx-dock-height) + 16px)}
 body.gx-ready #gx-shell.gx-layout-v3{padding-bottom:var(--gx-dock-space)!important}
 body.gx-ready #gx-shell.gx-layout-v3>.gx-nav{
  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:50px;align-items:center;align-content:center;
  position:fixed!important;top:auto;bottom:0;left:0;right:0;z-index:95;
- height:calc(var(--gx-dock-height) + env(safe-area-inset-bottom,0px));min-height:0;max-height:none;
- padding:7px 8px calc(7px + env(safe-area-inset-bottom,0px));gap:4px;margin:0;
+ height:var(--gx-dock-height);min-height:0;max-height:none;
+ padding:7px 8px;gap:4px;margin:0;
  background:#151c24fa;border:0;border-top:1px solid #394553;border-radius:14px 14px 0 0;box-shadow:0 -7px 20px #0005;overflow:visible;
 }
 body.gx-ready #gx-shell.gx-layout-v3>.gx-nav>button,body.gx-ready #gx-shell.gx-layout-v3>.gx-nav>.gx-more-menu>summary{
@@ -19,11 +21,11 @@ body.gx-ready.gx-legacy #gx-shell>:not(.gx-nav){display:none!important}
 body.gx-ready.gx-legacy{padding-bottom:var(--gx-dock-space)!important}
 body.gx-ready.gx-legacy #gx-return{bottom:auto}
 /* System actions and overlays leave room for the dock. */
-body.gx-ready #gx-shell #gx-control-center[data-page="system"] .central-toolbar{bottom:calc(var(--gx-dock-height) + env(safe-area-inset-bottom,0px))}
+body.gx-ready #gx-shell #gx-control-center[data-page="system"] .central-toolbar{bottom:var(--gx-dock-height)}
 body.gx-ready #gx-shell #gx-control-center[data-page="system"]{padding-bottom:200px}
 body.gx-ready #gx-toast{bottom:calc(var(--gx-dock-space) + 5px)}
 @media(orientation:landscape) and (max-height:560px){
  body.gx-ready{--gx-dock-height:52px}
- body.gx-ready #gx-shell.gx-layout-v3>.gx-nav{grid-template-rows:44px;padding:4px 8px calc(4px + env(safe-area-inset-bottom,0px))}
+ body.gx-ready #gx-shell.gx-layout-v3>.gx-nav{grid-template-rows:44px;padding:4px 8px}
  body.gx-ready #gx-shell.gx-layout-v3>.gx-nav>button,body.gx-ready #gx-shell.gx-layout-v3>.gx-nav>.gx-more-menu>summary{height:44px;flex-direction:row;gap:5px}
 }

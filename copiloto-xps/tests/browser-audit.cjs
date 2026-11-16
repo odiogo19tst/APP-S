@@ -33,6 +33,21 @@ async function run(){
   for(const size of [{width:390,height:844},{width:844,height:390},{width:1366,height:900},{width:1672,height:941}]){
    const page=await browser.newPage({viewport:size});page.on('pageerror',e=>errors.push(size.width+': '+e.stack));
    await boot(page);await noOverflow(page,'stage '+size.width);
+   // Android already removes native system bars, but its WebView can still expose
+   // a nonzero CSS safe area. The dock must not reserve that region a second time.
+   const cdp=await page.context().newCDPSession(page);
+   for(const bottom of [0,48,90]){
+    await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{bottom}});
+    const metrics=await page.evaluate(()=>{const probe=document.createElement('div');probe.style.height='env(safe-area-inset-bottom)';document.body.append(probe);const safe=parseFloat(getComputedStyle(probe).height);probe.remove();const nav=document.querySelector('#gx-shell>.gx-nav'),button=nav.querySelector('[data-gx-tab="stage"]'),r=nav.getBoundingClientRect(),b=button.getBoundingClientRect();return {safe,height:r.height,gap:r.bottom-b.bottom,padding:parseFloat(getComputedStyle(document.getElementById('gx-shell')).paddingBottom)};});
+    assert.equal(metrics.safe,bottom,'Nonzero safe area must actually be emulated');
+    const expectedHeight=size.height<=560&&size.width>size.height?52:66;
+    assert.equal(metrics.height,expectedHeight,'Native-consumed safe area must not inflate the dock');
+    assert(metrics.gap>=0&&metrics.gap<=10,'No blank strip below dock buttons: '+JSON.stringify(metrics));
+    assert.equal(metrics.padding,expectedHeight+16,'Content reserve follows only visible dock height');
+   }
+   await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{bottom:48}});
+   await page.screenshot({path:path.join(out,size.width+'-dock-native-insets.png')});
+
    assert.equal(await page.locator('[data-gx-screen].on').count(),1);
    const initial=await page.evaluate(midiCalls);assert.equal(initial.length,0,'Startup must be passive');
    for(const key of ['repertoire','sound','drums','coach','backups','settings','stage']){
