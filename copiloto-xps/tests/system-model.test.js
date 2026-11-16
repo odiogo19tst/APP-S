@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict'),m=require('../app/src/main/assets/system-model.js'),defs=require('../app/src/main/assets/patch-parameters.js'),tones=require('../app/src/main/assets/stage-live-model.js');
+const state={ready:true,source:'midi-live',part:2,identity:[87,0,4],revision:3,common:Array(80).fill(0),tmt:Array(41).fill(0)};for(let i=1;i<=4;i++)state['tone'+i]=Array(400).fill(0);
+for(const d of defs){const v=d.allowed?.[0]??d.min;for(let i=1;i<=(d.section==='tone'?4:1);i++){const row=state[d.section==='tone'?'tone'+i:d.section];if(row)for(let n=0;n<d.width;n++)row[d.offset+n]=d.width===1?v:(v>>((d.width-1-n)*4))&15;}}
+const snap=m.capture(state,'Pad suave','song-opaque-id');assert.equal(snap.operations.length,51);assert.equal(snap.songId,'song-opaque-id');assert.equal(m.plan(snap,state),null);
+const changed=structuredClone(state),level=defs.find(d=>d.id==='tone_tone_level');changed.tone1[level.offset]=50;const plan=m.plan(snap,changed);assert.equal(plan.operations.length,1);assert.equal(plan.revision,3);assert.equal(plan.part,2);
+for(const bad of [{...state,ready:false},{...state,source:'midi-cache'},{...state,identity:[87,0,5]},{...state,part:3}])assert.throws(()=>m.plan(snap,bad));assert.throws(()=>m.capture({...state,tone4:[]},'x',''));assert.throws(()=>m.capture(state,' ',''));
+for(const alter of [s=>s.operations[0].value=999,s=>s.operations[0].field='unknown',s=>s.operations[0].tone=5,s=>s.operations[1]=s.operations[0],s=>s.source='2:87:0:99']){const bad=structuredClone(snap);alter(bad);assert.throws(()=>m.validate(bad));}
+const catalog=[{code:'Pf001',category:'PNO',name:'Grand'},{code:'Sp001',category:'SAMPLE',name:'Sample'},{code:'USER001',category:'USER',name:'Meu grand'}];assert.deepEqual(tones.filterTones(catalog,{category:'factory'}).map(t=>t.code),['Pf001']);assert.deepEqual(tones.filterTones(catalog,{category:'sample'}).map(t=>t.code),['Sp001']);assert.deepEqual(tones.filterTones(catalog,{category:'user'}).map(t=>t.code),['USER001']);
+console.log('System model PASS: 51 settings, song linkage, strict identity/field guards, no-op restore and source filters');

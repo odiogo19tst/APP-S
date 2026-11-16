@@ -15,7 +15,7 @@ assert(ui.includes("saved.tonePresets[toneEditing.code]"),'Save on confirmation 
 assert(ui.includes('window.Native.selectToneWithVolume'),'Audition with volume missing');
 assert(ui.includes('Nao sobrescreve')||ui.includes('NÃO sobrescreve'),'No safety warning');
 assert(lib.includes('putSlot')&&lib.includes('favoriteBanks'),'0-9 bank mapping not persistent');
-assert(activity.includes('autoConnectUsb()')&&activity.includes('autoUserRead=!hasCachedUsers()'),'Auto connection or cache missing');
+assert(activity.includes('autoConnectUsb()')&&activity.includes('autoUserRead=false; // USER catalog is explicit'),'Auto connection or cache missing');
 assert(activity.includes('getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache"'),'Cached USER tones not stored');
 assert(activity.includes('midi.sendProgram(channel+1,program-1)'),'Use two-byte PC');
 assert(midi.includes('new byte[]{(byte)(0xc0+channel-1),(byte)program}'),'Program Change must be two bytes');

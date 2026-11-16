@@ -198,8 +198,8 @@
   applySavedSongRig(entry);
  };
  $x('gx-panic').onclick=()=>{if(confirm('Enviar All Notes Off e soltar sustain nos 16 canais MIDI? Isso pode interromper o som do teclado.'))callOld('livePanic');};
- $x('gx-down').onclick=()=>{callOld('down');transposeSteps--;sync();};
- $x('gx-up').onclick=()=>{callOld('up');transposeSteps++;sync();};
+ $x('gx-down').onclick=()=>{if(transposeSteps<=-24)return;callOld('down');transposeSteps--;sync();};
+ $x('gx-up').onclick=()=>{if(transposeSteps>=24)return;callOld('up');transposeSteps++;sync();};
  $x('gx-show-favorites').onclick=()=>{let e=$x('gx-live-favorites');e.scrollIntoView({behavior:'smooth',block:'center'});};
  for(let i=1;i<=16;i++){let option=document.createElement('option');option.value=String(i);option.textContent=String(i);$x('gx-assist-channel').append(option);}
  $x('gx-assist-channel').value=String(saved.assistChannel||3);
@@ -353,12 +353,12 @@
    $x('gx-song-brain-preview').textContent='Alteração solicitada: aguarde a releitura e confira no teclado antes de guardar na música.';
   }catch(error){$x('gx-song-brain-preview').textContent=error.message;}
  };
- $x('gx-transpose-minus').onclick=()=>{callOld('down');transposeSteps--;sync();};
- $x('gx-transpose-cifra').onclick=()=>{callOld('up');transposeSteps++;sync();};
+ $x('gx-transpose-minus').onclick=()=>{if(transposeSteps<=-24)return;callOld('down');transposeSteps--;sync();};
+ $x('gx-transpose-cifra').onclick=()=>{if(transposeSteps>=24)return;callOld('up');transposeSteps++;sync();};
  for(const id of ['gx-score-key','gx-stage-score-key']){
   const picker=$x(id);
   M.names.forEach((name,i)=>{const option=document.createElement('option');option.value=String(i);option.textContent=name;picker.append(option);});
-  picker.onchange=()=>{const key=Number(picker.value);if(!Number.isInteger(key)||key<0||key>11)return;const shift=((key-root+18)%12)-6;transpose(shift);transposeSteps+=shift;sync();};
+  picker.onchange=()=>{const key=Number(picker.value);if(!Number.isInteger(key)||key<0||key>11)return;const shift=((key-root+18)%12)-6;if(Math.abs(transposeSteps+shift)>24){notify('Limite de transposição: −24 a +24 semitons.');sync();return;}transpose(shift);transposeSteps+=shift;sync();};
  }
  let scoreScrolling=false,lastScrollFrame=0;
  const advanceScore=window.GraueScoreMotion.create();

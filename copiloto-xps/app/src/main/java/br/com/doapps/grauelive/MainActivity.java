@@ -173,7 +173,7 @@ getWindow().addFlags(128);
  if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
   stopLiveLoop();liveLooper.retrySilence();publishLoopState();stopDrone();stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
   armed=true;emit("armed",true);emit("xpsConnection",true);
-  autoUserRead=!hasCachedUsers();
+  autoUserRead=false; // USER catalog is explicit; keep sync short and caches intact.
   emitCachedUsers();
   new Handler(Looper.getMainLooper()).postDelayed(()->{if(midi!=null&&midi.isConnected())xps.initialSync();},300);
  }else if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){
@@ -202,9 +202,9 @@ getWindow().addFlags(128);
  private void autoConnectUsb(){
   if(midi==null||midi.isConnected())return;
   MidiDeviceInfo[] list=midi.devices();
-  if(list.length==1)midi.connect(list[0]);
+  MidiDeviceInfo candidate=midi.autoCandidate();if(candidate!=null)midi.connect(candidate);
   else if(list.length==0)new Handler(Looper.getMainLooper()).postDelayed(()->{
-   if(midi!=null&&!midi.isConnected()){MidiDeviceInfo[] retry=midi.devices();if(retry.length==1)midi.connect(retry[0]);}
+   if(midi!=null&&!midi.isConnected()){MidiDeviceInfo[] retry=midi.devices();MidiDeviceInfo next=midi.autoCandidate();if(next!=null)midi.connect(next);}
   },2000);
   else if(list.length>1)emit("status","Mais de um dispositivo USB-MIDI detectado. Selecione o XPS-10 em Conectar USB.");
  }
@@ -243,6 +243,7 @@ getWindow().addFlags(128);
    emit("armed",false);
    emit("xpsConnection",false);
   }
+  if(midi!=null&&!midi.isConnected())autoConnectUsb();
   stoppedWhileConnected=false;
  }
  private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+(new JSONArray().put(data).toString()+"[0]")+")",null);}catch(Exception ignored){} });}
@@ -546,6 +547,7 @@ getWindow().addFlags(128);
      emit("midiDiagnostics",new JSONObject()
       .put("connected",midi!=null&&midi.isConnected())
       .put("validSysexPackets",xps.validSysexCount())
+      .put("transport",midi!=null?midi.diagnostics():new JSONObject())
       .put("cachedUserTones",hasCachedUsers())
       .put("readValidated",xps.hasValidSysex())
       .put("source","Diagnóstico local sem chaves API e sem escrita no Roland"));
@@ -596,7 +598,7 @@ getWindow().addFlags(128);
   @JavascriptInterface public void readHardware(){runOnUiThread(()->xps.read());}
   @JavascriptInterface public void editHardware(String json){if(json.length()<40000)runOnUiThread(()->xps.write(json,armed));}
   @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
-  @JavascriptInterface public void connect(){runOnUiThread(()->{stopLiveLoop();MidiDeviceInfo[] ds=midi.devices();if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
+  @JavascriptInterface public void connect(){runOnUiThread(()->{if(midi.isConnected()){emit("status","USB-MIDI já conectado.");return;}stopLiveLoop();MidiDeviceInfo[] ds=midi.devices();if(ds.length==1){midi.connect(ds[0]);return;}if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
   /** Refreshes MIDI ports in both directions; never clears cached tones, performances or favorites.
    * Safe for an unplug/replug between songs; releases active notes before changing ports. */
   @JavascriptInterface public void refreshMidiPorts(){
@@ -645,6 +647,7 @@ getWindow().addFlags(128);
     armed=false;
     emit("armed",false);emit("xpsConnection",false);
     emit("status","Atualizando entrada e saída MIDI do XPS-10…");
+    midi.disconnect(); // Explicit refresh; a regular connect is idempotent.
     midi.connect(selected); // Reopens both ports, resets parsers, triggers initialSync once.
    });
   }
@@ -726,8 +729,22 @@ getWindow().addFlags(128);
    });
   }
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
-  @JavascriptInterface public void save(String value){if(value==null||value.length()>MAX_STATE_BYTES||value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>MAX_STATE_BYTES){emit("status","Dados não salvos: limite de 10 MB atingido. Exporte e reduza o repertório antes de continuar.");return;}try{getPreferences(0).edit().putString("state",value).apply();}catch(Exception e){emit("status","Não foi possível salvar os dados: "+e.getMessage());}}
-  @JavascriptInterface public String load(){return getPreferences(0).getString("state", "{}");}
+  @JavascriptInterface public synchronized void save(String value){
+   if(value==null||value.length()>MAX_STATE_BYTES||value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>MAX_STATE_BYTES){emit("status","Dados não salvos: limite de 10 MB atingido. Exporte e reduza o repertório antes de continuar.");return;}
+   try{JSONObject parsed=new JSONObject(value);if(!(parsed.opt("songs") instanceof JSONArray))throw new IOException("Repertório inválido");
+    android.content.SharedPreferences prefs=getPreferences(0);String previous=prefs.getString("state","{}");if(value.equals(previous))return;
+    android.content.SharedPreferences.Editor edit=prefs.edit().putString("state",value);JSONObject old;try{old=new JSONObject(previous);}catch(Exception ignored){old=new JSONObject();}
+    if(old.opt("songs") instanceof JSONArray&&(!parsed.optJSONArray("songs").toString().equals(old.optJSONArray("songs").toString())||!String.valueOf(parsed.opt("patchSnapshots")).equals(String.valueOf(old.opt("patchSnapshots")))||!String.valueOf(parsed.opt("centralScenes")).equals(String.valueOf(old.opt("centralScenes")))))edit.putString("stateRecovery",previous);
+    if(!edit.commit())throw new IOException("armazenamento indisponível");emit("stateSaved",true);
+   }catch(Exception e){emit("status","Não foi possível salvar os dados: "+e.getMessage());}
+  }
+  @JavascriptInterface public synchronized String load(){
+   android.content.SharedPreferences prefs=getPreferences(0);String current=prefs.getString("state","{}");
+   try{new JSONObject(current);return current;}catch(Exception e){String recovery=prefs.getString("stateRecovery","{}");try{new JSONObject(recovery);return recovery;}catch(Exception ignored){return "{}";}}
+  }
+  @JavascriptInterface public synchronized void restoreGraueRecovery(){
+   try{android.content.SharedPreferences prefs=getPreferences(0);String previous=prefs.getString("stateRecovery","");JSONObject parsed=new JSONObject(previous);if(!(parsed.opt("songs") instanceof JSONArray))throw new IOException("Nenhuma versão anterior disponível");String current=prefs.getString("state","{}");if(!prefs.edit().putString("state",previous).putString("stateRecovery",current).commit())throw new IOException("Falha ao restaurar");runOnUiThread(()->{stopLiveLoop();web.reload();});}catch(Exception e){emit("status","Recuperação: "+e.getMessage());}
+  }
   @JavascriptInterface public void listBackups(){worker.execute(()->{try{emit("backups",backupArchive.list());}catch(Exception e){emit("status","Biblioteca: "+e.getMessage());}});}
   @JavascriptInterface public void inspectRolandBackup(String sha){
    worker.execute(()->{
