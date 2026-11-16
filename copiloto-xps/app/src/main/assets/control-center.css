@@ -131,3 +131,14 @@ body.gx-ready:has(#gx-shell.gx-central-focus){max-width:none;margin:0;background
 #gx-shell .central-system-group>summary:after{content:'+';margin-left:auto;color:#9aebc6}
 #gx-shell .central-system-group[open]>summary:after{content:'−'}
 @media(max-width:759px){#gx-shell #gx-control-center[data-page="system"]{padding-bottom:190px}}
+
+/* Keep a named route home reachable while configuring the keyboard. */
+#gx-shell #gx-control-center .central-heading{position:sticky;top:0;z-index:85}
+#gx-shell #gx-control-center #central-exit{width:auto;min-width:110px;min-height:44px;padding:8px 12px;font-size:14px;line-height:1.2;white-space:nowrap;color:#e7f5f0;border:1px solid #4c7778;border-radius:8px;background:#153337}
+@media(max-width:759px){
+ #gx-shell #gx-control-center .central-heading{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+ #gx-shell #gx-control-center .central-brand{grid-column:1 / -1;grid-row:1}
+ #gx-shell #gx-control-center #central-exit{grid-column:1;grid-row:2;width:100%;min-width:0}
+ #gx-shell #gx-control-center #central-connect{grid-column:2;grid-row:2;width:100%;min-width:0;flex-wrap:wrap;justify-content:center;gap:3px 7px}
+ #gx-shell #gx-control-center #central-mode:not([hidden]){grid-column:1 / -1;grid-row:3}
+}

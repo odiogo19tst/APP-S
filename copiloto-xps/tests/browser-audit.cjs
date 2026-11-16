@@ -34,6 +34,17 @@ async function run(){
    assert.equal(await page.locator('[data-gx-screen].on').count(),1);
    const initial=await page.evaluate(midiCalls);assert.equal(initial.length,0,'Startup must be passive');
    for(const key of ['repertoire','sound','drums','coach','backups','settings','stage']){await tab(page,key);await noOverflow(page,key+' '+size.width);}
+   // Home is named and remains reachable after scrolling the central screen.
+   await tab(page,'sound');assert.match(await page.locator('#central-exit').innerText(),/Menu inicial/);
+   const homeSong=(await page.evaluate(()=>window.GraueStageUX.state())).songId;
+   const beforeHome=(await page.evaluate(midiCalls)).length;
+   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
+   const homeBox=await page.locator('#central-exit').boundingBox();assert(homeBox&&homeBox.y>=0&&homeBox.y+homeBox.height<=size.height,'Home button must remain on screen');
+   await page.screenshot({path:path.join(out,size.width+'-menu-inicial.png')});
+   await page.locator('#central-exit').click();await page.waitForFunction(()=>!document.getElementById('gx-shell').classList.contains('gx-central-focus'));
+   assert(await page.locator('.gx-nav').isVisible());assert.equal((await page.evaluate(()=>window.GraueStageUX.state())).songId,homeSong);assert.equal((await page.evaluate(midiCalls)).length,beforeHome,'Home never sends MIDI');
+   await tab(page,'sound');assert.equal(await page.evaluate(()=>window.GraueNavigation.back()),true);assert(await page.locator('[data-gx-screen="stage"]').evaluate(n=>n.classList.contains('on')));
+   assert.equal(await page.evaluate(()=>window.GraueNavigation.back()),false,'Root leaves native default back behavior available');
    for(const [route,expected] of [['effects','effects'],['split','mix'],['arpeggio','rhythm']]){
     await editor(page,route);assert(await page.locator('#sound-page-'+expected).isVisible());
     assert(await page.locator('#hardwarePart').isVisible());assert(await page.locator('#readHardware').isVisible());await noOverflow(page,'editor '+route+' '+size.width);
@@ -108,6 +119,9 @@ async function run(){
    await page.locator('#central-parts').evaluate(n=>n.closest('details').open=true);
    const beforeDraft=(await page.evaluate(midiCalls)).length;
    await page.locator('[data-central-level="0"]').fill('99');await page.locator('[data-central-level="0"]').dispatchEvent('change');assert.equal((await page.evaluate(midiCalls)).length,beforeDraft);
+   // Going home must preserve the prepared level without transmitting it.
+   await page.locator('#central-exit').click();await tab(page,'sound');await page.locator('[data-central-tab="parts"]').click();
+   assert.equal(await page.locator('[data-central-level="0"]').inputValue(),'99');assert.equal((await page.evaluate(midiCalls)).length,beforeDraft);
    await page.locator('#central-apply').click();let centralSent=(await page.evaluate(midiCalls)).at(-1);assert.equal(JSON.parse(centralSent.args[0])[0].value,99);
    await page.evaluate(()=>{window.auditHardware['part:0'][7]=99;window.receive('hardware',window.auditHardware);});assert.match(await page.locator('#central-pending').innerText(),/Nenhum/);
    await page.locator('[data-central-tab="scenes"]').click();await page.locator('#central-scene-name').fill('Verso');await page.locator('#central-scene-save').click();
