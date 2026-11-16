@@ -51,7 +51,7 @@
  }
  const statusNode=document.getElementById('status');
  if(statusNode&&typeof MutationObserver!=='undefined'){
-  new MutationObserver(()=>notify(statusNode.textContent)).observe(statusNode,{childList:true,characterData:true,subtree:true});
+  new MutationObserver(()=>{if(!/^Cifra transposta\./.test(statusNode.textContent))notify(statusNode.textContent);}).observe(statusNode,{childList:true,characterData:true,subtree:true});
  }
  const returnButton=document.createElement('button');returnButton.id='gx-return';returnButton.textContent='← Voltar ao Grauê XPS';returnButton.onclick=()=>{document.body.classList.remove('gx-legacy');sync();};
  document.body.append(returnButton);

@@ -66,3 +66,11 @@
 #gx-shell .gx-system-panel h3,#gx-shell .gx-system-panel p{flex-basis:100%;margin:4px 0}
 #gx-shell .gx-system-panel button{min-height:44px;flex:1 1 150px;font-size:13px;padding:9px}
 @media(orientation:landscape) and (max-height:560px){#gx-shell .gx-live-toolbar,#gx-shell.gx-live-mode .gx-live-toolbar{position:relative;top:0}}
+#gx-shell .gx-key-follow{margin:0;min-height:32px;flex:1 1 190px}
+#gx-shell .gx-key-follow input{min-height:20px;margin:0;padding:0;flex:none}
+#gx-shell #gx-stage-key-observed{flex:0 1 auto;font-size:11px;line-height:1.25;margin:0}
+#gx-shell #gx-system-state{flex:1 1 120px;margin:0;font-size:11px;line-height:1.3}
+#gx-shell .gx-system-quick{align-items:center;margin-top:4px}
+#gx-shell .gx-live-dialog input[type=checkbox]{width:20px;min-height:20px;margin:0;padding:0;flex:none}
+#gx-shell .gx-live-quick #gx-next{font-size:12px;gap:3px}
+#gx-shell .gx-live-quick #gx-next svg{width:15px;flex-shrink:0}
