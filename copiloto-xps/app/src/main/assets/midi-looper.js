@@ -17,11 +17,14 @@
  function call(name,...args){if(typeof window.Native?.[name]!=='function'){q('status').textContent='Looper disponível no APK atualizado.';return false;}window.Native[name](...args);return true;}
  function render(){
   const busy=!!(state.playing||state.recording),hasNotes=state.counts.some(n=>n>0);
-  trackButtons.forEach((button,i)=>{button.textContent='Pista '+(i+1)+' · '+(state.recording&&state.track===i?(state.queued?'Aguardando':'Gravando'):state.counts[i]?(state.muted[i]?'MUDO':'Gravada'):'Vazia');button.setAttribute('aria-pressed',String(i===selected));button.classList.toggle('loop-selected',i===selected);button.classList.toggle('loop-recording',!!state.recording&&state.track===i);});
+  trackButtons.forEach((button,i)=>{button.setAttribute('aria-label','Pista '+(i+1)+', '+state.counts[i]+' eventos MIDI'+(state.muted[i]?', silenciada':''));button.textContent='Pista '+(i+1)+' · '+(state.recording&&state.track===i?(state.queued?'Aguardando':'Gravando'):state.counts[i]?(state.muted[i]?'MUDO':'Gravada'):'Vazia');button.setAttribute('aria-pressed',String(i===selected));button.classList.toggle('loop-selected',i===selected);button.classList.toggle('loop-recording',!!state.recording&&state.track===i);});
   q('rec').disabled=!connected||state.recording||pendingLibrary;q('rec').textContent=state.recording?(state.queued?'Aguardando…':'Gravando…'):(state.counts[selected]?'● Adicionar notas':'● Gravar pista');
-  q('play').disabled=!connected||!hasNotes||state.recording||state.playing||pendingLibrary;
+  const audible=state.counts.some((n,i)=>n>0&&!state.muted[i]);
+  q('play').disabled=!connected||!hasNotes||!audible||state.recording||state.playing||pendingLibrary;
   q('stop').disabled=!busy;q('mute').disabled=!state.counts[selected];q('clear').disabled=!state.counts[selected]&&!(state.recording&&state.track===selected);
-  q('clear-all').disabled=!hasNotes&&!state.recording;
+  q('clear-all').disabled=pendingLibrary||!hasNotes&&!state.recording;
+  q('clear').disabled=q('clear').disabled||pendingLibrary;
+  q('mute').disabled=q('mute').disabled||pendingLibrary;
   q('mute').textContent=state.muted[selected]?'Ouvir pista':'Silenciar pista';q('mute').setAttribute('aria-pressed',String(!!state.muted[selected]));
   for(const id of ['bpm','beats','bars','countin'])q(id).disabled=busy;
   q('output').textContent=connected?'Som no XPS-10 · USB conectado':'Som no XPS-10 · USB aguardando';
@@ -35,14 +38,15 @@
 
   const at=Math.floor((state.position||0)*(state.beats||4)*(state.bars||2));
   const inputStatus=state.recording?' · Entrada: '+(Number(state.receivedNotes)||0)+' notas · Capturadas: '+(Number(state.capturedNotes)||0):'';
-  q('status').textContent=(connected?state.message:'USB desconectado. Reconecte para gravar ou tocar.')+(busy&&!state.queued?' · Compasso '+(Math.floor(at/(state.beats||4))+1)+' / '+(state.bars||2)+' · Batida '+(at%(state.beats||4)+1):'')+inputStatus;
+  const help=hasNotes&&!audible&&!busy?' · Todas as pistas estão silenciadas. Selecione uma e toque Ouvir pista.':state.recording&&!state.queued&&Number(state.receivedNotes)===0?' · Aguardando notas da entrada USB do Roland.':'';
+  q('status').textContent=(connected?state.message:'USB desconectado. Reconecte para gravar ou tocar.')+(busy&&!state.queued?' · Compasso '+(Math.floor(at/(state.beats||4))+1)+' / '+(state.bars||2)+' · Batida '+(at%(state.beats||4)+1):'')+inputStatus+help;
  }
  q('rec').onclick=()=>{const bpm=Number(q('bpm').value),beats=Number(q('beats').value),bars=Number(q('bars').value);if(!Number.isInteger(bpm)||bpm<40||bpm>240){q('status').textContent='Escolha um BPM inteiro de 40 a 240.';return;}if(state.counts[selected]&&state.muted[selected]){q('status').textContent='Ative Ouvir pista antes de gravar overdub nela.';return;}if(q('countin').checked&&typeof window.Native?.loopRecordPrepared==='function')call('loopRecordPrepared',selected,bpm,beats,bars,true);else call('loopRecord',selected,bpm,beats,bars);};
  q('countin').checked=typeof saved!=='undefined'&&!!saved.loopCountIn;q('countin').onchange=()=>{if(typeof saved!=='undefined'){saved.loopCountIn=q('countin').checked;if(typeof persist==='function')persist();}};
  q('play').onclick=()=>call('loopPlay',Number(q('bpm').value),Number(q('beats').value),Number(q('bars').value));q('stop').onclick=()=>call('loopStop');
  q('mute').onclick=()=>call('loopMute',selected,!state.muted[selected]);
- q('clear').onclick=()=>{if(window.confirm('Apagar a gravação da pista '+(selected+1)+'?'))call('loopClear',selected);};
- q('clear-all').onclick=()=>{if(window.confirm('Apagar todas as gravações das 4 pistas? Esta ação não pode ser desfeita.'))call('loopClearAll');};
+ q('clear').onclick=()=>{if(window.confirm('Apagar somente a gravação da pista '+(selected+1)+'? As outras pistas e cópias da biblioteca serão mantidas.'))call('loopClear',selected);};
+ q('clear-all').onclick=()=>{if(window.confirm('Apagar todas as gravações das 4 pistas desta sessão? As cópias salvas na biblioteca serão mantidas. Esta ação não pode ser desfeita.'))call('loopClearAll');};
  function info(text){q('library-status').textContent=text;pendingLibrary=false;render();}
  function libraryCall(name,...args){pendingLibrary=true;render();if(!call(name,...args))info('Esta função precisa do APK atualizado.');}
  function updateLibrary(){
