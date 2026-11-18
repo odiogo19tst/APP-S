@@ -24,9 +24,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Preparar instalacao independente da versao antiga
+        working-directory: jardim-da-palavra
+        run: |
+          set -e
+          sed -i "s/applicationIdSuffix '.dev'/applicationIdSuffix '.dora153'/" app/build.gradle
+          sed -i "s/versionCode 152/versionCode 153/" app/build.gradle
+          sed -i "s/versionName '1.5.2-dev'/versionName '1.5.3-teste'/" app/build.gradle
+          sed -i 's/android:label="Jardim da Palavra"/android:label="Jardim Dora Teste"/' app/src/main/AndroidManifest.xml
+          grep -E 'applicationIdSuffix|versionCode|versionName' app/build.gradle
       - name: Compilar APK
         working-directory: jardim-da-palavra
         run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Conferir assinatura e integridade do APK
+        working-directory: jardim-da-palavra
+        run: |
+          set -e
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
           name: Jardim-da-Palavra-APK-debug
