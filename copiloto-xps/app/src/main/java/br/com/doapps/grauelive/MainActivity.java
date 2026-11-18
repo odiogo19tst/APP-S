@@ -357,6 +357,7 @@ getWindow().addFlags(128);
    try{stopPhrase();if(!liveLooper.isActive())liveLooper.configure(bpm,beats,bars);if(liveLooper.play(System.nanoTime()))startLoopClock();else publishLoopState();}
    catch(Exception e){emit("status",e.getMessage());publishLoopState();}
   });}
+  @JavascriptInterface public void loopFinishAndPlay(){runOnUiThread(()->{try{if(!armed||midi==null||!midi.isConnected())throw new IllegalStateException("Conecte o XPS-10 por USB-MIDI.");if(liveLooper.finishAndPlay(System.nanoTime()))startLoopClock();else publishLoopState();}catch(Exception e){emit("status",e.getMessage());publishLoopState();}});}
   @JavascriptInterface public void loopStop(){runOnUiThread(()->stopLiveLoop());}
   @JavascriptInterface public void loopMute(int track,boolean mute){runOnUiThread(()->{try{liveLooper.mute(track,mute);publishLoopState();}catch(Exception e){emit("status",e.getMessage());}});}
   @JavascriptInterface public void loopClear(int track){runOnUiThread(()->{try{liveLooper.clear(track);publishLoopState();}catch(Exception e){emit("status",e.getMessage());}});}
@@ -729,14 +730,14 @@ getWindow().addFlags(128);
    });
   }
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
-  @JavascriptInterface public synchronized void save(String value){
-   if(value==null||value.length()>MAX_STATE_BYTES||value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>MAX_STATE_BYTES){emit("status","Dados não salvos: limite de 10 MB atingido. Exporte e reduza o repertório antes de continuar.");return;}
+  @JavascriptInterface public synchronized boolean save(String value){
+   if(value==null||value.length()>MAX_STATE_BYTES||value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>MAX_STATE_BYTES){emit("status","Dados não salvos: limite de 10 MB atingido. Exporte e reduza o repertório antes de continuar.");return false;}
    try{JSONObject parsed=new JSONObject(value);if(!(parsed.opt("songs") instanceof JSONArray))throw new IOException("Repertório inválido");
-    android.content.SharedPreferences prefs=getPreferences(0);String previous=prefs.getString("state","{}");if(value.equals(previous))return;
+    android.content.SharedPreferences prefs=getPreferences(0);String previous=prefs.getString("state","{}");if(value.equals(previous))return true;
     android.content.SharedPreferences.Editor edit=prefs.edit().putString("state",value);JSONObject old;try{old=new JSONObject(previous);}catch(Exception ignored){old=new JSONObject();}
     if(old.opt("songs") instanceof JSONArray&&(!parsed.optJSONArray("songs").toString().equals(old.optJSONArray("songs").toString())||!String.valueOf(parsed.opt("patchSnapshots")).equals(String.valueOf(old.opt("patchSnapshots")))||!String.valueOf(parsed.opt("centralScenes")).equals(String.valueOf(old.opt("centralScenes")))))edit.putString("stateRecovery",previous);
-    if(!edit.commit())throw new IOException("armazenamento indisponível");emit("stateSaved",true);
-   }catch(Exception e){emit("status","Não foi possível salvar os dados: "+e.getMessage());}
+    if(!edit.commit())throw new IOException("armazenamento indisponível");emit("stateSaved",true);return true;
+   }catch(Exception e){emit("status","Não foi possível salvar os dados: "+e.getMessage());return false;}
   }
   @JavascriptInterface public synchronized String load(){
    android.content.SharedPreferences prefs=getPreferences(0);String current=prefs.getString("state","{}");
