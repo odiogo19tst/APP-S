@@ -4,7 +4,7 @@ const hw={'setup:0':Array(52).fill(0),'common:0':Array(56).fill(32),validSysexPa
 for(let i=0;i<16;i++){const p=Array(49).fill(64);p[32]=0;hw['part:'+i]=p;}
 const scene=model.capture(hw,'Verso','song-a');assert.equal(scene.edits.length,119);assert.equal(model.prepare(scene,hw).length,119);assert.equal(scene.songId,'song-a');
 assert.throws(()=>model.capture({...hw,validSysexPackets:0},'Verso',''));
-assert.throws(()=>model.capture({...hw,'part:15':null},'Verso',''));
+const missingPart=model.capture({...hw,'part:15':null},'Verso','');assert.equal(missingPart.edits.length,112,'A missing part produces a safe partial snapshot');
 assert.throws(()=>model.prepare(scene,{...hw,'common:0':Array(56).fill(33)}),/outra Performance/);
 assert.throws(()=>model.command('power',0,0,1));assert.throws(()=>model.command('setup',0,18,71));assert.throws(()=>model.command('part',0,32,3));
 assert.throws(()=>model.scene({...scene,edits:Array(119).fill(scene.edits[0])}));
