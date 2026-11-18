@@ -66,13 +66,14 @@
  }
  function capture(hw,name,songId){
   const source=fingerprint(hw);name=String(name||'').trim().slice(0,40);if(!name)throw Error('Dê um nome à cena.');
-  const edits=[];for(let index=0;index<16;index++){const p=hw['part:'+index];if(!Array.isArray(p))throw Error('Leia todas as 16 partes antes de guardar a cena.');for(const offset of partOffsets)edits.push(command('part',index,offset,p[offset]));}
-  for(const offset of setupOffsets)edits.push(command('setup',0,offset,hw['setup:0'][offset]));
+  const edits=[];for(let index=0;index<16;index++){const p=hw['part:'+index];if(!Array.isArray(p))continue;for(const offset of partOffsets){try{edits.push(command('part',index,offset,p[offset]));}catch(_){/* Skip parameters that have not been validated. */}}}
+  for(const offset of setupOffsets){try{edits.push(command('setup',0,offset,hw['setup:0'][offset]));}catch(_){/* Unread bytes cannot be captured. */}}
+  if(!edits.length)throw Error('Não há parâmetros validados para salvar. Leia a Performance pelo USB e tente novamente.');
   return {name,songId:String(songId||'').slice(0,160),source,edits};
  }
- function scene(raw){if(!raw||typeof raw.name!=='string'||!raw.name.trim()||typeof raw.source!=='string'||!Array.isArray(raw.edits)||raw.edits.length!==119)throw Error('Cena inválida.');
+ function scene(raw){if(!raw||typeof raw.name!=='string'||!raw.name.trim()||typeof raw.source!=='string'||!Array.isArray(raw.edits)||raw.edits.length<1||raw.edits.length>119)throw Error('Cena inválida.');
   if(raw.edits.some(e=>!((e.section==='part'&&partOffsets.includes(e.offset))||(e.section==='setup'&&e.index===0&&setupOffsets.includes(e.offset)))))throw Error('A cena contém parâmetros externos à Performance.');
-  const edits=raw.edits.map(e=>command(e.section,e.index,e.offset,e.value)),keys=new Set(edits.map(e=>[e.section,e.index,e.offset].join(':')));if(keys.size!==119)throw Error('Cena com parâmetros repetidos.');return {...raw,name:raw.name.slice(0,40),edits};
+  const edits=raw.edits.map(e=>command(e.section,e.index,e.offset,e.value)),keys=new Set(edits.map(e=>[e.section,e.index,e.offset].join(':')));if(keys.size!==edits.length)throw Error('Cena com parâmetros repetidos.');return {...raw,name:raw.name.slice(0,40),edits};
  }
  function prepare(raw,hw){const s=scene(raw);if(s.source!==fingerprint(hw))throw Error('Esta cena pertence a outra Performance. Carregue a Performance original e leia o teclado.');return copy(s.edits);}
  function emptyPattern(){const names=['Piano','Pad','Baixo','Arpejo','Bumbo','Caixa','Chimbal','Percussão'];return {bpm:72,steps:16,tracks:names.map((name,i)=>({name,channel:i<4?i+1:10,gate:i===1?8:i===0?4:1,note:[60,60,36,64,36,38,42,46][i],velocity:100,notes:Array(64).fill([60,60,36,64,36,38,42,46][i]),velocities:Array(64).fill(0)}))};}

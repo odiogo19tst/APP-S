@@ -24,6 +24,12 @@ public final class MidiLooperSelfTest {
   r.advance(3100*MS);check(count(r.out,"144:60:100")==2,"Loop repeats");r.looper.stop();check(r.out.getLast().equals("128:60:0"),"STOP releases active note");
   check(r.looper.snapshot(0).size()==2,"Program/bank/realtime/invalid data excluded");
 
+  // Manual finish: the first recording need not wait for the full number of bars.
+  r=new Rig();r.looper.record(r.now,0);r.advance(1100*MS);r.input(0x90,62,95);r.advance(1200*MS);r.input(0x80,62,0);
+  check(r.looper.finishAndPlay(r.now)&&r.looper.state(r.now).playing,"Short take must transition to playback");
+  r.advance(1400*MS);check(count(r.out,"144:62:95")==1&&count(r.out,"128:62:0")==1,"Short take replays original notes and releases them");
+  r.looper.stop();r=new Rig();r.looper.record(r.now,0);check(!r.looper.finishAndPlay(r.now)&&!r.looper.isActive(),"Empty short take never claims playback");
+
   r=new Rig();r.looper.record(r.now,0);r.input(0xb0,64,127);r.input(0x90,64,110);r.input(0xe0,0,72);r.input(0xb0,1,90);r.input(0xb0,11,85);
   r.advance(2*SECOND);check(r.out.contains("176:64:127"),"Sustain recorded");check(r.out.contains("224:0:72"),"Pitch bend recorded");
   r.looper.stop();check(r.out.contains("128:64:0")&&r.out.contains("176:64:0")&&r.out.contains("224:0:64")&&r.out.contains("176:1:0"),"STOP releases notes, pedal, bend and modulation");
@@ -63,6 +69,10 @@ public final class MidiLooperSelfTest {
   r=new Rig();r.take(0,60);r.advance(2100*MS);r.available=false;r.looper.clearAll();
   check(r.looper.snapshot(0).isEmpty(),"MIDI send failure cannot prevent deletion");
   r.available=true;r.looper.retrySilence();check(r.out.getLast().equals("128:60:0")&&!r.looper.isActive(),"Retry releases pending note without restoring erased loop");
+
+  // Android scheduling jitter above 250 ms must not stop active playback.
+  r=new Rig();r.take(0,60);r.advance(2*SECOND);r.now+=500*MS;r.looper.tick(r.now);
+  check(r.looper.isActive(),"500ms scheduler hiccup must not stop recorded playback");r.looper.stop();
 
   r=new Rig();r.looper.record(r.now,0);r.input(0x90,60,100);r.looper.stop();check(r.looper.snapshot(0).size()==1,"Early STOP preserves partial take");
   r.looper.play(r.now);r.looper.tick(r.now);r.out.clear();r.looper.tick(r.now+SECOND);check(!r.looper.isActive(),"Clock suspension stops rather than floods old notes");check(r.out.equals(List.of("128:60:0")),"Suspension silences active notes");
