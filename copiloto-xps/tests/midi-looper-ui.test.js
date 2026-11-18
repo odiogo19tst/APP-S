@@ -10,10 +10,10 @@ class Element{
 }
 const elements={},calls=[],events={},anchor=new Element(),stage=new Element();
 stage.querySelector=()=>anchor;
-for(const id of ['countin','output','bpm','beats','bars','rec','play','stop','mute','clear','clear-all','progress','status','name','link-song','song','save','export','import','saved','load','delete-saved','library-status'])elements['#loop-'+id]=new Element();
+for(const id of ['countin','output','bpm','beats','bars','rec','finish','play','stop','mute','clear','clear-all','progress','status','name','link-song','song','save','export','import','saved','load','delete-saved','library-status'])elements['#loop-'+id]=new Element();
 elements['#loop-bpm'].value='90';elements['#loop-beats'].value='4';elements['#loop-bars'].value='2';elements['.loop-tracks']=new Element();
 const document={hidden:false,querySelector:()=>stage,createElement:()=>new Element(),getElementById:()=>({value:'0'}),addEventListener:(name,fn)=>{events[name]=fn;}};
-const native={};for(const k of ['loopRecordPrepared','loopState','loopRecord','loopPlay','loopStop','loopMute','loopClear','loopClearAll','listLoops','saveLoop','loadLoop','deleteLoop','exportLoopMidi','importLoopMidi'])native[k]=(...args)=>calls.push([k,...args]);
+const native={};for(const k of ['loopRecordPrepared','loopState','loopRecord','loopFinishAndPlay','loopPlay','loopStop','loopMute','loopClear','loopClearAll','listLoops','saveLoop','loadLoop','deleteLoop','exportLoopMidi','importLoopMidi'])native[k]=(...args)=>calls.push([k,...args]);
 let confirmations=0,priorEvents=0,approve=true;
 const window={Native:native,receive:()=>priorEvents++,confirm:()=>{confirmations++;return approve;}};
 vm.runInNewContext(fs.readFileSync(__dirname+'/../app/src/main/assets/midi-looper.js','utf8'),{document,window,console});
@@ -21,8 +21,8 @@ const el=id=>elements['#loop-'+id],emit=(type,data)=>window.receive(type,data);
 assert(el('rec').disabled,'USB off blocks recording');assert(el('play').disabled);assert.equal(calls[0][0],'loopState');assert.equal(calls[1][0],'listLoops');
 emit('xpsConnection',true);assert(!el('rec').disabled);el('rec').onclick();assert.deepEqual(calls.at(-1),['loopRecord',0,90,4,2]);
 const stopped={playing:false,recording:false,queued:false,track:-1,counts:[2,0,0,0],muted:[false,false,false,false],position:0,bpm:90,beats:4,bars:2,message:'Loop parado'};
-emit('loopState',{...stopped,recording:true,track:0});assert(el('rec').disabled);assert(!el('stop').disabled);assert(el('bpm').disabled);
-emit('loopState',stopped);assert(!el('play').disabled);assert.equal(el('rec').textContent,'● Adicionar notas');el('play').onclick();assert.equal(calls.at(-1)[0],'loopPlay');
+emit('loopState',{...stopped,recording:true,track:0});assert(el('rec').disabled);assert(!el('finish').disabled);el('finish').onclick();assert.deepEqual(calls.at(-1),['loopFinishAndPlay']);assert(!el('stop').disabled);assert(el('bpm').disabled);
+emit('loopState',stopped);assert(el('finish').disabled);assert(!el('play').disabled);assert.equal(el('rec').textContent,'● Adicionar notas');el('play').onclick();assert.equal(calls.at(-1)[0],'loopPlay');
 emit('loopState',{...stopped,playing:true,position:.5});assert.equal(el('progress').value,.5);assert(el('play').disabled);assert(!el('rec').disabled);
 elements['.loop-tracks'].children[2].onclick();assert.equal(el('rec').textContent,'● Gravar pista');el('rec').onclick();assert.deepEqual(calls.at(-1),['loopRecord',2,90,4,2]);
 elements['.loop-tracks'].children[0].onclick();el('mute').onclick();assert.deepEqual(calls.at(-1),['loopMute',0,true]);
