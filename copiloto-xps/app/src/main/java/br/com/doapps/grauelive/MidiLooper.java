@@ -8,7 +8,7 @@ import java.util.List;
 public final class MidiLooper {
  public interface Output { boolean send(int status, int data1, int data2); }
  public static final int TRACKS=4, MAX_EVENTS=16000;
- private static final long MAX_GAP_NS=250_000_000L;
+ private static final long MAX_GAP_NS=750_000_000L;
  public static final class Event {
   public final long offsetNs; public final int status,note,velocity;
   public Event(long offsetNs,int status,int note,int velocity){this.offsetNs=offsetNs;this.status=status;this.note=note;this.velocity=velocity;}
@@ -79,6 +79,14 @@ public final class MidiLooper {
   recordStart=playing?startNs+(Math.floorDiv(now-startNs,loopNs)+1)*loopNs:now+(countIn?60_000_000_000L*beats/bpm:0);
   recordEnd=recordStart+loopNs;if(!playing)lastTickNs=now;
   message=playing?"Overdub armado: começa na próxima volta":"Gravando MIDI";
+ }
+ /** Finish a short take and start playback immediately without waiting for all bars. */
+ public synchronized boolean finishAndPlay(long now){
+  if(recordTrack<0){message="Nenhuma gravação em andamento";return false;}
+  finishRecording();
+  if(playing){message="Overdub finalizado. Reprodução mantida.";return true;}
+  if(!hasEvents()){message=receivedNotes==0?"Nenhuma nota MIDI recebida. Confira o envio USB do XPS-10.":"Nenhuma nota capturada no intervalo. Confira a contagem e tente novamente.";return false;}
+  return play(now);
  }
  /** Capture only musical gestures. Bank/program/SysEx and clock are never recorded or echoed. */
  public synchronized void input(long now,int status,int a,int b){
