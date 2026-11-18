@@ -1,0 +1,35 @@
+name: Jardim da Palavra - APK teste
+on:
+  push:
+    branches: [jardim-apk-dev]
+  workflow_dispatch:
+jobs:
+  android-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descompactar codigo Android
+        run: |
+          mkdir -p jardim-da-palavra
+          unzip -q jardim-da-palavra/fontes.zip -d jardim-da-palavra
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Instalar SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compilar APK
+        working-directory: jardim-da-palavra
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jardim-da-Palavra-APK-debug
+          path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
