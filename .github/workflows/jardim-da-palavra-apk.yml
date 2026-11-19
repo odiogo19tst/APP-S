@@ -1,4 +1,4 @@
-name: Jardim da Palavra - APK teste
+name: Jardim da Palavra - Curso Teologia 1.6.0
 on:
   push:
     branches: [jardim-apk-dev]
@@ -24,15 +24,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Preparar instalacao independente da versao antiga
+      - name: Validar versao e identificador do curso
         working-directory: jardim-da-palavra
         run: |
           set -e
-          sed -i "s/applicationIdSuffix '.dev'/applicationIdSuffix '.dora153'/" app/build.gradle
-          sed -i "s/versionCode 152/versionCode 153/" app/build.gradle
-          sed -i "s/versionName '1.5.2-dev'/versionName '1.5.3-teste'/" app/build.gradle
-          sed -i 's/android:label="Jardim da Palavra"/android:label="Jardim Dora Teste"/' app/src/main/AndroidManifest.xml
-          grep -E 'applicationIdSuffix|versionCode|versionName' app/build.gradle
+          grep -F "versionCode 160" app/build.gradle
+          grep -F "applicationIdSuffix '.curso160'" app/build.gradle
+          grep -F 'android:label="Jardim Teologia Teste"' app/src/main/AndroidManifest.xml
+          test -s app/src/main/assets/curso_data.js
+          test -s app/src/main/assets/curso_ui.js
       - name: Compilar APK
         working-directory: jardim-da-palavra
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -44,7 +44,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
-          name: Jardim-da-Palavra-APK-debug
+          name: Jardim-da-Palavra-Teologia-1.6.0-APK
           path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
