@@ -1,4 +1,4 @@
-name: Jardim da Palavra - Apostilas e Louvor 1.6.2
+name: Jardim da Palavra - Revisao final 1.6.3
 on:
   push:
     branches: [jardim-apk-dev]
@@ -28,11 +28,19 @@ jobs:
         working-directory: jardim-da-palavra
         run: |
           set -e
-          grep -F "versionCode 162" app/build.gradle
-          grep -F "applicationIdSuffix '.curso162'" app/build.gradle
-          grep -F 'android:label="Jardim Teologia e Louvor"' app/src/main/AndroidManifest.xml
+          grep -F "versionCode 163" app/build.gradle
+          grep -F "applicationIdSuffix '.curso163'" app/build.gradle
+          grep -F 'android:label="Jardim da Palavra Rev."' app/src/main/AndroidManifest.xml
           test -s app/src/main/assets/curso_data.js
           test -s app/src/main/assets/curso_ui.js
+      - name: Executar testes de regressao de conteudo e interface
+        working-directory: jardim-da-palavra
+        run: |
+          node --check app/src/main/assets/app.js
+          node --check app/src/main/assets/curso_ui.js
+          node test_v162.js
+          node test_app_v162.js
+          node test_deep.js
       - name: Compilar APK
         working-directory: jardim-da-palavra
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -44,7 +52,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
-          name: Jardim-da-Palavra-1.6.2-Apostilas-Louvor-APK
+          name: Jardim-da-Palavra-1.6.3-Auditado-APK
           path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
