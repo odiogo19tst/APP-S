@@ -1,4 +1,4 @@
-name: Jardim da Palavra - Biblia ACF offline 1.6.5
+name: Jardim da Palavra - Assistente integrado e Curso 1.6.6
 on:
   push:
     branches: [jardim-apk-dev]
@@ -28,9 +28,9 @@ jobs:
         working-directory: jardim-da-palavra
         run: |
           set -e
-          grep -F "versionCode 165" app/build.gradle
-          grep -F "applicationIdSuffix '.acf165'" app/build.gradle
-          grep -F 'android:label="Jardim Offline ACF"' app/src/main/AndroidManifest.xml
+          grep -F "versionCode 166" app/build.gradle
+          grep -F "applicationIdSuffix '.acf166'" app/build.gradle
+          grep -F 'android:label="Jardim da Palavra Estudos"' app/src/main/AndroidManifest.xml
           test -s app/src/main/assets/curso_data.js
           test -s app/src/main/assets/curso_ui.js
           test -s app/src/main/java/com/diogo/jardimbibliaseestudos/AcfStorage.java
@@ -44,6 +44,7 @@ jobs:
           node test_deep.js
           node test_dev_v164.js
           node test_acf_offline.js
+          node test_assistente_166.js
       - name: Compilar APK
         working-directory: jardim-da-palavra
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -55,7 +56,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
-          name: Jardim-da-Palavra-1.6.5-Leitor-Offline-APK
+          name: Jardim-da-Palavra-1.6.6-Assistente-Cadernos-APK
           path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
