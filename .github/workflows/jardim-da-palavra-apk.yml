@@ -1,4 +1,4 @@
-name: Jardim da Palavra - Estudos Exegeticos 1.6.1
+name: Jardim da Palavra - Apostilas e Louvor 1.6.2
 on:
   push:
     branches: [jardim-apk-dev]
@@ -28,9 +28,9 @@ jobs:
         working-directory: jardim-da-palavra
         run: |
           set -e
-          grep -F "versionCode 161" app/build.gradle
-          grep -F "applicationIdSuffix '.curso161'" app/build.gradle
-          grep -F 'android:label="Jardim Teologia Estudos"' app/src/main/AndroidManifest.xml
+          grep -F "versionCode 162" app/build.gradle
+          grep -F "applicationIdSuffix '.curso162'" app/build.gradle
+          grep -F 'android:label="Jardim Teologia e Louvor"' app/src/main/AndroidManifest.xml
           test -s app/src/main/assets/curso_data.js
           test -s app/src/main/assets/curso_ui.js
       - name: Compilar APK
@@ -44,7 +44,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
-          name: Jardim-da-Palavra-Teologia-1.6.1-Estudos-APK
+          name: Jardim-da-Palavra-1.6.2-Apostilas-Louvor-APK
           path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
