@@ -1,4 +1,4 @@
-name: Jardim da Palavra - Revisao final 1.6.3
+name: Jardim da Palavra - Devocional 5 etapas 1.6.4
 on:
   push:
     branches: [jardim-apk-dev]
@@ -28,9 +28,9 @@ jobs:
         working-directory: jardim-da-palavra
         run: |
           set -e
-          grep -F "versionCode 163" app/build.gradle
-          grep -F "applicationIdSuffix '.curso163'" app/build.gradle
-          grep -F 'android:label="Jardim da Palavra Rev."' app/src/main/AndroidManifest.xml
+          grep -F "versionCode 164" app/build.gradle
+          grep -F "applicationIdSuffix '.curso164'" app/build.gradle
+          grep -F 'android:label="Jardim Devocional 5 Etapas"' app/src/main/AndroidManifest.xml
           test -s app/src/main/assets/curso_data.js
           test -s app/src/main/assets/curso_ui.js
       - name: Executar testes de regressao de conteudo e interface
@@ -41,6 +41,7 @@ jobs:
           node test_v162.js
           node test_app_v162.js
           node test_deep.js
+          node test_dev_v164.js
       - name: Compilar APK
         working-directory: jardim-da-palavra
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -52,7 +53,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
-          name: Jardim-da-Palavra-1.6.3-Auditado-APK
+          name: Jardim-da-Palavra-1.6.4-Devocional-APK
           path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
