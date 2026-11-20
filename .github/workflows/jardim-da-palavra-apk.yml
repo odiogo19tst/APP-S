@@ -1,4 +1,4 @@
-name: Jardim da Palavra - base pessoal ACF 1.6.8
+name: Jardim da Palavra - Harpa Crista 640 Cifrada 1.6.9
 on:
   push:
     branches: [jardim-apk-dev]
@@ -14,6 +14,10 @@ jobs:
         run: |
           mkdir -p jardim-da-palavra
           unzip -q jardim-da-palavra/fontes.zip -d jardim-da-palavra
+      - name: Inserir indice confirmado da Harpa Crista
+        run: |
+          cp jardim-da-palavra/harpa_index.js jardim-da-palavra/app/src/main/assets/harpa_index.js
+          node -e "global.window={};require('./jardim-da-palavra/harpa_index.js');if(window.JARDIM_HARPA_TITLES.length!==641)process.exit(2);console.log('640 titulos confirmados')"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -28,9 +32,9 @@ jobs:
         working-directory: jardim-da-palavra
         run: |
           set -e
-          grep -F "versionCode 168" app/build.gradle
+          grep -F "versionCode 169" app/build.gradle
           grep -F "applicationIdSuffix '.acf168'" app/build.gradle
-          grep -F 'android:label="Jardim ACF Pessoal"' app/src/main/AndroidManifest.xml
+          grep -F 'android:label="Jardim da Palavra"' app/src/main/AndroidManifest.xml
           test -s app/src/main/assets/curso_data.js
           test -s app/src/main/assets/curso_ui.js
           test -s app/src/main/java/com/diogo/jardimbibliaseestudos/AcfStorage.java
@@ -47,6 +51,7 @@ jobs:
           node test_acf_offline.js
           node test_assistente_166.js
           node test_backup_167.js
+          node test_harpa_169.js
       - name: Compilar APK
         working-directory: jardim-da-palavra
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -58,7 +63,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
-          name: Jardim-1.6.8-Base-APK
+          name: Jardim-1.6.9-Harpa-Base-APK
           path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
