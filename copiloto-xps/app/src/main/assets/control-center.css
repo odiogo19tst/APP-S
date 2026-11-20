@@ -145,3 +145,12 @@ body.gx-ready:has(#gx-shell.gx-central-focus){max-width:none;margin:0;background
 /* clip avoids creating an unscrolled ancestor that defeats sticky headers. */
 body.gx-ready:has(#gx-shell.gx-central-focus){overflow-x:clip;overflow-y:visible}
 #gx-shell.gx-layout-v3.gx-central-focus{overflow-x:clip;overflow-y:visible}
+
+/* The two new top navigation entries open existing tone/Performance controls. */
+#gx-shell #gx-control-center[data-page="tones"] #central-existing-editors,
+#gx-shell #gx-control-center[data-page="performance"] #central-existing-editors{margin:0;min-width:0;width:100%;padding:0;border:0;background:transparent}
+#gx-shell #gx-control-center[data-page="tones"] #central-existing-editors>summary,
+#gx-shell #gx-control-center[data-page="performance"] #central-existing-editors>summary{display:none}
+#gx-shell #gx-control-center .central-body>#central-existing-editors:not([open]){display:none}
+#gx-shell #gx-control-center .central-body>.central-existing-editors[open]>.gx-sound-layout{width:100%;min-width:0}
+@media(max-width:759px){#gx-shell #gx-control-center .central-nav{grid-template-columns:repeat(3,minmax(0,1fr))}#gx-shell #gx-control-center .central-nav button{min-height:48px;font-size:11px!important}}

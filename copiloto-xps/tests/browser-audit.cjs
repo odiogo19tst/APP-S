@@ -140,8 +140,21 @@ async function run(){
    await page.locator('.gx-loop-options').evaluate(n=>n.open=true);
    page.once('dialog',d=>d.dismiss());await page.locator('#loop-clear-all').click();assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='loopClearAll').length),0);
    page.once('dialog',d=>d.accept());await page.locator('#loop-clear-all').click();assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='loopClearAll').length),1);
+   // Real central UI: Timbres and Performances open the existing editors in the top navigation.
+   await tab(page,'sound');
+   assert.equal(await page.locator('.central-nav [data-central-tab]').count(),8,'Eight top tools');
+   await page.locator('[data-central-tab="tones"]').click();
+   assert(await page.locator('#central-existing-editors').evaluate(n=>n.open),'Timbres editor opened');
+   assert(await page.locator('[data-gx-sound="tones"]').evaluate(n=>n.classList.contains('on')),'Timbres selected');
+   await page.locator('[data-central-tab="performance"]').click();
+   assert(await page.locator('#central-existing-editors').evaluate(n=>n.open),'Performances editor opened');
+   assert(await page.locator('[data-gx-sound="performance"]').evaluate(n=>n.classList.contains('on')),'Performances selected');
+   assert(await page.locator('#gx-performance-banks').isVisible(),'Existing USER/PRESET list visible');
+   await page.locator('[data-central-tab="overview"]').click();
+   assert(await page.locator('#central-existing-editors').evaluate(n=>!n.open),'Legacy editors hidden in overview');
+   assert(await page.locator('#central-scene-shortcuts button').count()===3,'Scene shortcuts retained');
    // Real central UI, simulated transport. Drafts must not send prematurely.
-   await tab(page,'sound');await page.locator('[data-central-tab="parts"]').click();
+   await page.locator('[data-central-tab="parts"]').click();
    await page.locator('#central-parts').evaluate(n=>n.closest('details').open=true);
    const beforeDraft=(await page.evaluate(midiCalls)).length;
    await page.locator('[data-central-level="0"]').fill('99');await page.locator('[data-central-level="0"]').dispatchEvent('change');assert.equal((await page.evaluate(midiCalls)).length,beforeDraft);
