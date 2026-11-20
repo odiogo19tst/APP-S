@@ -148,15 +148,15 @@ body.gx-ready:has(#gx-shell.gx-central-focus){overflow-x:clip;overflow-y:visible
 
 
 /* The three scene shortcuts show the names actually captured from MIDI/SysEx. */
-#gx-shell #central-scene-shortcuts button.central-scene-shortcut{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:5px;min-width:0;min-height:91px;padding:9px 10px!important;text-align:left;line-height:1.25}
-#gx-shell #central-scene-shortcuts .central-scene-title{font-size:clamp(13px,1.35vw,19px);font-weight:700}
-#gx-shell #central-scene-shortcuts .central-scene-details{display:flex;flex-direction:column;gap:3px;min-width:0}
-#gx-shell #central-scene-shortcuts .central-scene-tone,#gx-shell #central-scene-shortcuts .central-scene-performance{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:clamp(10px,1vw,13px);font-weight:400;color:#e0f5ec}
+#gx-shell #central-scene-shortcuts button.central-scene-shortcut{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:1px;min-width:0;height:49px;min-height:49px;padding:3px 6px!important;text-align:left;line-height:1.15}
+#gx-shell #central-scene-shortcuts .central-scene-title{font-size:clamp(12px,1.2vw,16px);font-weight:700}
+#gx-shell #central-scene-shortcuts .central-scene-details{display:flex;flex-direction:column;gap:1px;min-width:0}
+#gx-shell #central-scene-shortcuts .central-scene-tone,#gx-shell #central-scene-shortcuts .central-scene-performance{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;line-clamp:1;overflow:hidden;overflow-wrap:anywhere;font-size:clamp(9px,.85vw,11px);font-weight:400;color:#e0f5ec}
 #gx-shell #central-scene-shortcuts .central-scene-performance{color:#c2e1d7}
 #gx-shell #central-scene-shortcuts button.central-scene-shortcut.on{outline:2px solid #b4f6df;outline-offset:-2px}
 @media(max-width:540px){
  #gx-shell #central-scene-shortcuts{display:grid;grid-template-columns:minmax(0,1fr);gap:7px}
- #gx-shell #central-scene-shortcuts button.central-scene-shortcut{min-height:64px;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px;padding:9px 12px!important}
+ #gx-shell #central-scene-shortcuts button.central-scene-shortcut{height:auto;max-height:none;min-height:64px;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px;padding:9px 12px!important}
  #gx-shell #central-scene-shortcuts .central-scene-title{flex:0 0 72px;font-size:15px}
  #gx-shell #central-scene-shortcuts .central-scene-details{flex:1;min-width:0}
  #gx-shell #central-scene-shortcuts .central-scene-tone,#gx-shell #central-scene-shortcuts .central-scene-performance{font-size:12px;-webkit-line-clamp:1;line-clamp:1}
