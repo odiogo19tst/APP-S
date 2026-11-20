@@ -5,7 +5,7 @@
  root.innerHTML=`<header class="central-heading"><button id="central-exit" aria-label="Voltar ao menu inicial" title="Voltar ao menu inicial">‹ Menu inicial</button><div class="central-brand"><span id="central-brand-icon"></span><h1>Grauê XPS <span>· Central do teclado</span></h1></div><button id="central-mode" hidden>Entrar em Performance</button><button id="central-connect"><b>Roland XPS-10</b><span id="central-connection">USB aguardando</span></button></header>
  <p id="central-status" role="status" aria-live="polite">Conecte o XPS-10 e aguarde a leitura para editar seus parâmetros.</p>
  <div class="central-layout"><nav class="central-nav" aria-label="Ferramentas da central">
- <button data-central-tab="tones">Timbres</button><button data-central-tab="performance">Performances</button><button data-central-tab="overview">Visão geral</button><button data-central-tab="scenes">Cenas</button><button data-central-tab="parts">Partes</button><button data-central-tab="effects">Efeitos</button><button data-central-tab="sequence">Sequenciador</button><button data-central-tab="system">Sistema</button></nav><div class="central-body">
+ <button data-central-tab="tones">Timbres</button><button data-central-tab="performance">Performances</button><button data-central-tab="favorites">Favoritos</button><button data-central-tab="overview">Visão geral</button><button data-central-tab="scenes">Cenas</button><button data-central-tab="parts">Partes</button><button data-central-tab="effects">Efeitos</button><button data-central-tab="sequence">Sequenciador</button><button data-central-tab="system">Sistema</button></nav><div class="central-body">
  <section data-central-page="overview" class="central-dashboard"><div class="central-main-column">
  <article class="central-scene-bar"><div><h3>♬ Cena da música</h3><strong id="central-performance-title">Leia a Performance</strong></div><div id="central-scene-shortcuts"></div></article>
  <article class="central-mix-card"><div class="central-card-heading"><h3>▱ Partes e camadas</h3><button data-central-go="parts" class="central-small-link">Todas as partes ›</button></div><div id="central-quick-parts"></div><div class="central-zone-heading"><h4>♬ Zonas (no teclado)</h4><div id="central-zone-legend"></div></div><div id="central-keys" aria-label="Notas MIDI recebidas"></div><small class="central-key-note">Zonas recebidas e indicadores MIDI no celular</small></article>
@@ -15,6 +15,27 @@
  <article class="central-quick-effects"><h3>♧ Efeitos</h3><button id="central-quick-mfx">MFX 1 <span>›</span></button><button id="central-quick-chorus">Chorus <span>›</span></button><button id="central-quick-reverb">Reverb <span>›</span></button></article>
  <article class="central-physical-limits"><h3>♙ Limites do hardware</h3><button disabled>♙ LEDs físicos: sem comando documentado</button><button disabled>♙ Power: exige acessório externo</button><small>Sem acionamento de energia ou LEDs nesta versão.</small></article>
  </aside></section>
+ <section data-central-page="favorites" class="central-favorites-page" hidden><h3>Favoritos do Grauê</h3><p>10 bancos locais × 10 posições. Você pode guardar timbres ou Performances e acioná-los pelo USB-MIDI. Estes NÃO são os FAVORITE físicos do Roland, cuja importação ainda depende de decodificação validada.</p>
+ <div id="central-favorite-banks" class="central-favorite-banks" role="group" aria-label="Bancos de favoritos"></div>
+ <p id="central-favorite-current">Banco 0 · selecione uma posição</p>
+ <div id="central-favorite-slots" class="central-favorite-slots" role="group" aria-label="Posições de favoritos"></div>
+ <details id="central-favorite-editor" class="central-favorite-editor"><summary>Adicionar ou editar favorito</summary>
+ <p id="central-favorite-edit-label">Escolha uma posição acima.</p>
+ <label>Tipo de favorito<select id="central-favorite-kind"><option value="tone">Timbre</option><option value="performance">Performance</option></select></label>
+ <div id="central-favorite-tone-fields">
+ <label>Buscar timbre<input id="central-favorite-tone-search" type="search" placeholder="Nome ou código do timbre"></label>
+ <label>Timbre<select id="central-favorite-tone-picker"></select></label>
+ <label>Parte do teclado<select id="central-favorite-part"></select></label>
+ </div>
+ <div id="central-favorite-performance-fields" hidden>
+ <label>Banco da Performance<select id="central-favorite-performance-type"><option value="user">USER (001–128)</option><option value="preset">PRESET (001–016)</option></select></label>
+ <label>Número da Performance<input id="central-favorite-performance-number" type="number" min="1" max="128" value="1"></label>
+ <small id="central-favorite-performance-name">Nome confirmado: não lido</small>
+ </div>
+ <div class="central-favorite-actions"><button id="central-favorite-save">Guardar nesta posição</button><button id="central-favorite-cancel">Fechar editor</button></div>
+ </details>
+ <p role="status" aria-live="polite" id="central-favorite-status">Selecione um banco e uma posição. Salvar não transmite MIDI.</p>
+ </section>
  <section data-central-page="scenes" hidden><h3>Cenas de execução</h3><p>Guarda volume, filtro, envelope e roteamento MFX das 16 partes, além de transposição, oitava e switches de efeitos. Não inclui timbres, samples ou todos os parâmetros internos MFX. Cada cena pertence à mesma Performance usada na captura.</p><label>Nome da cena<input id="central-scene-name" maxlength="40" placeholder="Ex.: Verso, Refrão ou Oração"></label><button id="central-scene-save">Guardar estado lido</button><div id="central-scenes"></div><p>Cenas vinculadas à música aparecem primeiro. Preparar uma cena não transmite: confira e toque em Aplicar. Para manter edições após desligar o XPS, use WRITE no teclado.</p></section>
  <section data-central-page="parts" hidden><h3>Partes e camadas</h3><p>Escolha uma parte para ajustar seu som. Prepare as alterações e aplique quando estiver pronto.</p><label>Parte em foco<select id="central-part"></select></label><p id="central-zone">Leia o teclado para visualizar a zona.</p><details open class="central-system-group"><summary>Editar o som da parte selecionada</summary><p id="central-part-edit-title"></p><p>Prepare os valores e toque em Aplicar alterações. Os números com sinal representam ajustes em relação ao timbre.</p><div id="central-part-fields"></div></details><details class="central-system-group"><summary>Volumes das 16 partes</summary><div id="central-parts" class="central-parts"></div></details><button id="central-open-rhythm">Arpejador e ritmos do XPS</button><button id="central-open-synthesis">Síntese interna do timbre</button><button id="central-open-split">Editar timbres, camadas e divisão</button></section>
  <section data-central-page="effects" hidden><h3>Efeitos do XPS-10</h3><p>O seu teclado possui 3 unidades MFX. Estes switches preparam ON/BYPASS; tipos, níveis e detalhes são editados no editor de efeitos.</p><div id="central-fx" class="central-fields"></div><button id="central-open-effects">Tipos, níveis e parâmetros MFX</button></section>
@@ -26,7 +47,7 @@
  const q=k=>doc.getElementById('central-'+k),make=(tag,text)=>{const n=doc.createElement(tag);if(text!=null)n.textContent=text;return n;};
  const icon=paths=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths+'</svg>';
  q('brand-icon').innerHTML=icon('<rect x="2" y="6" width="20" height="13" rx="1"/><path d="M6 6v8h3V6m3 0v8h3V6m3 0v8h2M7 14v5m5-5v5m5-5v5M5 3h14"/>');
- const navIcons={tones:'<path d="M4 5h16v14H4zM8 5v9m5-9v9m5-9v9M6 19v2m12-2v2"/>',performance:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/>',overview:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 10h12"/>',scenes:'<path d="M4 7h16v14H4zM7 3h10M4 11h16M8 15h8"/>',parts:'<path d="M5 3v18m7-18v18m7-18v18M2 8h6m1 8h6m1-10h6"/>',effects:'<path d="m4 18 4-12 5 12 4-12 3 12M2 12h20"/>',sequence:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',system:'<circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>'};
+ const navIcons={favorites:'<path d="m12 2 3.1 6.4 7 1-5.1 5 1.2 7-6.2-3.3-6.2 3.3 1.2-7-5.1-5 7-1z"/>',tones:'<path d="M4 5h16v14H4zM8 5v9m5-9v9m5-9v9M6 19v2m12-2v2"/>',performance:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/>',overview:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 10h12"/>',scenes:'<path d="M4 7h16v14H4zM7 3h10M4 11h16M8 15h8"/>',parts:'<path d="M5 3v18m7-18v18m7-18v18M2 8h6m1 8h6m1-10h6"/>',effects:'<path d="m4 18 4-12 5 12 4-12 3 12M2 12h20"/>',sequence:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',system:'<circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>'};
  for(const b of root.querySelectorAll('[data-central-tab]'))b.insertAdjacentHTML('afterbegin',icon(navIcons[b.dataset.centralTab]));
  const lockIcon='<rect x="5" y="10" width="14" height="11" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>';
  for(const [selector,paths] of [['.central-scene-bar h3','<path d="M9 18V5l11-2v13M9 9l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/>'],['.central-mix-card h3','<path d="m12 2 10 5-10 5L2 7Zm-10 10 10 5 10-5M2 17l10 5 10-5"/>'],['.central-sequence-preview h3',navIcons.sequence],['.central-chords h3','<rect x="2" y="5" width="20" height="15"/><path d="M6 5v9h3V5m3 0v9h3V5m3 0v9h2M7 14v6m5-6v6m5-6v6"/>'],['.central-quick-effects h3',navIcons.parts],['.central-physical-limits h3',lockIcon]]){const n=root.querySelector(selector);n.textContent=n.textContent.replace(/^\S+\s/,'');n.insertAdjacentHTML('afterbegin',icon(paths));}
@@ -41,12 +62,119 @@
  let chords=Array.isArray(preferences.centralChords)&&preferences.centralChords.length>0&&preferences.centralChords.length<=8&&preferences.centralChords.every(validChord)?preferences.centralChords:['C','Am','F','G','Dm','Em','Bb','G7'];
  const message=t=>q('status').textContent=String(t||''),canEdit=()=>connected&&!busy&&model.ready(hw),key=e=>[e.section,e.index,e.offset].join(':'),currentSong=()=>typeof song!=='undefined'&&typeof songIndex==='function'&&songIndex(song)>=0?song.loopId||'':'';
  function call(name,...args){if(typeof window.Native?.[name]!=='function'){message('Este recurso exige o APK atualizado.');return false;}window.Native[name](...args);return true;}
+
+ // Local favorites are intentionally separate from physical Roland FAVORITE memories.
+ let favoriteBank=Number.isInteger(preferences.lastToneBank)&&preferences.lastToneBank>=0&&preferences.lastToneBank<=9?preferences.lastToneBank:0;
+ let favoriteIndex=null;
+ const favoriteLib=()=>window.ToneLibrary;
+ const favoriteMessage=t=>{q('favorite-status').textContent=String(t);message(t);};
+ const favoriteEntry=i=>favoriteLib()?.favoriteEntry?.(favoriteBank,i)||null;
+ const favoriteLabel=e=>!e?'Não cadastrado':e.type==='performance'?(e.user?'USER ':'PRESET ')+String(e.number).padStart(3,'0'):e.name+' · '+e.code;
+ const validFavoriteTone=t=>t&&Number.isInteger(t.msb)&&Number.isInteger(t.lsb)&&Number.isInteger(t.program);
+ function updateFavoriteKind(){
+  const type=q('favorite-kind').value;
+  q('favorite-tone-fields').hidden=type!=='tone';
+  q('favorite-performance-fields').hidden=type!=='performance';
+  updateFavoritePerformanceName();
+ }
+ function updateFavoritePerformanceName(){
+  const user=q('favorite-performance-type').value==='user';
+  q('favorite-performance-number').max=user?'128':'16';
+  const n=Number(q('favorite-performance-number').value);
+  const key=(user?'U':'P')+n;
+  const name=preferences.performanceNames?.[key];
+  q('favorite-performance-name').textContent=typeof name==='string'&&name.trim()?'Nome recebido: '+name:'Nome confirmado: não lido';
+ }
+ function findFavoriteTones(selectedCode=''){
+  const lib=favoriteLib(),query=q('favorite-tone-search').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const results=(lib?.list()||[]).filter(t=>validFavoriteTone(t)&&String(t.code+' '+t.name).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(query)).slice(0,70);
+  const picker=q('favorite-tone-picker');picker.replaceChildren();
+  for(const t of results)option(picker,t.code+' · '+t.name,t.code);
+  if(selectedCode&&results.some(t=>t.code===selectedCode))picker.value=selectedCode;
+  if(!results.length)option(picker,'Nenhum timbre encontrado','');
+ }
+ function openFavoriteEditor(index){
+  favoriteIndex=index;
+  const entry=favoriteEntry(index);q('favorite-editor').open=true;
+  q('favorite-edit-label').textContent='Banco '+favoriteBank+' · posição '+index+(entry?' · substituir':' · nova');
+  q('favorite-kind').value=entry?.type==='performance'?'performance':'tone';
+  q('favorite-tone-search').value=entry?.type==='tone'?entry.code:'';
+  findFavoriteTones(entry?.type==='tone'?entry.code:'');
+  q('favorite-part').value=String(entry?.type==='tone'?entry.part:(Number.isInteger(preferences.lastTonePart)?preferences.lastTonePart:0));
+  if(entry?.type==='performance'){q('favorite-performance-type').value=entry.user?'user':'preset';q('favorite-performance-number').value=String(entry.number);}
+  updateFavoriteKind();
+  favoriteMessage('Editando banco '+favoriteBank+', posição '+index+'. Salvar não altera o teclado.');
+ }
+ function playFavorite(entry,index){
+  if(!entry)return openFavoriteEditor(index);
+  if(!connected){favoriteMessage('USB desconectado. Favorito salvo no celular; conecte o XPS-10 para tocar.');return;}
+  if(entry.type==='performance'){
+   if(!call('selectPerformance',entry.number,entry.user))return;
+  }else{
+   if(!validFavoriteTone(entry)||!Number.isInteger(entry.part)||entry.part<0||entry.part>15){favoriteMessage('Timbre ou parte inválida. Edite o favorito antes de tocar.');return;}
+   if(!call('selectTone',entry.msb,entry.lsb,entry.program,entry.part))return;
+  }
+  favoriteMessage('Solicitado ao XPS-10: '+favoriteLabel(entry)+' · confirme o som no teclado.');
+ }
+ function renderFavoriteBanks(){
+  const box=q('favorite-banks');box.replaceChildren();
+  for(let i=0;i<10;i++){const b=make('button',String(i));b.classList.toggle('on',i===favoriteBank);b.setAttribute('aria-pressed',String(i===favoriteBank));b.setAttribute('aria-label','Banco de favoritos '+i);b.onclick=()=>{favoriteBank=i;preferences.lastToneBank=i;if(!persistNow())return favoriteMessage('Não foi possível salvar a seleção do banco.');favoriteIndex=null;q('favorite-editor').open=false;renderFavoriteBanks();renderFavoriteSlots();};box.append(b);}
+ }
+ function renderFavoriteSlots(){
+  q('favorite-current').textContent='Banco '+favoriteBank+' · toque para acionar; segure 3s ou toque em Editar';
+  const box=q('favorite-slots');box.replaceChildren();
+  for(let i=0;i<10;i++){
+   const entry=favoriteEntry(i),row=make('div');row.className='central-favorite-slot';
+   const select=make('button');select.className='central-favorite-pick';
+   const number=make('strong',String(i).padStart(2,'0')),name=make('span',favoriteLabel(entry));select.append(number,name);
+   select.setAttribute('aria-label',entry?'Acionar '+favoriteLabel(entry)+' do banco '+favoriteBank:'Editar posição vazia '+i+' do banco '+favoriteBank);
+   let timer=null,suppress=false;
+   select.addEventListener('pointerdown',e=>{if(e.button!==0)return;suppress=false;timer=setTimeout(()=>{timer=null;suppress=true;openFavoriteEditor(i);},3000);});
+   for(const event of ['pointerup','pointerleave','pointercancel'])select.addEventListener(event,()=>{if(timer!==null)clearTimeout(timer);timer=null;});
+   select.addEventListener('contextmenu',e=>{e.preventDefault();});
+   select.onclick=()=>{if(suppress){suppress=false;return;}playFavorite(entry,i);};
+   const edit=make('button','Editar');edit.className='central-favorite-edit';edit.setAttribute('aria-label','Editar favorito '+i+' do banco '+favoriteBank);edit.onclick=()=>openFavoriteEditor(i);
+   row.append(select,edit);
+   if(entry){const remove=make('button','Apagar');remove.className='central-favorite-remove';remove.setAttribute('aria-label','Apagar favorito '+i+' do banco '+favoriteBank);remove.onclick=()=>{if(!confirm('Apagar somente o favorito '+i+' do banco '+favoriteBank+' no celular?'))return;try{favoriteLib().putFavoriteEntry(favoriteBank,i,null);renderFavoriteSlots();favoriteMessage('Favorito removido do celular. O XPS-10 não foi modificado.');}catch(e){favoriteMessage(e.message);}};row.append(remove);}
+   box.append(row);
+  }
+ }
+ for(let i=0;i<16;i++)option(q('favorite-part'),'Parte '+(i+1),i);
+ q('favorite-part').value=String(preferences.lastTonePart||0);
+ q('favorite-kind').onchange=updateFavoriteKind;
+ q('favorite-tone-search').oninput=()=>findFavoriteTones();
+ q('favorite-performance-type').onchange=updateFavoritePerformanceName;
+ q('favorite-performance-number').oninput=updateFavoritePerformanceName;
+ q('favorite-cancel').onclick=()=>{q('favorite-editor').open=false;favoriteIndex=null;};
+ q('favorite-save').onclick=()=>{
+  if(favoriteIndex===null)return favoriteMessage('Selecione uma posição antes de guardar.');
+  const type=q('favorite-kind').value;
+  let entry;
+  if(type==='tone'){
+   const code=q('favorite-tone-picker').value,t=(favoriteLib()?.list()||[]).find(t=>t.code===code);
+   if(!validFavoriteTone(t))return favoriteMessage('Escolha um timbre válido da biblioteca.');
+   const part=Number(q('favorite-part').value);if(!Number.isInteger(part)||part<0||part>15)return favoriteMessage('Parte inválida.');
+   entry={type:'tone',...t,part};preferences.lastTonePart=part;
+  }else{
+   const user=q('favorite-performance-type').value==='user',number=Number(q('favorite-performance-number').value);
+   if(!Number.isInteger(number)||number<1||number>(user?128:16))return favoriteMessage('Número de Performance fora da faixa.');
+   entry={type:'performance',user,number};
+  }
+  try{
+   favoriteLib().putFavoriteEntry(favoriteBank,favoriteIndex,entry);
+   q('favorite-editor').open=false;favoriteIndex=null;renderFavoriteSlots();
+   favoriteMessage('Favorito guardado no celular: '+favoriteLabel(entry)+'. Toque na posição para solicitar ao teclado.');
+  }catch(e){favoriteMessage(e.message);}
+ };
+ renderFavoriteBanks();findFavoriteTones();renderFavoriteSlots();updateFavoriteKind();
+
  function selectPage(name){
   activePage=name;root.dataset.page=name;
   const editors=doc.getElementById('central-existing-editors'),library=name==='tones'||name==='performance';
   root.querySelectorAll('[data-central-page]').forEach(n=>n.hidden=n.dataset.centralPage!==name);
   root.querySelectorAll('[data-central-tab]').forEach(n=>{n.classList.toggle('on',n.dataset.centralTab===name);n.setAttribute('aria-current',n.dataset.centralTab===name?'page':'false');});
   if(editors)editors.open=library;
+  if(name==='favorites'){renderFavoriteBanks();renderFavoriteSlots();}
   if(library){const source=doc.querySelector('[data-gx-sound="'+name+'"]');if(source)source.click();else message('O editor de '+name+' não está disponível nesta versão.');}
  }
  for(const b of root.querySelectorAll('[data-central-tab],[data-central-go]'))b.onclick=()=>selectPage(b.dataset.centralTab||b.dataset.centralGo);
