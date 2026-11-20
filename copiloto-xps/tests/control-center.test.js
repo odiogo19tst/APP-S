@@ -18,6 +18,24 @@ assert(partialScene.edits.every(e=>Number.isInteger(e.value)),'Only verified val
 assert.throws(()=>model.scene({...partialScene,edits:[]}),/Cena inválida/);
 assert.throws(()=>model.scene({...partialScene,edits:[partialScene.edits[0],partialScene.edits[0]]}),/repetidos/);
 
+
+{
+ const bytes=name=>Array.from(name.padEnd(12,' ').slice(0,12)).map(c=>c.charCodeAt(0));
+ const named={...hw,'common:0':[...bytes('Worship 01'),...Array(44).fill(0)],'patch:0':bytes('Grand Piano'),'patch:1':bytes('Warm Strings')};
+ const labeled=model.capture(named,'Refrão','song-b');
+ assert.equal(labeled.performanceName,'Worship 01');
+ assert.deepEqual(labeled.toneNames,[{part:1,name:'Grand Piano'},{part:2,name:'Warm Strings'}]);
+ assert.deepEqual(model.sceneDisplay(model.scene(labeled)),{performanceName:'Worship 01',toneNames:labeled.toneNames});
+ const legacy={...labeled};delete legacy.performanceName;delete legacy.toneNames;
+ assert.equal(model.sceneDisplay(model.scene(legacy)).performanceName,'Worship 01','Old fingerprint retains the real Performance name');
+ assert.deepEqual(model.sceneDisplay(legacy).toneNames,[],'Never invent patch names for old scenes');
+ const missingTone=model.capture({...named,'patch:0':null},'Oração','song-b');
+ assert.deepEqual(missingTone.toneNames,[{part:2,name:'Warm Strings'}],'Partial tone read is displayed honestly');
+ const invalid={...labeled,toneNames:[{part:50,name:'Fake'},{part:1,name:'  Grand Piano  '}]};
+ assert.deepEqual(model.scene(invalid).toneNames,[{part:1,name:'Grand Piano'}]);
+ assert.equal(model.prepare(legacy,named).length,119,'Existing saved scenes are still usable');
+}
+
 for(const steps of [16,32,64]){const p=model.emptyPattern();p.steps=steps;p.tracks[0].notes[0]=72;p.tracks[0].velocities[0]=100;const data=model.payload(p);assert.equal(data.tracks.length,8);assert.equal(data.tracks[0].notes.length,steps);assert.equal(data.tracks[0].notes[0],72);p.tracks[0].notes[0]=0;assert.equal(data.tracks[0].notes[0],72);}
 assert.throws(()=>model.pattern({...model.emptyPattern(),steps:24}));let p=model.emptyPattern();p.tracks[0].notes[0]=128;assert.throws(()=>model.pattern(p));
 console.log('Control center model PASS: 119 validated scene parameters, Performance identity, MIDI-only allowlist, 8 tracks and bounded 16/32/64-step payloads');
