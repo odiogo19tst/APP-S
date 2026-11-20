@@ -8,20 +8,42 @@ let favorites=new Set(Array.isArray(saved.toneFavorites)?saved.toneFavorites:[])
  const normalizedUsers=items=>[...new Map((Array.isArray(items)?items:[]).filter(validUser).map(t=>[t.code,t])).values()];
  let cache=normalizedUsers(saved.xpsToneCache);if(cache.length)catalog=[...factory,...cache];
  const banks=()=>saved.favoriteBanks&&typeof saved.favoriteBanks==='object'?saved.favoriteBanks:(saved.favoriteBanks={});
- const slot=(bank,index)=>banks()[String(bank)+'-'+String(index)]||null;
- const putSlot=(bank,index,t)=>{
-  if(!Number.isInteger(bank)||bank<0||bank>9||!Number.isInteger(index)||index<0||index>9)throw Error('Banco ou posição inválida');
-  if(t)banks()[String(bank)+'-'+String(index)]={code:t.code,name:t.name,msb:t.msb,lsb:t.lsb,program:t.program,category:t.category};
-  else delete banks()[String(bank)+'-'+String(index)];
-  persist();
+ const validPosition=(bank,index)=>Number.isInteger(bank)&&bank>=0&&bank<=9&&Number.isInteger(index)&&index>=0&&index<=9;
+ const validTone=t=>t&&typeof t.code==='string'&&t.code.length<=30&&typeof t.name==='string'&&Number.isInteger(t.msb)&&t.msb>=0&&t.msb<=127&&Number.isInteger(t.lsb)&&t.lsb>=0&&t.lsb<=127&&Number.isInteger(t.program)&&t.program>=1&&t.program<=128;
+ const favoriteEntry=(bank,index)=>{
+  if(!validPosition(bank,index))return null;
+  const value=banks()[bank+'-'+index];
+  if(!value||typeof value!=='object')return null;
+  if(value.type==='performance')return typeof value.user==='boolean'&&Number.isInteger(value.number)&&value.number>=1&&value.number<=(value.user?128:16)
+    ?{type:'performance',user:value.user,number:value.number}:null;
+  return validTone(value)?{type:'tone',code:value.code,name:value.name,msb:value.msb,lsb:value.lsb,program:value.program,category:value.category||'',part:Number.isInteger(value.part)&&value.part>=0&&value.part<16?value.part:0}:null;
  };
+ const putFavoriteEntry=(bank,index,value)=>{
+  if(!validPosition(bank,index))throw Error('Banco ou posição inválida');
+  let normalized=null;
+  if(value?.type==='performance'){
+   if(typeof value.user!=='boolean'||!Number.isInteger(value.number)||value.number<1||value.number>(value.user?128:16))throw Error('Performance inválida');
+   normalized={type:'performance',user:value.user,number:value.number};
+  }else if(value){
+   if(!validTone(value))throw Error('Timbre inválido');
+   if(value.part!==undefined&&(!Number.isInteger(value.part)||value.part<0||value.part>15))throw Error('Parte inválida');
+   normalized={type:'tone',code:value.code,name:value.name,msb:value.msb,lsb:value.lsb,program:value.program,category:value.category||'',part:value.part??0};
+  }
+  const key=bank+'-'+index,store=banks(),old=store[key],existed=Object.prototype.hasOwnProperty.call(store,key);
+  if(normalized)store[key]=normalized;else delete store[key];
+  try{if(persist()===false)throw Error('O Android não confirmou o salvamento do favorito.');}
+  catch(e){if(existed)store[key]=old;else delete store[key];throw e;}
+  return true;
+ };
+ const slot=(bank,index)=>{const entry=favoriteEntry(bank,index);return entry?.type==='tone'?entry:null;};
+ const putSlot=(bank,index,t)=>putFavoriteEntry(bank,index,t?{...t,type:'tone'}:null);
 
 const familyOf=t=>t.code.startsWith('USER')?'USER':t.code.slice(0,2);
 const choose=t=>{f('patchMsb').value=t.msb;f('patchLsb').value=t.lsb;f('patchProgram').value=t.program;f('selectedTone').textContent='Preparado: '+t.name;};
 const label=t=>t.code+' • '+t.name;
 const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 for(let cat of [...new Set([...catalog.map(t=>t.category),'USER'])].sort()){let o=document.createElement('option');o.value=cat;o.textContent=groups[cat]||cat;f('toneCategory').append(o);}
-window.ToneLibrary={list:()=>catalog,favorites:()=>favorites,choose,familyOf,families,slot,putSlot,banks};
+window.ToneLibrary={list:()=>catalog,favorites:()=>favorites,choose,familyOf,families,slot,putSlot,favoriteEntry,putFavoriteEntry,banks};
 Object.entries(families).forEach(([id,label])=>{let b=document.createElement('button');b.textContent=label;b.onclick=()=>{family=family===id?'':id;f('toneCategory').value='';render();};f('toneFamilies').append(b);});
 function persistFavorites(){saved.toneFavorites=[...favorites];persist();}
 function render(){let q=norm(f('toneSearch').value),category=f('toneCategory').value;let items=catalog.filter(t=>(!family||familyOf(t)===family)&&(!category||t.category===category)&&(!onlyFavorites||favorites.has(t.code))&&norm(t.name+' '+t.code+' '+(groups[t.category]||t.category)).includes(q));f('toneCount').textContent=items.length+' timbres encontrados • mostrando até 60';f('toneResults').replaceChildren();items.slice(0,60).forEach(t=>{let row=document.createElement('div');row.className='song';let pick=document.createElement('button');pick.textContent=label(t);pick.onclick=()=>{f('patchMsb').value=t.msb;f('patchLsb').value=t.lsb;f('patchProgram').value=t.program;f('selectedTone').textContent='Preparado: '+label(t);f('status').textContent='Timbre preparado para a parte selecionada. Toque em Trocar timbre para enviar.';};let star=document.createElement('button');star.textContent=favorites.has(t.code)?'★':'☆';star.setAttribute('aria-label','Favoritar '+t.name);star.onclick=()=>{favorites.has(t.code)?favorites.delete(t.code):favorites.add(t.code);persistFavorites();render();if(window.refreshPerformanceQuick)window.refreshPerformanceQuick();};row.append(pick,star);f('toneResults').append(row);});}
