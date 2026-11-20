@@ -154,3 +154,20 @@ body.gx-ready:has(#gx-shell.gx-central-focus){overflow-x:clip;overflow-y:visible
 #gx-shell #gx-control-center .central-body>#central-existing-editors:not([open]){display:none}
 #gx-shell #gx-control-center .central-body>.central-existing-editors[open]>.gx-sound-layout{width:100%;min-width:0}
 @media(max-width:759px){#gx-shell #gx-control-center .central-nav{grid-template-columns:repeat(3,minmax(0,1fr))}#gx-shell #gx-control-center .central-nav button{min-height:48px;font-size:11px!important}}
+
+/* A real local favorite bank, distinct from unread Roland FAVORITE slots. */
+#gx-shell .central-favorite-banks{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px;margin:13px 0}
+#gx-shell .central-favorite-banks button{min-width:0;padding:7px 3px!important}
+#gx-shell .central-favorite-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#gx-shell .central-favorite-slot{display:flex;align-items:stretch;min-width:0;gap:6px;padding:7px;border:1px solid #35545b;border-radius:10px;background:#172c33}
+#gx-shell .central-favorite-pick{display:flex;flex:1;min-width:0;align-items:center;gap:8px;text-align:left!important;background:linear-gradient(120deg,#1b685a,#13403f);border-color:#317e71}
+#gx-shell .central-favorite-pick strong{min-width:30px;font-size:17px}
+#gx-shell .central-favorite-pick span{min-width:0;overflow-wrap:anywhere;font-size:12px}
+#gx-shell .central-favorite-slot .central-favorite-edit,#gx-shell .central-favorite-slot .central-favorite-remove{font-size:11px!important;padding:6px!important;min-width:42px}
+#gx-shell .central-favorite-slot .central-favorite-remove{color:#ffd2d9}
+#gx-shell .central-favorite-editor{margin:16px 0;padding:13px;background:#162832;border:1px solid #3a5a64;border-radius:11px}
+#gx-shell .central-favorite-editor>summary{cursor:pointer;min-height:44px;padding:11px 2px;font-weight:600}
+#gx-shell .central-favorite-editor>div[hidden]{display:none}
+#gx-shell .central-favorite-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#gx-shell #central-favorite-status{padding:9px 12px;border:1px solid #37505b;border-radius:9px;background:#10242c}
+@media(max-width:759px){#gx-shell .central-favorite-banks{grid-template-columns:repeat(5,minmax(0,1fr))}#gx-shell .central-favorite-slots{grid-template-columns:minmax(0,1fr)}}
