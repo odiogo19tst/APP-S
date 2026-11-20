@@ -142,7 +142,7 @@ async function run(){
    page.once('dialog',d=>d.accept());await page.locator('#loop-clear-all').click();assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='loopClearAll').length),1);
    // Real central UI: Timbres and Performances open the existing editors in the top navigation.
    await tab(page,'sound');
-   assert.equal(await page.locator('.central-nav [data-central-tab]').count(),8,'Eight top tools');
+   assert.equal(await page.locator('.central-nav [data-central-tab]').count(),9,'Nine top tools including working Favoritos');
    await page.locator('[data-central-tab="tones"]').click();
    assert(await page.locator('#central-existing-editors').evaluate(n=>n.open),'Timbres editor opened');
    assert(await page.locator('[data-gx-sound="tones"]').evaluate(n=>n.classList.contains('on')),'Timbres selected');
@@ -150,6 +150,49 @@ async function run(){
    assert(await page.locator('#central-existing-editors').evaluate(n=>n.open),'Performances editor opened');
    assert(await page.locator('[data-gx-sound="performance"]').evaluate(n=>n.classList.contains('on')),'Performances selected');
    assert(await page.locator('#gx-performance-banks').isVisible(),'Existing USER/PRESET list visible');
+
+   // Working local Favorites (10 banks x 10 slots) must persist and send only on an explicit tap.
+   await page.locator('[data-central-tab="favorites"]').click();
+   assert.equal(await page.locator('#central-favorite-banks button').count(),10);
+   assert.equal(await page.locator('.central-favorite-slot').count(),10);
+   const firstTone=await page.evaluate(()=>window.ToneLibrary.list()[0]);
+   assert(firstTone?.code,'A real tone must be available');
+   await page.locator('.central-favorite-slot .central-favorite-edit').first().click();
+   await page.locator('#central-favorite-tone-search').fill(firstTone.code);
+   await page.locator('#central-favorite-tone-picker').selectOption(firstTone.code);
+   await page.locator('#central-favorite-part').selectOption('1');
+   const beforeFavorite=(await page.evaluate(midiCalls)).length;
+   await page.locator('#central-favorite-save').click();
+   const stored=await page.evaluate(()=>window.lastSaved.favoriteBanks['0-0']);
+   assert.equal(stored.type,'tone');assert.equal(stored.code,firstTone.code);assert.equal(stored.part,1);
+   assert.equal((await page.evaluate(midiCalls)).length,beforeFavorite,'Saving a favorite never sends MIDI');
+   await page.evaluate(()=>{window.receive('armed',false);window.receive('xpsConnection',false);});
+   await page.locator('.central-favorite-pick').first().click();
+   assert.equal((await page.evaluate(midiCalls)).length,beforeFavorite,'Offline tap does not send MIDI');
+   assert.match(await page.locator('#central-favorite-status').innerText(),/USB desconectado/);
+   await page.evaluate(()=>{window.receive('armed',true);window.receive('xpsConnection',true);});
+   await page.locator('.central-favorite-pick').first().click();
+   let favoriteCall=(await page.evaluate(midiCalls)).at(-1);
+   assert.equal(favoriteCall.method,'selectTone');assert.deepEqual(favoriteCall.args,[firstTone.msb,firstTone.lsb,firstTone.program,1]);
+   await page.locator('.central-favorite-slot .central-favorite-edit').nth(1).click();
+   await page.locator('#central-favorite-kind').selectOption('performance');
+   await page.locator('#central-favorite-performance-type').selectOption('user');
+   await page.locator('#central-favorite-performance-number').fill('12');
+   await page.locator('#central-favorite-save').click();
+   const savedPerformance=await page.evaluate(()=>window.lastSaved.favoriteBanks['0-1']);
+   assert.deepEqual(savedPerformance,{type:'performance',user:true,number:12});
+   await page.locator('.central-favorite-pick').nth(1).click();
+   favoriteCall=(await page.evaluate(midiCalls)).at(-1);
+   assert.equal(favoriteCall.method,'selectPerformance');assert.deepEqual(favoriteCall.args,[12,true]);
+   await page.locator('#central-favorite-banks button').nth(9).click();
+   assert.equal(await page.locator('.central-favorite-slot .central-favorite-pick').first().innerText().then(t=>t.includes('Não cadastrado')),true,'Other bank stays independent');
+   await page.locator('#central-favorite-banks button').first().click();
+   assert.match(await page.locator('.central-favorite-pick').first().innerText(),new RegExp(firstTone.code));
+   page.once('dialog',d=>d.accept());
+   await page.locator('.central-favorite-remove').first().click();
+   assert.equal(await page.evaluate(()=>window.lastSaved.favoriteBanks['0-0']),undefined);
+   assert.equal(await page.locator('.central-favorite-slot').count(),10);
+
    await page.locator('[data-central-tab="overview"]').click();
    assert(await page.locator('#central-existing-editors').evaluate(n=>!n.open),'Legacy editors hidden in overview');
    assert(await page.locator('#central-scene-shortcuts button').count()===3,'Scene shortcuts retained');
