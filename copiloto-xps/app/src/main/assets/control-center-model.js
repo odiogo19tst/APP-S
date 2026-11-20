@@ -6,21 +6,6 @@
  function ready(hw){return !!hw&&Array.isArray(hw['setup:0'])&&hw['setup:0'][0]===1&&Number(hw.validSysexPackets)>0;}
  function fingerprint(hw){if(!ready(hw))throw Error('Leia o XPS-10 em modo Performance.');const s=hw['setup:0'];if(![1,2,3].every(k=>integer(s[k],0,127)))throw Error('Identidade da Performance não recebida.');const common=hw['common:0'];if(!Array.isArray(common)||common.length<12)throw Error('Nome da Performance não recebido.');return s.slice(1,4).join(':')+':'+common.slice(0,12).join(',');}
 
-
- // Read labels only from names actually received from the XPS-10.
- function observedName(bytes){if(!Array.isArray(bytes)||bytes.length<12)return '';return bytes.slice(0,12).map(n=>Number.isInteger(n)&&n>=32&&n<=126?String.fromCharCode(n):' ').join('').trim();}
- function observedSceneLabels(hw){const toneNames=[];for(let i=0;i<16;i++){if(!Array.isArray(hw['part:'+i]))continue;const name=observedName(hw['patch:'+i]);if(name)toneNames.push({part:i+1,name});}return {performanceName:observedName(hw['common:0']),toneNames};}
- // Old scenes contain the Performance name in their fingerprint, but not tone names.
- function sceneDisplay(raw){
-  let performanceName=typeof raw?.performanceName==='string'?raw.performanceName.trim().slice(0,40):'';
-  if(!performanceName&&typeof raw?.source==='string'){
-   const match=/^(?:\d{1,3}:){3}((?:\d{1,3},){11}\d{1,3})$/.exec(raw.source);
-   if(match){const bytes=match[1].split(',').map(Number);if(bytes.length===12&&bytes.every(n=>Number.isInteger(n)&&n>=0&&n<=127))performanceName=observedName(bytes);}
-  }
-  const toneNames=Array.isArray(raw?.toneNames)?raw.toneNames.filter(t=>t&&Number.isInteger(t.part)&&t.part>=1&&t.part<=16&&typeof t.name==='string'&&t.name.trim()).slice(0,16).map(t=>({part:t.part,name:t.name.trim().slice(0,40)})):[];
-  return {performanceName,toneNames};
- }
-
  // Roland XPS-10 MIDI Implementation e01 pp.11–12. Reserved bytes excluded.
  const systemFields=[];
  const addSystem=(section,offset,label,min,max,group,extra={})=>systemFields.push({section,index:0,offset,label,min,max,group,...extra});
@@ -84,11 +69,11 @@
   const edits=[];for(let index=0;index<16;index++){const p=hw['part:'+index];if(!Array.isArray(p))continue;for(const offset of partOffsets){try{edits.push(command('part',index,offset,p[offset]));}catch(_){/* Skip parameters that have not been validated. */}}}
   for(const offset of setupOffsets){try{edits.push(command('setup',0,offset,hw['setup:0'][offset]));}catch(_){/* Unread bytes cannot be captured. */}}
   if(!edits.length)throw Error('Não há parâmetros validados para salvar. Leia a Performance pelo USB e tente novamente.');
-  return {name,songId:String(songId||'').slice(0,160),source,edits,...observedSceneLabels(hw)};
+  return {name,songId:String(songId||'').slice(0,160),source,edits};
  }
  function scene(raw){if(!raw||typeof raw.name!=='string'||!raw.name.trim()||typeof raw.source!=='string'||!Array.isArray(raw.edits)||raw.edits.length<1||raw.edits.length>119)throw Error('Cena inválida.');
   if(raw.edits.some(e=>!((e.section==='part'&&partOffsets.includes(e.offset))||(e.section==='setup'&&e.index===0&&setupOffsets.includes(e.offset)))))throw Error('A cena contém parâmetros externos à Performance.');
-  const edits=raw.edits.map(e=>command(e.section,e.index,e.offset,e.value)),keys=new Set(edits.map(e=>[e.section,e.index,e.offset].join(':')));if(keys.size!==edits.length)throw Error('Cena com parâmetros repetidos.');return {...raw,name:raw.name.slice(0,40),edits,...sceneDisplay(raw)};
+  const edits=raw.edits.map(e=>command(e.section,e.index,e.offset,e.value)),keys=new Set(edits.map(e=>[e.section,e.index,e.offset].join(':')));if(keys.size!==edits.length)throw Error('Cena com parâmetros repetidos.');return {...raw,name:raw.name.slice(0,40),edits};
  }
  function prepare(raw,hw){const s=scene(raw);if(s.source!==fingerprint(hw))throw Error('Esta cena pertence a outra Performance. Carregue a Performance original e leia o teclado.');return copy(s.edits);}
  function emptyPattern(){const names=['Piano','Pad','Baixo','Arpejo','Bumbo','Caixa','Chimbal','Percussão'];return {bpm:72,steps:16,tracks:names.map((name,i)=>({name,channel:i<4?i+1:10,gate:i===1?8:i===0?4:1,note:[60,60,36,64,36,38,42,46][i],velocity:100,notes:Array(64).fill([60,60,36,64,36,38,42,46][i]),velocities:Array(64).fill(0)}))};}
@@ -96,5 +81,5 @@
   const tracks=raw.tracks.map((t,i)=>{if(!t||!integer(t.channel,1,16)||!integer(t.gate,1,16)||!integer(t.note,0,127)||!integer(t.velocity,1,127)||!Array.isArray(t.notes)||!Array.isArray(t.velocities)||t.notes.length!==64||t.velocities.length!==64||!t.notes.every(n=>integer(n,0,127))||!t.velocities.every(n=>integer(n,0,127)))throw Error('Pista inválida.');return {...copy(t),name:String(t.name||'Pista '+(i+1)).slice(0,24)};});return {bpm:raw.bpm,steps:raw.steps,tracks};
  }
  function payload(raw){const p=pattern(raw);return {...p,tracks:p.tracks.map(t=>({channel:t.channel,gate:t.gate,notes:t.notes.slice(0,p.steps),velocities:t.velocities.slice(0,p.steps)}))};}
- const api={pendingBatch,partFields,partValue,partRaw,partKnown,systemFields,isGlobal,globalReady,systemValue,toRaw,canApply,editSource,editsMatch,ready,fingerprint,command,capture,scene,sceneDisplay,prepare,emptyPattern,pattern,payload};if(typeof module!=='undefined')module.exports=api;if(scope)scope.GraueControlCenterModel=api;
+ const api={pendingBatch,partFields,partValue,partRaw,partKnown,systemFields,isGlobal,globalReady,systemValue,toRaw,canApply,editSource,editsMatch,ready,fingerprint,command,capture,scene,prepare,emptyPattern,pattern,payload};if(typeof module!=='undefined')module.exports=api;if(scope)scope.GraueControlCenterModel=api;
 })(typeof window!=='undefined'?window:null);
