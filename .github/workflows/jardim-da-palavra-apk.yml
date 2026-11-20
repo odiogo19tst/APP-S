@@ -1,4 +1,4 @@
-name: Jardim da Palavra - Harpa Crista 640 Cifrada 1.6.9
+name: Jardim da Palavra - Harpa Crista normal 1.6.10
 on:
   push:
     branches: [jardim-apk-dev]
@@ -32,8 +32,8 @@ jobs:
         working-directory: jardim-da-palavra
         run: |
           set -e
-          grep -F "versionCode 169" app/build.gradle
-          grep -F "applicationIdSuffix '.acf168'" app/build.gradle
+          grep -F "versionCode 170" app/build.gradle
+          grep -F "applicationIdSuffix '.harpa170'" app/build.gradle
           grep -F 'android:label="Jardim da Palavra"' app/src/main/AndroidManifest.xml
           test -s app/src/main/assets/curso_data.js
           test -s app/src/main/assets/curso_ui.js
@@ -51,7 +51,7 @@ jobs:
           node test_acf_offline.js
           node test_assistente_166.js
           node test_backup_167.js
-          node test_harpa_169.js
+          node test_harpa_170.js
       - name: Compilar APK
         working-directory: jardim-da-palavra
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -63,7 +63,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
-          name: Jardim-1.6.9-Harpa-Base-APK
+          name: Jardim-1.6.10-Harpa-Normal-Base-APK
           path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
