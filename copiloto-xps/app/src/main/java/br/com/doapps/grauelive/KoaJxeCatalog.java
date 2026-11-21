@@ -99,6 +99,7 @@ public final class KoaJxeCatalog {
                 : extraPatchOffset + (i - MAIN_SLOTS) * PATCH_SIZE;
             JSONObject entry = record(data, off, PATCH_SIZE, i + 1, i >= MAIN_SLOTS);
             entry.put("patchLayout", KoaJxePatchLayout.inspect(data, off));
+            entry.put("compatibility", KoaJxeCompatibility.inspect(data, off));
             patches.put(entry);
             distinctPatches.add(entry.getString("sha256Block"));
         }
