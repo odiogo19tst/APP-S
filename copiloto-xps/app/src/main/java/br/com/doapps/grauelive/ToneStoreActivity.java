@@ -91,6 +91,10 @@ public final class ToneStoreActivity extends Activity {
         return "Local escolhido no Android · " + name;
     }
 
+    private int dp(int size) {
+        return Math.round(size * getResources().getDisplayMetrics().density);
+    }
+
     private Button button(String label, boolean primary) {
         Button button = new Button(this);
         button.setText(label);
@@ -98,7 +102,7 @@ public final class ToneStoreActivity extends Activity {
         button.setAllCaps(false);
         button.setTextColor(primary ? bg : ink);
         button.setBackgroundTintList(android.content.res.ColorStateList.valueOf(primary ? mint : panel));
-        button.setMinHeight(48);
+        button.setMinHeight(dp(48));
         button.setContentDescription(label);
         return button;
     }
@@ -267,8 +271,8 @@ public final class ToneStoreActivity extends Activity {
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
         Button refresh = button("↻ Atualizar", false);
         Button external = button("Abrir no navegador", false);
-        toolbar.addView(refresh, new LinearLayout.LayoutParams(0, 52, 1));
-        toolbar.addView(external, new LinearLayout.LayoutParams(0, 52, 1));
+        toolbar.addView(refresh, new LinearLayout.LayoutParams(0, dp(52), 1));
+        toolbar.addView(external, new LinearLayout.LayoutParams(0, dp(52), 1));
         root.addView(toolbar);
 
         destinationStatus = new TextView(this);
@@ -298,7 +302,7 @@ public final class ToneStoreActivity extends Activity {
         Button library = button("♫ Biblioteca", false);
         Button folder = button("▣ Downloads", false);
         for (Button action : new Button[]{home, previous, library, folder})
-            dock.addView(action, new LinearLayout.LayoutParams(0, 58, 1));
+            dock.addView(action, new LinearLayout.LayoutParams(0, dp(58), 1));
         root.addView(dock);
         setContentView(root);
 
