@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
   for(JSONObject tone:entries.values())merged.put(tone);
   if(merged.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",merged.toString()).apply();
  }
- private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
+ private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private XpsToneAuditioner xpsAudition; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
  private MidiLooper liveLooper;
  private PhraseSequencer phraseSequencer;
  private final Runnable phraseTick=new Runnable(){public void run(){if(phraseSequencer==null)return;phraseSequencer.tick(System.nanoTime());if(phraseSequencer.playing())loopClock.postDelayed(this,4);else publishPhrase();}};
@@ -138,7 +138,7 @@ public class MainActivity extends Activity {
     .put("message","XPS-10 respondeu à leitura de 1F-00-00-00. Próxima validação: mapa completo, ondas e FX; nenhum timbre foi enviado."));
   }catch(Exception ignored){}
  }
- private BackupArchive backupArchive; private ToneImportLibrary toneImports; private String toneExportSha=""; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
+ private volatile File pendingIncrementalBundle; private BackupArchive backupArchive; private ToneImportLibrary toneImports; private String toneExportSha=""; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  private void navigateBack(){
   if(web==null||!pageReady){finish();return;}
@@ -181,13 +181,33 @@ getWindow().addFlags(128);
    mergeUserToneCache((JSONArray)d);
   }
  }});
+  xpsAudition=new XpsToneAuditioner(new XpsToneAuditioner.Port(){
+   public boolean send(byte[] packet){return midi!=null&&midi.isConnected()&&midi.send(packet);}
+   public boolean connected(){return midi!=null&&midi.isConnected();}
+   public int deviceId(){return midi==null?-1:midi.connectedDeviceId();}
+   public void status(JSONObject update){
+    MainActivity.this.emit("toneAuditionStatus",update);
+    if("playing".equals(update.optString("stage"))){
+     String testedSha=update.optString("sha256");
+     int device=update.optInt("deviceId",-1);
+     worker.execute(()->{
+      try{
+       toneImports.recordTemporaryAudition(testedSha,device);
+       emit("toneImports",toneImports.list());
+      }catch(Exception e){emit("toneImportStatus","Prévia confirmada, mas histórico não salvo: "+e.getMessage());}
+     });
+    }
+   }
+  });
   loopThread=new HandlerThread("GraueMidiClock",android.os.Process.THREAD_PRIORITY_AUDIO);loopThread.start();loopClock=new Handler(loopThread.getLooper());
   liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   phraseSequencer=new PhraseSequencer((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   try{loopFiles=new MidiLoopFiles(getFilesDir());MidiLoopFiles.Entry previous=loopFiles.checkpoint();if(previous!=null)liveLooper.restore(previous.session);loopSavedRevision=liveLooper.state(System.nanoTime()).revision;}catch(Exception e){loopStartupIssue="Sessão anterior não recuperada: "+e.getMessage();}
-  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){acceptXpsToneProbe(p);xps.accept(p);}public void status(String t){
+  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){acceptXpsToneProbe(p);if(xpsAudition!=null)xpsAudition.accept(p);xps.accept(p);}public void status(String t){
  if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
  emit("status",t);
+ if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")))
+  if(xpsAudition!=null)xpsAudition.disconnect();
  if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
   stopLiveLoop();liveLooper.retrySilence();publishLoopState();stopDrone();stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
   armed=true;emit("armed",true);emit("xpsConnection",true);
@@ -606,6 +626,68 @@ getWindow().addFlags(128);
     });
    }catch(Exception e){emit("toneImportStatus","Teste XPS impedido: "+e.getMessage());}
   });}
+  /**
+   * Audition only the temporary 1F region, with complete nine-block physical
+   * snapshot and verification. No USER Patch, Performance WRITE or SVD restore.
+   */
+  @JavascriptInterface public void auditionStoreXpsTone(String sha){worker.execute(()->{
+   try{
+    if(sha==null||!sha.matches("[a-f0-9]{64}"))throw new IOException("Arquivo XPS inválido");
+    String filename=toneImports.originalName(sha);
+    if(!filename.toLowerCase(java.util.Locale.ROOT).endsWith(".xps"))
+     throw new IOException("A prévia instantânea prioriza apenas arquivos .XPS");
+    File original=toneImports.file(sha);
+    java.util.List<XpsToneAuditioner.Block> sections=XpsToneAuditioner.parse(original);
+    JSONObject report=ToneFileInspector.analyze(original,filename,sha);
+    JSONObject xpsJson=report.optJSONObject("xps");
+    String patchName=xpsJson==null?filename:xpsJson.optString("patchName",filename);
+    runOnUiThread(()->{
+     if(xps==null||midi==null||!midi.isConnected()){
+      emit("toneImportStatus","Conecte o Roland XPS-10 por USB-MIDI para ouvir o timbre.");
+      return;
+     }
+     final Runnable[] tryStart={null};
+     final int[] attempts={0};
+     tryStart[0]=()->{
+      if(midi==null||!midi.isConnected()){
+       emit("toneImportStatus","O teclado foi desconectado antes da prévia.");return;
+      }
+      if(xps.isBusy()){
+       if(++attempts[0]<=15){
+        if(attempts[0]==1)emit("toneImportStatus","Aguardando a sincronização MIDI antes de abrir o timbre...");
+        new Handler(Looper.getMainLooper()).postDelayed(tryStart[0],500);
+       }else emit("toneImportStatus","A leitura do teclado não terminou. A prévia externa foi preservada no Grauê para nova tentativa.");
+       return;
+      }
+      xpsAudition.start(sha,patchName,sections);
+     };
+     tryStart[0].run();
+    });
+   }catch(Exception e){emit("toneImportStatus","Prévia XPS bloqueada: "+e.getMessage());}
+  });}
+  @JavascriptInterface public void restoreAuditionXpsTone(){
+   runOnUiThread(()->{if(xpsAudition!=null)xpsAudition.restore();});
+  }
+  /** Archive union only; NEVER creates or restores an SVD or writes USER. */
+  @JavascriptInterface public void exportIncrementalTonePack(){worker.execute(()->{
+   File generated=null;
+   try{
+    generated=ToneCollectionBundle.create(MainActivity.this);
+    File previous=pendingIncrementalBundle;
+    pendingIncrementalBundle=generated;
+    if(previous!=null&&previous.isFile())previous.delete();
+    runOnUiThread(()->{
+     try{
+      startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT)
+       .setType("application/zip").addCategory(Intent.CATEGORY_OPENABLE)
+       .putExtra(Intent.EXTRA_TITLE,"Graue-XPS-Colecao-Incremental.zip"),18);
+     }catch(Exception e){emit("toneImportStatus","Não foi possível abrir o seletor de exportação: "+e.getMessage());}
+    });
+   }catch(Exception e){
+    if(generated!=null)generated.delete();
+    emit("toneImportStatus","Pacote incremental não criado: "+e.getMessage());
+   }
+  });}
   @JavascriptInterface public void inspectStoreToneFile(String sha){worker.execute(()->{
    try{
     File original=toneImports.file(sha);
@@ -713,10 +795,10 @@ getWindow().addFlags(128);
    });
   }
 
-  @JavascriptInterface public void cancelHardware(){runOnUiThread(()->xps.cancelWrites());}
-  @JavascriptInterface public void readHardware(){runOnUiThread(()->xps.read());}
-  @JavascriptInterface public void editHardware(String json){if(json.length()<40000)runOnUiThread(()->xps.write(json,armed));}
-  @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
+  @JavascriptInterface public void cancelHardware(){runOnUiThread(()->{if(xpsAudition!=null&&xpsAudition.busy())xpsAudition.restore();xps.cancelWrites();});}
+  @JavascriptInterface public void readHardware(){runOnUiThread(()->{if(xpsAudition!=null&&xpsAudition.busy()){emit("status","Prévia XPS em andamento; conclua a transmissão antes de ler o Setup.");return;}xps.read();});}
+  @JavascriptInterface public void editHardware(String json){if(json!=null&&json.length()<40000)runOnUiThread(()->{if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){emit("status","Timbre externo ativo: restaure-o antes de editar outros parâmetros.");return;}xps.write(json,armed);});}
+  @JavascriptInterface public void undoHardware(){runOnUiThread(()->{if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){emit("status","Restaure a prévia XPS antes de desfazer outros parâmetros.");return;}xps.undo(armed);});}
   @JavascriptInterface public void connect(){runOnUiThread(()->{if(midi.isConnected()){emit("status","USB-MIDI já conectado.");return;}stopLiveLoop();MidiDeviceInfo[] ds=midi.devices();if(ds.length==1){midi.connect(ds[0]);return;}if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
   /** Refreshes MIDI ports in both directions; never clears cached tones, performances or favorites.
    * Safe for an unplug/replug between songs; releases active notes before changing ports. */
@@ -1013,11 +1095,39 @@ getWindow().addFlags(128);
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);
  if(req==17){
   final String destination=(result==RESULT_OK&&data!=null)?data.getStringExtra(ToneStoreActivity.EXTRA_RETURN_TO):"store";
+  final String completedXpsSha=(result==RESULT_OK&&data!=null)?
+   data.getStringExtra(ToneStoreActivity.EXTRA_IMPORTED_XPS_SHA):null;
   if(web!=null&&pageReady){
    final String route="home".equals(destination)?"window.GraueNavigation && window.GraueNavigation.home();":"window.Native && window.Native.listStoreTones && window.Native.listStoreTones();";
    web.evaluateJavascript(route,null);
   }
+  if(completedXpsSha!=null&&completedXpsSha.matches("[a-f0-9]{64}"))
+   new Bridge().auditionStoreXpsTone(completedXpsSha);
   return;
+ }
+
+ if(req==18){
+  final File bundle=pendingIncrementalBundle;
+  pendingIncrementalBundle=null;
+  if(result!=RESULT_OK||data==null||data.getData()==null){
+   if(bundle!=null)bundle.delete();
+   emit("toneImportStatus","Exportação cancelada. Coleção original intacta.");return;
+  }
+  final android.net.Uri destination=data.getData();
+  worker.execute(()->{
+   try{
+    if(bundle==null||!bundle.isFile())throw new IOException("Coleção incremental indisponível");
+    try(InputStream in=new FileInputStream(bundle);
+        OutputStream out=getContentResolver().openOutputStream(destination,"wt")){
+     if(out==null)throw new IOException("Arquivo de destino indisponível");
+     byte[] bytes=new byte[16384];int n;
+     while((n=in.read(bytes))!=-1)out.write(bytes,0,n);
+     out.flush();
+    }
+    emit("toneImportStatus","Coleção incremental .ZIP exportada: timbres e backups originais preservados, sem RESTORE nem WRITE USER.");
+   }catch(Exception e){emit("toneImportStatus","Falha ao exportar pacote incremental: "+e.getMessage());}
+   finally{if(bundle!=null)bundle.delete();}
+  });return;
  }
 
  if(req==15||req==16){
@@ -1030,8 +1140,21 @@ getWindow().addFlags(128);
    try{
     if(req==15){
      org.json.JSONObject row=toneImports.importUri(uri,null,"Arquivo selecionado pelo músico");
-     emit("toneImportStatus","Original importado: "+row.optString("name")+". Formato: "+row.optString("format")+". Sem gravação MIDI.");
+     String format=row.optString("format");
+     String detail="";
+     if("ZIP_UNVERIFIED".equals(format)){
+      JSONObject expanded=ToneZipImporter.importArchive(MainActivity.this,
+       toneImports.file(row.getString("sha256")),row.optString("name"));
+      detail=" · ZIP: "+expanded.optInt("xps")+" .XPS e "+expanded.optInt("svd")+
+       " backup(s) SVD incorporados à biblioteca sem restaurar bancos.";
+     }else if("SVD_XPS10_BACKUP_ORIGINAL".equals(format)){
+      backupArchive.importOriginal(toneImports.file(row.getString("sha256")),row.optString("name"));
+      detail=" · Backup preservado separadamente sem RESTORE.";
+     }
+     emit("toneImportStatus","Original importado: "+row.optString("name")+". Formato: "+format+detail+".");
      emit("toneImports",toneImports.list());
+     if("ZIP_UNVERIFIED".equals(format)||"SVD_XPS10_BACKUP_ORIGINAL".equals(format))
+      emit("backups",backupArchive.list());
     }else{
      File original=toneImports.file(filenameSha);
      try(InputStream in=new FileInputStream(original);OutputStream out=getContentResolver().openOutputStream(uri)){
@@ -1112,5 +1235,5 @@ getWindow().addFlags(128);
  if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
  if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>MAX_STATE_BYTES)throw new IOException("Arquivo maior que 10 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
  @Override protected void onStop(){super.onStop();stopLiveLoop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
- @Override protected void onDestroy(){stopLiveLoop();if(loopThread!=null)loopThread.quitSafely();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();loopStorage.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
+ @Override protected void onDestroy(){stopLiveLoop();if(loopThread!=null)loopThread.quitSafely();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();if(xpsAudition!=null)xpsAudition.disconnect();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();loopStorage.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
 }
