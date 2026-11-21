@@ -6,10 +6,16 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 96
-        versionName '1.36.6-xps-safe-tone-switch'
+        versionCode 97
+        versionName '1.36.7-direct-patch-midi'
     }
-    buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
+    buildTypes {
+        debug {
+            applicationIdSuffix '.patchmode'
+            versionNameSuffix '-preview'
+            signingConfig signingConfigs.debug
+        }
+    } // The production build still uses the permanent release signing key.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 

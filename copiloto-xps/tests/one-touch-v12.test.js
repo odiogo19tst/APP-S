@@ -17,7 +17,7 @@ assert(ui.includes('Nao sobrescreve')||ui.includes('NÃO sobrescreve'),'No safet
 assert(lib.includes('putSlot')&&lib.includes('favoriteBanks'),'0-9 bank mapping not persistent');
 assert(activity.includes('autoConnectUsb()')&&activity.includes('autoUserRead=false; // USER catalog is explicit'),'Auto connection or cache missing');
 assert(activity.includes('getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache"'),'Cached USER tones not stored');
-assert(activity.includes('midi.sendProgram(channel+1,program-1)'),'Use two-byte PC');
+assert(activity.includes('midi.sendProgram(channel,message[1])'),'Use two-byte Program Change on selected Patch receive channel');
 assert(midi.includes('new byte[]{(byte)(0xc0+channel-1),(byte)program}'),'Program Change must be two bytes');
 assert(xps.includes('hasPerformancePart(part)')&&xps.includes('write(edits.toString(),true)'),'Protected temporary SysEx missing');
 assert(!ui.includes("let buttons=$x('liveQuickFavorites')"),'Legacy indexed favorite execution forbidden');

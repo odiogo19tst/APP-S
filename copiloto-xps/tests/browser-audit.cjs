@@ -280,6 +280,20 @@ async function run(){
    let qrCall=(await page.evaluate(midiCalls)).at(-1);
    assert.equal(qrCall.method,'selectTone');
    assert.deepEqual(qrCall.args,[qrTones[0].msb,qrTones[0].lsb,qrTones[0].program,0]);
+   // Regression: selecting a single Patch must work while Performance is OFF.
+   await page.evaluate(()=>{window.auditHardware['setup:0'][0]=0;window.receive('hardware',window.auditHardware);});
+   const patchBefore=(await page.evaluate(midiCalls)).length;
+   await page.locator('#gx-tone-list .gx-tone-pick').first().click();
+   qrCall=(await page.evaluate(midiCalls)).at(-1);
+   assert.equal(qrCall.method,'selectTone','Patch-mode tap may not demand a Performance');
+   assert.equal((await page.evaluate(midiCalls)).length,patchBefore+1);
+   await page.locator('[data-gx-quick-mode="single"]').click();
+   await page.locator('#gx-quick-main-volume').fill('96');
+   await page.locator('#gx-quick-apply').click();
+   qrCall=(await page.evaluate(midiCalls)).at(-1);
+   assert.equal(qrCall.method,'selectToneWithVolume','Single Patch + volume must not demand Performance');
+   assert.equal(qrCall.args[4],96);
+   await page.evaluate(()=>{window.auditHardware['setup:0'][0]=1;window.receive('hardware',window.auditHardware);});
    await page.locator('[data-gx-quick-mode="dual"]').click();
    await page.locator('#gx-quick-second-search').fill(qrTones[1].code);
    await page.locator('#gx-quick-second').selectOption(qrTones[1].code);
