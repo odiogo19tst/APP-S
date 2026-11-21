@@ -144,9 +144,9 @@ assert(aud.includes('restoreInternal();'), 'Switch must restore the old temporar
 assert(aud.includes('phase==Phase.RESTORE_VERIFY'), 'Switch requires full nine-block Roland readback');
 assert(aud.includes('if(next!=null)start(nextSha,nextName,next)'), 'Start next timbre only after rollback completes');
 assert(aud.includes('public void restoreThen(Runnable afterRestore)'), 'Factory tone switch must wait for rollback');
-assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectTone('), 'Standard tone changes must restore XPS preview');
+assert(main.includes('xpsAudition.restoreThen(()->applyPendingTone(choice))'), 'Standard Patch changes must restore XPS preview before sending MIDI');
 assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectPerformance('), 'Performance changes must restore XPS preview');
-assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectToneWithVolume('), 'Tone+volume changes must restore XPS preview');
+assert(main.includes('requestToneChange(msb,lsb,program,part,volume)'), 'Tone+volume must use the protected Patch/Performance router');
 assert(aud.includes('publish("checking"'), 'Visible block-by-block progress required');
 console.log('SynthXPS simplified: download, explicit Integrar action, temporary XPS audition and safe restore PASS');
 
