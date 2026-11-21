@@ -759,6 +759,11 @@ getWindow().addFlags(128);
   @JavascriptInterface public void selectToneWithVolume(int msb,int lsb,int program,int part,int volume){
    runOnUiThread(()->{
     if(volume<0||volume>127||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>15){emit("status","Dados inválidos para testar timbre.");return;}
+    if(midi==null||!midi.isConnected()){emit("status","Conecte o USB-MIDI para trocar o timbre.");return;}
+    if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){
+     xpsAudition.restoreThen(()->new Bridge().selectToneWithVolume(msb,lsb,program,part,volume));
+     return;
+    }
     if(xps.hasPerformancePart(part))xps.auditionToneConfig(part,msb,lsb,program,volume);
     else emit("status","Para testar volume e timbre juntos, primeiro leia uma Performance válida. Não alterei a configuração.");
    });
@@ -768,6 +773,10 @@ getWindow().addFlags(128);
       stopLiveLoop();
       if(number<1||number>(user?128:16)){emit("status","Número de Performance fora da faixa.");return;}
       if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado para selecionar a Performance.");return;}
+      if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){
+       xpsAudition.restoreThen(()->new Bridge().selectPerformance(number,user));
+       return;
+      }
       // Roland XPS-10 MIDI Implementation: USER MSB 85 / LSB 0, preset MSB 85 / LSB 64.
       boolean sent=midi.send(0xb0,0,85);
       if(sent)sent=midi.send(0xb0,32,user?0:64);
@@ -784,6 +793,11 @@ getWindow().addFlags(128);
     if(msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>=16){
      emit("status","Dados de timbre inválidos.");return;
     }
+    if(midi==null||!midi.isConnected()){emit("status","Conecte o USB-MIDI para trocar o timbre.");return;}
+    if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){
+     xpsAudition.restoreThen(()->new Bridge().selectTone(msb,lsb,program,part));
+     return;
+    }
     if(xps.hasPerformancePart(part)){xps.auditionTone(part,msb,lsb,program);return;}
     // Patch mode / unverified performance: transmit a standard bank+program change
     // to the keyboard's receiving MIDI channel. This may not switch the local panel sound.
@@ -791,7 +805,7 @@ getWindow().addFlags(128);
     boolean ok=midi.send(0xb0+channel,0,msb);
     if(ok)ok=midi.send(0xb0+channel,32,lsb);
     if(ok)ok=midi.sendProgram(channel+1,program-1);
-    emit("status",ok?"Bank/Program enviado via canal 1. Confira o som no teclado; modo Patch pode ignorar a troca.":"Sem porta USB-MIDI de saída. Conecte o XPS-10.");
+    emit("status",ok?"Banco e programa enviados ao canal MIDI 1. Sem leitura SysEx, não é possível confirmar a mudança do som no painel; verifique o modo Patch/Performance e o canal de recepção.":"Sem porta USB-MIDI de saída. Conecte o XPS-10.");
    });
   }
 
