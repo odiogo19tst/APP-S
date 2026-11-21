@@ -229,3 +229,23 @@ body.gx-ready{--gx-bg:#0c1015;--gx-panel:#151b22;--gx-panel2:#1b232d;--gx-line:#
 #gx-shell.gx-layout-v3 .gx-store-koa-inventory li{font-size:12px;padding:6px;border-radius:6px;background:#173d3c;overflow-wrap:break-word}
 #gx-shell.gx-layout-v3 .gx-store-koa-inventory details{margin-top:12px;padding:10px;border:1px solid #3b6a68;border-radius:8px}
 #gx-shell.gx-layout-v3 .gx-store-koa-inventory summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:13px;color:#c8efe2}
+
+
+/* SynthXPS: single clear "Integrar" action after download; advanced tools stay collapsed. */
+#gx-shell.gx-layout-v3 .gx-store-ready[hidden]{display:none!important}
+#gx-shell.gx-layout-v3 .gx-store-ready{margin:0 0 12px;padding:16px;border:1px solid #4b9480;background:#12342f;border-radius:15px}
+#gx-shell.gx-layout-v3 .gx-store-ready>small{display:block;font-size:11px;color:#a8f1d1;font-weight:800;letter-spacing:.07em}
+#gx-shell.gx-layout-v3 .gx-store-ready h3{font-size:21px;color:#e9fff5;margin:5px 0;overflow-wrap:anywhere}
+#gx-shell.gx-layout-v3 .gx-store-ready p{font-size:13px;line-height:1.45;color:#c5e6dd}
+#gx-shell.gx-layout-v3 .gx-store-ready button,
+#gx-shell.gx-layout-v3 .gx-store-import-buttons .gx-store-integrate-button{width:100%;min-height:54px;padding:10px 14px!important;border-radius:9px;background:#79e5bd;color:#0c2d24;font-size:15px!important;font-weight:800}
+#gx-shell.gx-layout-v3 .gx-store-import-buttons{grid-template-columns:minmax(0,1fr)}
+#gx-shell.gx-layout-v3 .gx-store-secondary{margin:12px 0 5px}
+#gx-shell.gx-layout-v3 .gx-store-secondary>summary,
+#gx-shell.gx-layout-v3 .gx-store-item-more>summary{cursor:pointer;list-style:revert;min-height:44px;display:flex;align-items:center;font-size:12px;color:#bed9d4}
+#gx-shell.gx-layout-v3 .gx-store-item-more{width:100%;margin:0;border:1px solid #34545d;border-radius:9px;padding:0 10px}
+#gx-shell.gx-layout-v3 .gx-store-item-more button{width:100%;margin-bottom:7px;min-height:44px}
+#gx-shell.gx-layout-v3 .gx-store-panel>.gx-store-actions{grid-template-columns:minmax(0,1fr);margin:12px 0}
+#gx-shell.gx-layout-v3 .gx-store-panel>.gx-store-actions .gx-store-primary{min-height:55px;font-size:15px!important}
+#gx-shell.gx-layout-v3 .gx-store-inbox .gx-store-library{margin-top:12px}
+#gx-shell.gx-layout-v3 .gx-store-inbox #gx-store-audition-panel[hidden]{display:none!important}
