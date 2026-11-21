@@ -139,6 +139,15 @@ assert(!main.includes('new Bridge().auditionStoreXpsTone(completedXpsSha)'),
  'Downloaded XPS cannot transmit MIDI without user tapping Integrar');
 assert(ux.includes("kind==='toneAuditionStatus'"));
 assert(ux.includes('gx-store-audition-restore'));
+assert(aud.includes('pendingBlocks=new ArrayList<>(source)'), 'Second XPS sound must be queued safely');
+assert(aud.includes('restoreInternal();'), 'Switch must restore the old temporary Patch first');
+assert(aud.includes('phase==Phase.RESTORE_VERIFY'), 'Switch requires full nine-block Roland readback');
+assert(aud.includes('if(next!=null)start(nextSha,nextName,next)'), 'Start next timbre only after rollback completes');
+assert(aud.includes('public void restoreThen(Runnable afterRestore)'), 'Factory tone switch must wait for rollback');
+assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectTone('), 'Standard tone changes must restore XPS preview');
+assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectPerformance('), 'Performance changes must restore XPS preview');
+assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectToneWithVolume('), 'Tone+volume changes must restore XPS preview');
+assert(aud.includes('publish("checking"'), 'Visible block-by-block progress required');
 console.log('SynthXPS simplified: download, explicit Integrar action, temporary XPS audition and safe restore PASS');
 
 const importer=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneZipImporter.java'),'utf8');
