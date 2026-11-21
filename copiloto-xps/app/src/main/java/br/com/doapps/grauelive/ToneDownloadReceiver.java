@@ -104,6 +104,20 @@ public final class ToneDownloadReceiver extends BroadcastReceiver {
                      InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
                     imported = lib.importStream(in, name, "SynthXPS · download Android");
                 }
+                String archiveSummary="";
+                if ("ZIP_UNVERIFIED".equals(imported.optString("format"))) {
+                    try {
+                        org.json.JSONObject expanded=ToneZipImporter.importArchive(
+                            context,lib.file(imported.getString("sha256")),name);
+                        archiveSummary=" · ZIP: "+expanded.optInt("filesImported")+
+                            " arquivos, "+expanded.optInt("xps")+" timbres XPS, "+
+                            expanded.optInt("svd")+" backups SVD, originais preservados.";
+                    } catch(Exception error) {
+                        // The ZIP original still stays in the library. Failed
+                        // extraction must never trigger RESTORE or a MIDI write.
+                        archiveSummary=" · ZIP guardado, conteúdo não extraído: "+error.getMessage();
+                    }
+                }
                 // Valid Roland backup copies are also indexed in the dedicated vault,
                 // preserving the complete binary. This is NOT a binary SVD merge.
                 if ("SVD_XPS10_BACKUP_ORIGINAL".equals(imported.optString("format"))) {
@@ -132,7 +146,8 @@ public final class ToneDownloadReceiver extends BroadcastReceiver {
                     .putString("last-import-format",imported.optString("format","UNKNOWN"))
                     .putString("last-location", chosenLocation)
                     .putString("last-status",
-                        "Download salvo em " + chosenLocation + " e importado na biblioteca do Grauê. Nenhum MIDI enviado.")
+                        "Download salvo em " + chosenLocation + " e importado na biblioteca do Grauê."+
+                        archiveSummary+" Nenhum MIDI enviado.")
                     .apply();
             } else if (status == DownloadManager.STATUS_FAILED) {
                 // ACTION_CREATE_DOCUMENT creates a placeholder file; remove it on failed download.
