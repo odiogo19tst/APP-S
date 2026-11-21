@@ -110,7 +110,7 @@ for(const marker of ['public final class XpsJsonToneInspector','MAX_JSON_BYTES =
  '"targetModelConfirmed", false','"canApplyToKeyboard", false',
  '"canWriteUserMemory", false','"payloadAddressCompatibilityVerified", false'])
  assert(xps.includes(marker),'Read-only XPS JSON validation missing: '+marker);
-assert(!/sendMidi\\s*\\(|editHardware\\s*\\(|XpsProtocol\\.packet\\s*\\(|WRITE_USER/.test(xps),
+assert(!/sendMidi\s*\(|editHardware\s*\(|XpsProtocol\.packet\s*\(|WRITE_USER/.test(xps),
  'XPS JSON inspector must never send SysEx or write USER');
 assert(java.includes('XpsJsonToneInspector.inspect(prefix, used)'));
 assert(java.includes('"XPS_JSON_BASE64_ROLAND_CHECKSUM"'));
