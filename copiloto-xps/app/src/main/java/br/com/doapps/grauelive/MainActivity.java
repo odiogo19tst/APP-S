@@ -138,7 +138,7 @@ public class MainActivity extends Activity {
     .put("message","XPS-10 respondeu à leitura de 1F-00-00-00. Próxima validação: mapa completo, ondas e FX; nenhum timbre foi enviado."));
   }catch(Exception ignored){}
  }
- private BackupArchive backupArchive; private ToneImportLibrary toneImports; private String toneExportSha=""; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
+ private volatile File pendingIncrementalBundle; private BackupArchive backupArchive; private ToneImportLibrary toneImports; private String toneExportSha=""; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  private void navigateBack(){
   if(web==null||!pageReady){finish();return;}
@@ -657,6 +657,26 @@ getWindow().addFlags(128);
   @JavascriptInterface public void restoreAuditionXpsTone(){
    runOnUiThread(()->{if(xpsAudition!=null)xpsAudition.restore();});
   }
+  /** Archive union only; NEVER creates or restores an SVD or writes USER. */
+  @JavascriptInterface public void exportIncrementalTonePack(){worker.execute(()->{
+   File generated=null;
+   try{
+    generated=ToneCollectionBundle.create(MainActivity.this);
+    File previous=pendingIncrementalBundle;
+    pendingIncrementalBundle=generated;
+    if(previous!=null&&previous.isFile())previous.delete();
+    runOnUiThread(()->{
+     try{
+      startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT)
+       .setType("application/zip").addCategory(Intent.CATEGORY_OPENABLE)
+       .putExtra(Intent.EXTRA_TITLE,"Graue-XPS-Colecao-Incremental.zip"),18);
+     }catch(Exception e){emit("toneImportStatus","Não foi possível abrir o seletor de exportação: "+e.getMessage());}
+    });
+   }catch(Exception e){
+    if(generated!=null)generated.delete();
+    emit("toneImportStatus","Pacote incremental não criado: "+e.getMessage());
+   }
+  });}
   @JavascriptInterface public void inspectStoreToneFile(String sha){worker.execute(()->{
    try{
     File original=toneImports.file(sha);
@@ -1073,6 +1093,30 @@ getWindow().addFlags(128);
   if(completedXpsSha!=null&&completedXpsSha.matches("[a-f0-9]{64}"))
    new Bridge().auditionStoreXpsTone(completedXpsSha);
   return;
+ }
+
+ if(req==18){
+  final File bundle=pendingIncrementalBundle;
+  pendingIncrementalBundle=null;
+  if(result!=RESULT_OK||data==null||data.getData()==null){
+   if(bundle!=null)bundle.delete();
+   emit("toneImportStatus","Exportação cancelada. Coleção original intacta.");return;
+  }
+  final android.net.Uri destination=data.getData();
+  worker.execute(()->{
+   try{
+    if(bundle==null||!bundle.isFile())throw new IOException("Coleção incremental indisponível");
+    try(InputStream in=new FileInputStream(bundle);
+        OutputStream out=getContentResolver().openOutputStream(destination,"wt")){
+     if(out==null)throw new IOException("Arquivo de destino indisponível");
+     byte[] bytes=new byte[16384];int n;
+     while((n=in.read(bytes))!=-1)out.write(bytes,0,n);
+     out.flush();
+    }
+    emit("toneImportStatus","Coleção incremental .ZIP exportada: timbres e backups originais preservados, sem RESTORE nem WRITE USER.");
+   }catch(Exception e){emit("toneImportStatus","Falha ao exportar pacote incremental: "+e.getMessage());}
+   finally{if(bundle!=null)bundle.delete();}
+  });return;
  }
 
  if(req==15||req==16){
