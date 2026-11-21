@@ -1052,10 +1052,14 @@ getWindow().addFlags(128);
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);
  if(req==17){
   final String destination=(result==RESULT_OK&&data!=null)?data.getStringExtra(ToneStoreActivity.EXTRA_RETURN_TO):"store";
+  final String completedXpsSha=(result==RESULT_OK&&data!=null)?
+   data.getStringExtra(ToneStoreActivity.EXTRA_IMPORTED_XPS_SHA):null;
   if(web!=null&&pageReady){
    final String route="home".equals(destination)?"window.GraueNavigation && window.GraueNavigation.home();":"window.Native && window.Native.listStoreTones && window.Native.listStoreTones();";
    web.evaluateJavascript(route,null);
   }
+  if(completedXpsSha!=null&&completedXpsSha.matches("[a-f0-9]{64}"))
+   new Bridge().auditionStoreXpsTone(completedXpsSha);
   return;
  }
 
