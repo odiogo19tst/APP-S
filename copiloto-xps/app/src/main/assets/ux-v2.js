@@ -735,6 +735,21 @@
  }
  for(const b of shell.querySelectorAll('[data-gx-quick-mode]'))b.onclick=()=>quickModeSelect(b.dataset.gxQuickMode);
  quickAvailable();quickModeSelect('single');
+ window.GraueOpenQuickRig=(raw,bank=0,slot=0)=>{
+  try{
+   const rig=quickApi.normalize(raw),main=(toneLib()?.list()||[]).find(t=>t.code===rig.main.code)||rig.main;
+   quickMainTone=main;lastSelectedTone=main;$x('gx-quick-main').textContent=main.code+' · '+main.name;
+   $x('gx-quick-main-volume').value=String(rig.volumeMain);
+   $x('gx-quick-second-search').value=rig.second.code;quickAvailable();
+   $x('gx-quick-second').value=rig.second.code;
+   $x('gx-quick-second-volume').value=String(rig.volumeSecond);
+   $x('gx-quick-split-note').value=String(rig.point);
+   quickModeSelect(rig.mode);
+   $x('gx-quick-bank').value=String(bank);$x('gx-quick-slot').value=String(slot);
+   quickStatus('Favorito carregado para edição local. Toque em Aplicar para enviar ao XPS-10.');
+   $x('gx-quick-rig').scrollIntoView({block:'start'});
+  }catch(e){quickStatus(e.message);}
+ };
  $x('gx-quick-apply').onclick=()=>{
   try{
    if(!usbConnected)throw Error('USB-MIDI desconectado. Conecte o XPS-10 antes de aplicar.');
@@ -778,7 +793,10 @@
    return;
   }
   if(typeof window.Native?.selectTone!=='function'){notify('Ponte de timbres USB indisponível.');return;}
-  window.Native.selectTone(t.msb,t.lsb,t.program,part);
+  if(Number.isInteger(t.volume)&&t.volume>=0&&t.volume<=127&&typeof window.Native?.selectToneWithVolume==='function'){
+   $x('gx-quick-main-volume').value=String(t.volume);
+   window.Native.selectToneWithVolume(t.msb,t.lsb,t.program,part,t.volume);
+  }else window.Native.selectTone(t.msb,t.lsb,t.program,part);
   notify('Timbre '+t.name+' solicitado à parte '+(part+1)+'; aguardando confirmação do XPS-10.');
  }
  function bindToneTouch(button,t){
@@ -831,6 +849,15 @@
   const b=document.createElement('button');b.textContent='Banco '+i;b.dataset.bank=String(i);
   b.onclick=()=>{toneBank=i;saved.lastToneBank=i;persist();renderBanks();};$x('gx-bank-tabs').append(b);
  }
+ function applySavedQuickRig(entry){
+  try{
+   if(!usbConnected||quickBusy)throw Error('Conecte o teclado e aguarde o término da leitura MIDI.');
+   const edits=quickApi.plan(hw,entry);
+   if(typeof window.Native?.editHardware!=='function')throw Error('Ponte SysEx indisponível.');
+   window.Native.editHardware(JSON.stringify(edits));
+   notify('Dual/Split solicitado ao XPS-10; aguardando confirmação SysEx.');
+  }catch(e){notify(e.message);}
+ }
  function renderLiveBanks(){
   const nav=$x('gx-live-bank-tabs'),slots=$x('gx-live-bank-slots');
   nav.replaceChildren();slots.replaceChildren();
@@ -840,9 +867,10 @@
    nav.append(btn);
    const entry=toneLib()?.favoriteEntry?.(toneBank,i),t=toneLib()?.slot(toneBank,i);
    const pick=document.createElement('button');pick.className='gx-live-bank-slot';
-   pick.textContent=i+'. '+(entry?.type==='performance'?(entry.user?'USER ':'PRESET ')+String(entry.number).padStart(3,'0'):t?.name||'—');
+   pick.textContent=i+'. '+(entry?.type==='rig'?quickApi.label(entry):entry?.type==='performance'?(entry.user?'USER ':'PRESET ')+String(entry.number).padStart(3,'0'):t?.name||'—');
    pick.disabled=!entry;
-   if(entry?.type==='performance')pick.onclick=()=>{if(!usbConnected)return notify('Conecte o XPS-10 por USB para carregar esta Performance.');window.Native?.selectPerformance?.(entry.number,entry.user);notify('Performance solicitada; confira a leitura no teclado.');};
+   if(entry?.type==='rig')pick.onclick=()=>applySavedQuickRig(entry);
+   else if(entry?.type==='performance')pick.onclick=()=>{if(!usbConnected)return notify('Conecte o XPS-10 por USB para carregar esta Performance.');window.Native?.selectPerformance?.(entry.number,entry.user);notify('Performance solicitada; confira a leitura no teclado.');};
    else if(t)bindToneTouch(pick,t);
    slots.append(pick);
   }
@@ -854,8 +882,14 @@
   for(let i=0;i<10;i++){
    const entry=toneLib()?.favoriteEntry?.(toneBank,i),t=toneLib()?.slot(toneBank,i);
    const row=document.createElement('div');row.className='gx-bank-slot-row';
-   const b=document.createElement('button');b.className='gx-bank-slot';b.textContent=i+' · '+(entry?.type==='performance'?(entry.user?'USER ':'PRESET ')+String(entry.number).padStart(3,'0'):t?t.name:'Não cadastrado');
-   if(entry?.type==='performance'){
+   const b=document.createElement('button');b.className='gx-bank-slot';b.textContent=i+' · '+(entry?.type==='rig'?quickApi.label(entry):entry?.type==='performance'?(entry.user?'USER ':'PRESET ')+String(entry.number).padStart(3,'0'):t?t.name:'Não cadastrado');
+   if(entry?.type==='rig'){
+    b.onclick=()=>applySavedQuickRig(entry);
+    const edit=document.createElement('button');edit.className='gx-bank-action';edit.textContent='Editar';edit.onclick=()=>window.GraueOpenQuickRig(entry,toneBank,i);
+    const remove=document.createElement('button');remove.className='gx-bank-action gx-bank-action-danger';remove.textContent='Remover';
+    remove.onclick=()=>{if(confirm('Remover Dual/Split somente dos favoritos locais?')){toneLib().putFavoriteEntry(toneBank,i,null);renderBanks();}};
+    row.append(b,edit,remove);
+   }else if(entry?.type==='performance'){
     b.onclick=()=>{if(!usbConnected)return notify('Conecte o XPS-10 por USB para carregar esta Performance.');window.Native?.selectPerformance?.(entry.number,entry.user);notify('Performance solicitada; confira a leitura no teclado.');};
     const edit=document.createElement('button');edit.className='gx-bank-action';edit.textContent='Editar';
     edit.onclick=()=>{document.querySelector('[data-central-tab="favorites"]')?.click();};
