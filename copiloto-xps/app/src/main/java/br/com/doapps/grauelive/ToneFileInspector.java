@@ -106,6 +106,34 @@ public final class ToneFileInspector {
         }
         JSONObject report = probe(prefix,used,original.length(),filename);
         report.put("sha256",sha256);
+        if (KoaJxeCatalog.isKoaJunoDi(prefix)) {
+            report.put("identifiedAs", "KOA_JUNO_DI_EDITOR_STATE");
+            if (original.length() == KoaJxeCatalog.FILE_SIZE) {
+                // Bounded by the exact size of the layout empirically observed.
+                byte[] complete = new byte[KoaJxeCatalog.FILE_SIZE];
+                int received = 0;
+                try (FileInputStream in = new FileInputStream(original)) {
+                    while (received < complete.length) {
+                        int n = in.read(complete, received, complete.length - received);
+                        if (n < 0) break;
+                        if (n == 0) continue;
+                        received += n;
+                    }
+                }
+                if (received == complete.length) {
+                    try {
+                        report.put("koa", KoaJxeCatalog.parse(complete));
+                        report.put("message", "Catalogação JXE concluída: nomes de Performance, Patches e ritmos reconhecidos. Ainda não é conversão MIDI.");
+                    } catch (Exception e) {
+                        report.put("koaWarning", "Layout não validado neste arquivo: " + e.getMessage());
+                    }
+                } else {
+                    report.put("koaWarning", "Arquivo incompleto durante a leitura. Nenhum Patch extraído.");
+                }
+            } else {
+                report.put("koaWarning", "Assinatura Koa/JUNO-Di identificada, mas o tamanho é de outra variante. Sem extração por offsets.");
+            }
+        }
         return report;
     }
 }
