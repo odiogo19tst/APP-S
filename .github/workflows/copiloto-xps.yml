@@ -69,8 +69,8 @@ jobs:
         working-directory: copiloto-xps
       - uses: actions/upload-artifact@v4
         with:
-          name: Graue-XPS-UNSIGNED
-          path: copiloto-xps/app/build/outputs/apk/debug/*.apk
+          name: Graue-XPS-1.36.8-LOUVE-INSTALLABLE-PREVIEW
+          path: copiloto-xps/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       # Temporary private CI bundle: official Android signing tool, no signing key.
       # Enables signing the APK locally without ever uploading the user's JKS.
