@@ -33,6 +33,36 @@ import java.util.Locale;
 public final class ToneStoreActivity extends Activity {
     public static final String STORE_URL = "https://www.synthxps.com.br/?modelo=xps10";
     public static final String EXTRA_RETURN_TO = "graue_store_return_to";
+    public static final String EXTRA_IMPORTED_XPS_SHA = "graue_imported_xps_sha";
+    private long awaitingAutomaticId = -1;
+    private final android.os.Handler autoHandler=new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable autoPoll=new Runnable(){
+        public void run(){
+            if(awaitingAutomaticId<0||isFinishing())return;
+            long id=awaitingAutomaticId;
+            android.content.SharedPreferences prefs=getSharedPreferences(ToneDownloadReceiver.PREFS,MODE_PRIVATE);
+            if(prefs.getLong("last-import-id",-1)==id){
+                awaitingAutomaticId=-1;
+                String sha=prefs.getString("last-import-sha","");
+                String name=prefs.getString("last-import-name","");
+                String format=prefs.getString("last-import-format","");
+                if(sha.matches("[a-f0-9]{64}")&&name.toLowerCase(Locale.ROOT).endsWith(".xps")
+                    &&"XPS_JSON_UNVERIFIED".equals(format)){
+                    setResult(RESULT_OK,new Intent().putExtra(EXTRA_RETURN_TO,"store")
+                        .putExtra(EXTRA_IMPORTED_XPS_SHA,sha));
+                    finish();return;
+                }
+                note("Arquivo "+name+" guardado na biblioteca. O original foi preservado.");
+                return;
+            }
+            if(!prefs.contains("pending-" + id)){
+                awaitingAutomaticId=-1;
+                note(prefs.getString("last-status","Download encerrado."));
+                return;
+            }
+            autoHandler.postDelayed(this,650);
+        }
+    };
     private static final int REQUEST_SAVE_TONE = 3109;
     private static final String STATE_URL = "tone_pending_url";
     private WebView browser;
@@ -164,6 +194,9 @@ public final class ToneStoreActivity extends Activity {
             if(manager==null)throw new IllegalStateException("Gerenciador de downloads indisponível");
             long id=manager.enqueue(download);
             ToneDownloadReceiver.trackAutomatic(this,id,filename);
+            awaitingAutomaticId=id;
+            autoHandler.removeCallbacks(autoPoll);
+            autoHandler.postDelayed(autoPoll,500);
             destinationStatus.setText("Destino automático: Biblioteca Grauê");
             note("Baixando "+filename+"; a biblioteca recebe uma cópia. Nenhum comando MIDI é enviado.");
         }catch(Exception e){note("Não foi possível importar automaticamente: "+e.getMessage());}
@@ -383,12 +416,14 @@ public final class ToneStoreActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        autoHandler.removeCallbacks(autoPoll);
         if (browser != null) browser.onPause();
         super.onPause();
     }
 
     @Override protected void onResume() {
         super.onResume();
+        if(awaitingAutomaticId>=0){autoHandler.removeCallbacks(autoPoll);autoHandler.post(autoPoll);}
         if (browser != null) browser.onResume();
         new Thread(() -> {
             ToneDownloadReceiver.reconcile(getApplicationContext());
@@ -404,6 +439,7 @@ public final class ToneStoreActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        autoHandler.removeCallbacks(autoPoll);
         if (browser != null) {
             browser.stopLoading();
             browser.setWebChromeClient(null);
