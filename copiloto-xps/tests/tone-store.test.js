@@ -130,10 +130,16 @@ assert(main.includes('EXTRA_IMPORTED_XPS_SHA'));
 assert(receiver.includes('"last-import-sha"'));
 assert(store.includes('awaitingAutomaticId'));
 assert(store.includes('EXTRA_IMPORTED_XPS_SHA'));
-assert(ux.includes("auditionButton.textContent='Ouvir no XPS-10'"));
+assert(ux.includes("auditionButton.textContent='Integrar ao XPS-10'"));
+assert(ux.includes('id=\\"gx-store-integrate\\"') || ux.includes('id="gx-store-integrate"'));
+assert(ux.includes("kind==='toneDownloaded'"),'Download must present the Integrar action');
+assert(ux.includes('gx-store-item-more'),'Advanced actions should not crowd the main flow');
+assert(main.includes('emit("toneDownloaded"'),'Download must notify UI instead of auto-audition');
+assert(!main.includes('new Bridge().auditionStoreXpsTone(completedXpsSha)'),
+ 'Downloaded XPS cannot transmit MIDI without user tapping Integrar');
 assert(ux.includes("kind==='toneAuditionStatus'"));
 assert(ux.includes('gx-store-audition-restore'));
-console.log('v1.36.5: incremental one-tap temporary XPS MIDI audition and safe restore PASS');
+console.log('SynthXPS simplified: download, explicit Integrar action, temporary XPS audition and safe restore PASS');
 
 const importer=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneZipImporter.java'),'utf8');
 for(const marker of ['ZipInputStream','MAX_ENTRIES=120','MAX_UNPACKED=240L*1024L*1024L',
