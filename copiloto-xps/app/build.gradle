@@ -9,8 +9,33 @@ android {
         versionCode 94
         versionName '1.36.4-xps-one-tap-preflight'
     }
-    buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
+    buildTypes {
+        debug {
+            // QA variant: install next to the existing official Grauê build.
+            applicationIdSuffix '.preview'
+            versionNameSuffix '-preview'
+            signingConfig signingConfigs.debug
+        }
+    } // The official release remains on its separate permanent signing key.
+
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 
 dependencies { implementation 'com.google.mediapipe:tasks-genai:0.10.27' }
+
+// Keep the existing CI upload contract while producing a SIGNED preview APK.
+// This branch is for temporary side-by-side hardware tests, not a production release.
+afterEvaluate {
+    tasks.named('assembleDebug') {
+        doLast {
+            def outputDir = file("$buildDir/outputs/apk/debug")
+            def signed = new File(outputDir, 'app-debug.apk')
+            if (!signed.exists()) throw new GradleException('Signed preview APK missing')
+            copy {
+                from signed
+                into outputDir
+                rename { 'app-debug-unsigned.apk' }
+            }
+        }
+    }
+}
