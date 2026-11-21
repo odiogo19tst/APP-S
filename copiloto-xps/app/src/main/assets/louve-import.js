@@ -33,7 +33,7 @@ function prepareScore(data,M,parseScore,transposeText){
 /** Match current LouveApp scale entries to imported songs without reassigning
  * an unrelated song merely because it has the same title. */
 function songMeta(song,set){
- if(!song||!set||!Array.isArray(set.items)||!set.items.length||song.category!==set.title)return null;
+ if(!song||!set||!Array.isArray(set.items)||!set.items.length||song.category!==String(set.title||'').slice(0,60))return null;
  const items=set.items;
  const src=String(song.sourceUrl||''),id=String(song.louveEntryId||'');
  let idx=items.findIndex(item=>src&&item.sourceUrl===src&&
