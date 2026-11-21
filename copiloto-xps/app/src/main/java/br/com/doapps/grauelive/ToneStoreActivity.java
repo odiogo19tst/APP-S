@@ -34,6 +34,7 @@ public final class ToneStoreActivity extends Activity {
     public static final String STORE_URL = "https://www.synthxps.com.br/?modelo=xps10";
     private WebView browser;
     private TextView status;
+    private boolean loadFailed = false;
     private final int ink = Color.rgb(230, 246, 244);
     private final int bg = Color.rgb(8, 18, 28);
     private final int panel = Color.rgb(23, 39, 50);
@@ -135,7 +136,7 @@ public final class ToneStoreActivity extends Activity {
         title.setTextColor(mint);
         title.setTextSize(19);
         title.setPadding(16, 16, 16, 8);
-        title.setTypeface(null, 1);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
         root.addView(title);
 
         LinearLayout toolbar = new LinearLayout(this);
@@ -172,17 +173,23 @@ public final class ToneStoreActivity extends Activity {
         settings.setSafeBrowsingEnabled(true);
         browser.setWebChromeClient(new WebChromeClient());
         browser.setWebViewClient(new WebViewClient() {
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                loadFailed = false;
+                note("Carregando o catálogo SynthXPS…");
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (isStorePage(request.getUrl())) return false;
                 openExternal(request.getUrl());
                 return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
-                note("Catálogo online. Para arquivos baixados, consulte Downloads. Não envia timbres por MIDI.");
+                if (!loadFailed) note("Catálogo online. Para arquivos baixados, consulte Downloads. Não envia timbres por MIDI.");
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame())
+                if (request.isForMainFrame()) {
+                    loadFailed = true;
                     note("Não foi possível carregar o portal. Verifique a internet ou toque em Navegador.");
+                }
             }
         });
         browser.setDownloadListener((url, userAgent, contentDisposition, mimeType, size) ->
