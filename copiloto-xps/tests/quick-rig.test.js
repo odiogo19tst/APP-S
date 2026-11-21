@@ -15,8 +15,8 @@ assert.deepEqual(split.filter(x=>x.section==='zone'&&x.offset===12).map(x=>x.val
 assert.deepEqual(split.filter(x=>x.section==='zone'&&x.offset===13).map(x=>x.value),[60,127]);
 assert.throws(()=>rig.plan({...hw,'setup:0':[0]},draft),/Performance real/);
 assert.throws(()=>rig.plan({...hw,'zone:1':undefined},draft),/zonas MIDI/);
-assert.throws(()=>rig.plan({...hw,'part:1':[0,1]},draft),/mesmo canal/);
-assert.throws(()=>rig.plan({...hw,'part:3':[0,1]},draft),/Outro som usa/);
+assert.throws(()=>rig.plan({...hw,'part:1':[0,...hw['part:1'].slice(1)]},draft),/mesmo canal/);
+assert.throws(()=>rig.plan({...hw,'part:3':[0,...hw['part:3'].slice(1)]},draft),/Outro som usa/);
 assert.throws(()=>rig.normalize({...draft,point:0}),/Verifique volumes/);
 assert.throws(()=>rig.normalize({...draft,volumeSecond:130}),/Verifique volumes/);
 assert.throws(()=>rig.normalize({...draft,main:{...a,program:129}}),/dois timbres/);
