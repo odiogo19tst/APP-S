@@ -646,11 +646,22 @@ getWindow().addFlags(128);
       emit("toneImportStatus","Conecte o Roland XPS-10 por USB-MIDI para ouvir o timbre.");
       return;
      }
-     if(xps.isBusy()){
-      emit("toneImportStatus","Outra operação Roland está em andamento. A leitura de segurança aguarda término.");
-      return;
-     }
-     xpsAudition.start(sha,patchName,sections);
+     final Runnable[] tryStart={null};
+     final int[] attempts={0};
+     tryStart[0]=()->{
+      if(midi==null||!midi.isConnected()){
+       emit("toneImportStatus","O teclado foi desconectado antes da prévia.");return;
+      }
+      if(xps.isBusy()){
+       if(++attempts[0]<=15){
+        if(attempts[0]==1)emit("toneImportStatus","Aguardando a sincronização MIDI antes de abrir o timbre...");
+        new Handler(Looper.getMainLooper()).postDelayed(tryStart[0],500);
+       }else emit("toneImportStatus","A leitura do teclado não terminou. A prévia externa foi preservada no Grauê para nova tentativa.");
+       return;
+      }
+      xpsAudition.start(sha,patchName,sections);
+     };
+     tryStart[0].run();
     });
    }catch(Exception e){emit("toneImportStatus","Prévia XPS bloqueada: "+e.getMessage());}
   });}
@@ -784,10 +795,10 @@ getWindow().addFlags(128);
    });
   }
 
-  @JavascriptInterface public void cancelHardware(){runOnUiThread(()->xps.cancelWrites());}
-  @JavascriptInterface public void readHardware(){runOnUiThread(()->xps.read());}
-  @JavascriptInterface public void editHardware(String json){if(json.length()<40000)runOnUiThread(()->xps.write(json,armed));}
-  @JavascriptInterface public void undoHardware(){runOnUiThread(()->xps.undo(armed));}
+  @JavascriptInterface public void cancelHardware(){runOnUiThread(()->{if(xpsAudition!=null&&xpsAudition.busy())xpsAudition.restore();xps.cancelWrites();});}
+  @JavascriptInterface public void readHardware(){runOnUiThread(()->{if(xpsAudition!=null&&xpsAudition.busy()){emit("status","Prévia XPS em andamento; conclua a transmissão antes de ler o Setup.");return;}xps.read();});}
+  @JavascriptInterface public void editHardware(String json){if(json!=null&&json.length()<40000)runOnUiThread(()->{if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){emit("status","Timbre externo ativo: restaure-o antes de editar outros parâmetros.");return;}xps.write(json,armed);});}
+  @JavascriptInterface public void undoHardware(){runOnUiThread(()->{if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){emit("status","Restaure a prévia XPS antes de desfazer outros parâmetros.");return;}xps.undo(armed);});}
   @JavascriptInterface public void connect(){runOnUiThread(()->{if(midi.isConnected()){emit("status","USB-MIDI já conectado.");return;}stopLiveLoop();MidiDeviceInfo[] ds=midi.devices();if(ds.length==1){midi.connect(ds[0]);return;}if(ds.length==0){emit("status","Nenhum MIDI USB encontrado. Conecte o teclado e confira o modo USB MIDI.");return;}String[] names=new String[ds.length];for(int i=0;i<ds.length;i++)names[i]=ds[i].getProperties().getString(MidiDeviceInfo.PROPERTY_NAME,"MIDI USB");new AlertDialog.Builder(MainActivity.this).setTitle("Entrada e saída MIDI").setItems(names,(d,n)->midi.connect(ds[n])).show();});}
   /** Refreshes MIDI ports in both directions; never clears cached tones, performances or favorites.
    * Safe for an unplug/replug between songs; releases active notes before changing ports. */
