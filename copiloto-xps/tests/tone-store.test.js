@@ -50,7 +50,7 @@ for(const expected of [
  'MessageDigest.getInstance("SHA-256")','LIMIT = 120L * 1024L * 1024L',
  'readCatalog()','temp.renameTo(target)','importUri(Uri uri',
  'originalName(String sha)','file(String sha)','classify(String name',
- '"JXE_UNVERIFIED"','"SVD_XPS10_BACKUP_ORIGINAL"',
+ '"JXE_UNVERIFIED"','"XPS_JSON_UNVERIFIED"','"SVD_XPS10_BACKUP_ORIGINAL"',
  '"verifiedForKeyboard", false','"convertedToPerformance", false',
  '"writtenToKeyboard", false'
 ])assert(inbox.includes(expected),'Import library validation missing: '+expected);
