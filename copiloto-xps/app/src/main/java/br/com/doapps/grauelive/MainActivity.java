@@ -284,7 +284,7 @@ public class MainActivity extends Activity {
     .put("message","XPS-10 respondeu à leitura de 1F-00-00-00. Próxima validação: mapa completo, ondas e FX; nenhum timbre foi enviado."));
   }catch(Exception ignored){}
  }
- private volatile File pendingIncrementalBundle; private BackupArchive backupArchive; private ToneImportLibrary toneImports; private String toneExportSha=""; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
+ private volatile File pendingIncrementalBundle; private BackupArchive backupArchive; private LouveTokenVault louveTokenVault; private ToneImportLibrary toneImports; private String toneExportSha=""; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  private void navigateBack(){
   if(web==null||!pageReady){finish();return;}
@@ -294,7 +294,7 @@ public class MainActivity extends Activity {
  @Override public void onCreate(Bundle b){super.onCreate(b);
   if(Build.VERSION.SDK_INT>=33)getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,this::navigateBack);
 getWindow().addFlags(128);
-  backupArchive=new BackupArchive(this);toneImports=new ToneImportLibrary(this);padSamples=new PadSampleEngine(this);chromaticPad=new ChromaticPadEngine(this);jarvisGateway=new JarvisCloudGateway(this);directApi=new JarvisDirectOpenAI(this);
+  backupArchive=new BackupArchive(this);louveTokenVault=new LouveTokenVault(this);toneImports=new ToneImportLibrary(this);padSamples=new PadSampleEngine(this);chromaticPad=new ChromaticPadEngine(this);jarvisGateway=new JarvisCloudGateway(this);directApi=new JarvisDirectOpenAI(this);
   getWindow().setStatusBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
@@ -722,6 +722,55 @@ getWindow().addFlags(128);
    });
   }
 
+
+
+  /** Android-only secret entry. Never return the token to JavaScript or backups. */
+  @JavascriptInterface public void configureLouveToken(){
+   runOnUiThread(()->{
+    android.widget.EditText input=new android.widget.EditText(MainActivity.this);
+    input.setSingleLine(true);
+    input.setHint("Cole o token do LouveApp");
+    input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    input.setPadding(36,24,36,24);
+    new AlertDialog.Builder(MainActivity.this)
+     .setTitle("Guardar acesso ao LouveApp")
+     .setMessage("A credencial ficará criptografada neste celular, não no GitHub. A sincronização direta ainda depende da documentação oficial de parceiros e dos escopos Escalas/Repertório.")
+     .setView(input)
+     .setNegativeButton("Cancelar",(d,w)->input.setText(""))
+     .setPositiveButton("Guardar somente no aparelho",(d,w)->{
+      String value=input.getText().toString().trim();
+      input.setText("");
+      try{
+       if(louveTokenVault==null)throw new IllegalStateException();
+       louveTokenVault.save(value);
+       emit("louveTokenStatus",new JSONObject().put("configured",true).put("apiReady",false));
+       emit("status","Credencial LouveApp criptografada no celular. A sincronização direta ainda depende da documentação oficial.");
+      }catch(Exception ignored){
+       emit("status","Não foi possível guardar a credencial. Confira se o token é válido e tente novamente.");
+      }
+     }).show();
+   });
+  }
+  @JavascriptInterface public void louveTokenStatus(){
+   runOnUiThread(()->{
+    try{emit("louveTokenStatus",new JSONObject()
+     .put("configured",louveTokenVault!=null&&louveTokenVault.configured())
+     .put("apiReady",false));
+    }catch(Exception ignored){}
+   });
+  }
+  @JavascriptInterface public void removeLouveToken(){
+   runOnUiThread(()->new AlertDialog.Builder(MainActivity.this)
+    .setTitle("Desvincular LouveApp?")
+    .setMessage("Excluir somente a credencial guardada no Grauê XPS? Seu repertório e as escalas locais não serão apagados.")
+    .setNegativeButton("Cancelar",null)
+    .setPositiveButton("Excluir credencial",(d,w)->{
+     if(louveTokenVault!=null)louveTokenVault.clear();
+     try{emit("louveTokenStatus",new JSONObject().put("configured",false).put("apiReady",false));}
+     catch(Exception ignored){}
+     emit("status","Credencial LouveApp excluída do aparelho. Repertório local preservado.");
+    }).show());
+  }
 
   @JavascriptInterface public void startLouveImport(String json){runOnUiThread(()->{try{if(json==null||json.length()>70000)throw new IllegalArgumentException("Escala grande demais");org.json.JSONArray items=new org.json.JSONArray(json);showCifra();cifraPanel.importBatch(items);}catch(Exception e){emit("status","Escala: "+e.getMessage());}});}
   @JavascriptInterface public void cancelLouveImport(){runOnUiThread(()->{if(cifraPanel!=null)cifraPanel.cancelBatch();});}
