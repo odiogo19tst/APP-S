@@ -329,6 +329,46 @@ async function run(){
    await page.locator('.gx-repertoire-library>summary').click();assert(!await list.isVisible());await page.locator('.gx-repertoire-library>summary').click();assert(await list.isVisible());
    assert.equal((await page.evaluate(midiCalls)).length,0,'Library browsing remains passive');results.push({viewport:size,repertoire35:true,pass:true});await page.close();
   }
+  // LouveApp: original song numbers and declared key survive partial/out-of-order imports.
+  {
+   const p=await browser.newPage({viewport:{width:390,height:844}});
+   p.on('pageerror',e=>errors.push('scale: '+e.stack));
+   const title='Culto Louvor e Adoração',base='https://m.cifraclub.com.br/ensaio/';
+   const imported=[
+    {...notes[0],loopId:'scale-2',title:'Alfa e Ômega',category:title,sourceUrl:base+'alfa/',root:7,requestedKey:'G'},
+    {...notes[0],loopId:'independent',title:'Deus do Secreto',category:'Cifra Club',sourceUrl:base+'outro/',root:0},
+    {...notes[0],loopId:'scale-1',title:'1000 Graus (Live)',category:title,sourceUrl:base+'mil/',root:4,requestedKey:'E'}
+   ];
+   const meta=[
+    {id:'entry-0',order:1,title:'1000 Graus (Live)',sourceUrl:base+'mil/',key:'E',bpm:140,status:'done'},
+    {id:'entry-1',order:2,title:'Alfa e Ômega',sourceUrl:base+'alfa/',key:'G',bpm:90,status:'done'},
+    {id:'entry-2',order:3,title:'Terceira pendente',sourceUrl:base+'pendente/',key:'D',bpm:80,status:'pending'}
+   ];
+   await boot(p,{songs:imported,scenes:[],louveSetlist:{title,items:meta}});
+   await tab(p,'repertoire');
+   const picks=p.locator('#gx-songs .gx-song-pick');
+   assert.equal(await picks.count(),3);
+   assert.match(await picks.nth(0).innerText(),/1\. 1000 Graus/);
+   assert.equal(await picks.nth(0).locator('.gx-song-key').innerText(),'Tom E');
+   assert.match(await picks.nth(1).innerText(),/2\. Alfa e Ômega/);
+   assert.equal(await picks.nth(1).locator('.gx-song-key').innerText(),'Tom G');
+   assert.equal(await picks.nth(2).locator('.gx-song-key').innerText(),'Tom C');
+   assert(!/3\. Deus/.test(await picks.nth(2).innerText()));
+   const options=await p.locator('#gx-live-song-select option').allTextContents();
+   assert.match(options[0],/1\. 1000 Graus.*Tom E/);
+   assert.match(options[1],/2\. Alfa e Ômega.*Tom G/);
+   await picks.first().click();
+   assert.match(await p.locator('#gx-cifra-meta').innerText(),/1ª da escala.*Tom E/);
+   await tab(p,'stage');await p.locator('#gx-next').click();
+   assert.match(await p.locator('#gx-song-name').innerText(),/Alfa e Ômega/);
+   await tab(p,'repertoire');await p.locator('[data-gx-filter="setlist"]').click();
+   assert.equal(await p.locator('#gx-songs .gx-song-pick').count(),2);
+   await p.locator('#gx-louve-state summary').click();
+   assert.match(await p.locator('.gx-louve-rows').innerText(),/3\. .*Terceira pendente.*Tom D/);
+   await noOverflow(p,'scale order/key phone');await p.screenshot({path:path.join(out,'390-scale-order-key.png'),fullPage:true});
+   assert.equal((await p.evaluate(midiCalls)).length,0,'Setlist numbering and key never send MIDI');
+   results.push({scaleOrder:true,pass:true});await p.close();
+  }
   // Valid JSON that is not a state object must not break startup.
   for(const value of [null,[],{songs:[null,{title:'Inválida'},...notes],scenes:[null]}]){const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.stack));await boot(p,value);if(value?.songs?.includes(null)){const recovery=await p.evaluate(()=>window.lastSaved);assert.equal(recovery.recoverySongs.length,2);assert.equal(recovery.recoveryScenes.length,1);assert.equal(recovery.songs.length,2);}await p.close();}
   assert.deepEqual(errors,[],'Browser runtime errors');
