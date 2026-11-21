@@ -83,3 +83,19 @@ assert(ux.includes('Ver 9 blocos do Patch e alertas'));
 assert(ux.includes('layout.parameterChecksToReview'));
 assert(ux.includes('layout.components.slice(0,9)'));
 console.log('Koa 1.36.1: exact 80/145/84/83/41/4×154 segmentation, spec ranges, no MIDI PASS');
+
+const compatibility=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/KoaJxeCompatibility.java'),'utf8');
+for(const marker of [
+ 'public final class KoaJxeCompatibility','KoaJxePatchLayout.PATCH_BYTES',
+ 'PatchParameters.decode(def, block, start)','"parameterSamples"',
+ '"samplesOutOfRange"','"zeroLfoStepValues"','"requiresWaveTableVerification", true',
+ '"requiresEffectMapVerification", true','"requiresLiveReadback", true',
+ '"sysExConversionValidated", false','"canTransmitMidi", false',
+ '"canWriteUser", false','"canModifySvd", false'
+]) assert(compatibility.includes(marker),'Missing JXE compatibility guard: '+marker);
+assert(!/sendMidi\s*\(|editHardware\s*\(|XpsProtocol\.packet\s*\(|WRITE_USER/.test(compatibility),
+ 'Compatibility preview must not use MIDI transmission/write code');
+assert(koa.includes('entry.put("compatibility", KoaJxeCompatibility.inspect(data, off))'));
+assert(ux.includes('Prévia dos parâmetros WG, TVF, TVA, LFO e alertas'));
+assert(ux.includes('preview.parameterSamples.slice(0,80)'));
+console.log('Koa 1.36.2: read-only per-tone preview, LFO anomalies, wave/effect warnings PASS');
