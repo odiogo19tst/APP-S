@@ -24,7 +24,7 @@ assert(activity.includes('emit("toneFileInspection",report)'));
 assert(ux.includes('id="gx-store-binary-report"'));
 assert(ux.includes('id="gx-store-binary-data"'));
 assert(ux.includes('id="gx-store-export-report"'));
-assert(ux.includes("analyzeButton.textContent='Analisar JXE/XPS/MIDI'"));
+assert(ux.includes("analyzeButton.textContent='Analisar formato'"));
 assert(ux.includes('window.Native.inspectStoreToneFile(String(item.sha256'));
 assert(ux.includes("kind==='toneFileInspection'"));
 assert(ux.includes("window.Native.exportFile(JSON.stringify(toneFileReport,null,2))"));
