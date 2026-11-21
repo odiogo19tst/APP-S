@@ -121,6 +121,18 @@ async function run(){
          relativeOffset:[0,80,225,309,392,433,587,741,895][index],
          parametersToReview:0}))
    };
+   koaPatches[0].compatibility={
+     sourceModel:'JUNO-Di Editor',targetModel:'XPS-10',
+     comparisonType:'offline_parameter_sample',samplesInRange:1,samplesOutOfRange:1,
+     zeroLfoStepValues:16,canTransmitMidi:false,canWriteUser:false,canModifySvd:false,
+     warnings:['A equivalência de ondas PCM ainda não foi comprovada'],
+     parameterSamples:[
+       {section:'tone1',parameter:'tone_wave_number_l_mono',valueCandidate:1234,
+        rawBytes:[0,4,13,2],inXpsRange:true,sysExDestinationValidated:false},
+       {section:'tone1',parameter:'tone_lfo_step1',valueCandidate:null,
+        rawBytes:[0],inXpsRange:false,sysExDestinationValidated:false}
+     ]
+   };
    const koaRhythms=Array.from({length:18},(_,index)=>({
      index:index+1,name:index===9?'Pop Kit 2':'INIT RHYTHM',
      sha256Block:index===9?'d'.repeat(64):'e'.repeat(64)
@@ -140,9 +152,16 @@ async function run(){
    assert.equal(await page.locator('#gx-store-koa-inventory > ol > li').count(),18);
    const firstPatch=page.locator('#gx-store-koa-inventory > ol > li').first();
    assert.match(await firstPatch.innerText(),/664\/664 parâmetros/);
-   await firstPatch.locator('details summary').click();
-   assert.equal(await firstPatch.locator('details ul li').count(),9,'JXE preflight must show nine real byte segments');
-   assert.match(await firstPatch.locator('details ul li').nth(4).innerText(),/tmt · 41 bytes/);
+   assert.match(await firstPatch.innerText(),/16 valores LFO Step zerados/);
+   const compatibilityPanel=firstPatch.locator('details').first();
+   await compatibilityPanel.locator('summary').click();
+   assert.match(await compatibilityPanel.innerText(),/ondas PCM/);
+   assert.match(await compatibilityPanel.innerText(),/tone_wave_number_l_mono/);
+   assert.match(await compatibilityPanel.innerText(),/tone_lfo_step1/);
+   const segmentsPanel=firstPatch.locator('details').nth(1);
+   await segmentsPanel.locator('summary').click();
+   assert.equal(await segmentsPanel.locator('ul li').count(),9,'JXE preflight must show nine real byte segments');
+   assert.match(await segmentsPanel.locator('ul li').nth(4).innerText(),/tmt · 41 bytes/);
    assert.match(await page.locator('#gx-store-koa-inventory').innerText(),/MASSIVE PAD/);
    assert.match(await page.locator('#gx-store-koa-inventory').innerText(),/CLOUD PAD/);
    assert.match(await page.locator('#gx-store-import-status').innerText(),/18 registros de Patch/);
