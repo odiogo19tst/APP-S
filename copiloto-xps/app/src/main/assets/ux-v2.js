@@ -1320,7 +1320,7 @@
    const name=document.createElement('strong');name.textContent=String(item.name||'Arquivo sem nome');
    const format=document.createElement('small');format.textContent=String(item.format||'UNKNOWN')+' · '+(Math.round(Number(item.bytes||0)/1024))+' KB · Original preservado';
    const note=document.createElement('small');note.textContent='SHA-256: '+String(item.sha256||'').slice(0,14)+'… · '+
-     (item.temporaryAuditionConfirmed?'Prévia USB confirmada neste teclado · não salvo em USER':'Ainda não salvo como Patch/Performance');
+     (item.temporaryAuditionConfirmed?'Prévia USB confirmada neste teclado · não salvo em USER':String(item.name||'').toLowerCase().endsWith('.xps')?'Ainda não salvo como Patch/Performance':'Ainda não convertido em Performance');
    heading.append(name,format,note);
    const actions=document.createElement('div');actions.className='gx-store-import-buttons';
    const exportButton=document.createElement('button');exportButton.textContent='Exportar original';exportButton.setAttribute('aria-label','Exportar original '+name.textContent);
