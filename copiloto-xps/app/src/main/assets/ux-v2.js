@@ -1339,7 +1339,7 @@
     };
     actions.append(probeButton);
    }
-   actions.append(analyzeButton,exportButton,deleteButton);row.append(heading,actions);list.append(row);
+   actions.append(exportButton,deleteButton,analyzeButton);row.append(heading,actions);list.append(row);
   }
  }
  function sync(){syncStage();renderSongs();renderRepertoire();renderFavorites();renderMixer();renderCoach();$x('gx-usb').textContent=usbConnected&&hw['setup:0']?'● XPS-10 lido':usbConnected?'● MIDI conectado':'● USB desligado';}
