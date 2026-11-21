@@ -57,3 +57,29 @@ assert(ux.includes('koa.patches.slice(0,24)'));
 assert(ux.includes('koa.rhythms.slice(0,24)'));
 assert(css.includes('.gx-store-koa-inventory'));
 console.log('Koa JXE catalog: empirical 18 patch and 18 rhythm records, read-only preview and no MIDI PASS');
+
+
+const layout=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/KoaJxePatchLayout.java'),'utf8');
+for(const marker of [
+ 'public final class KoaJxePatchLayout','PATCH_BYTES = 1049',
+ '0, 80, 225, 309, 392, 433, 587, 741, 895',
+ '80, 145, 84, 83, 41, 154, 154, 154, 154',
+ 'PatchParameters.block("common",0,1).size',
+ 'PatchParameters.block("tmt",0,1).size',
+ 'PatchParameters.block("tone",0,Integer.parseInt(section.substring(4))).size',
+ 'XpsProtocol.block("mfx",0).size',
+ 'XpsProtocol.block("chorus",0).size',
+ 'XpsProtocol.block("reverb",0).size',
+ 'PatchParameters.decode(def, values, def.offset)',
+ '"parameterChecksToReview"','"exampleMismatches"',
+ '"effectBlocksVerifiedBySizeOnly", true',
+ '"midiDeviceReadbackValidated", false',
+ '"safeToTransmit", false','"safeToWriteUserMemory", false','"safeToModifySvd", false'
+])assert(layout.includes(marker),'Missing deterministic pre-transmission check: '+marker);
+assert(koa.includes('KoaJxePatchLayout.inspect(data, off)'), 'Every patch must include full segmented compatibility preflight');
+assert(!layout.includes('packet(')&&!layout.includes('editHardware(')&&!layout.includes('sendMidi('),
+ 'Pre-conversion must never construct a packet or transmit MIDI');
+assert(ux.includes('Ver 9 blocos do Patch e alertas'));
+assert(ux.includes('layout.parameterChecksToReview'));
+assert(ux.includes('layout.components.slice(0,9)'));
+console.log('Koa 1.36.1: exact 80/145/84/83/41/4×154 segmentation, spec ranges, no MIDI PASS');
