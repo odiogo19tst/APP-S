@@ -1,0 +1,24 @@
+'use strict';
+const assert=require('node:assert/strict'),rig=require('../app/src/main/assets/quick-rig.js');
+const t=(code,msb,program)=>({code,name:code,category:'Pf',msb,lsb:0,program});
+const a=t('Pf081',87,5),b=t('St001',87,50);
+const draft={mode:'dual',main:a,second:b,volumeMain:97,volumeSecond:62,point:60};
+const hw={'setup:0':[1],validSysexPackets:58};for(let i=0;i<16;i++){hw['part:'+i]=Array(49).fill(0);hw['part:'+i][0]=i;hw['part:'+i][1]=1;hw['zone:'+i]=Array(27).fill(0);hw['zone:'+i][1]=1;hw['zone:'+i][13]=127;}
+const dual=rig.plan(hw,draft);
+assert.equal(dual.length,16,'Dual must edit two parts and two independent keyboard zones');
+assert.deepEqual(dual.filter(x=>x.section==='part'&&x.offset===4).map(x=>[x.index,x.value]),[[0,87],[1,87]]);
+assert.deepEqual(dual.filter(x=>x.section==='part'&&x.offset===7).map(x=>x.value),[97,62]);
+assert.deepEqual(dual.filter(x=>x.section==='zone'&&x.offset===12).map(x=>x.value),[0,0]);
+assert.deepEqual(dual.filter(x=>x.section==='zone'&&x.offset===13).map(x=>x.value),[127,127]);
+const split=rig.plan(hw,{...draft,mode:'split',point:61});
+assert.deepEqual(split.filter(x=>x.section==='zone'&&x.offset===12).map(x=>x.value),[0,61]);
+assert.deepEqual(split.filter(x=>x.section==='zone'&&x.offset===13).map(x=>x.value),[60,127]);
+assert.throws(()=>rig.plan({...hw,'setup:0':[0]},draft),/Performance real/);
+assert.throws(()=>rig.plan({...hw,'zone:1':undefined},draft),/zonas MIDI/);
+assert.throws(()=>rig.plan({...hw,'part:1':[0,...hw['part:1'].slice(1)]},draft),/mesmo canal/);
+assert.throws(()=>rig.plan({...hw,'part:3':[0,...hw['part:3'].slice(1)]},draft),/Outro som usa/);
+assert.throws(()=>rig.normalize({...draft,point:0}),/Verifique volumes/);
+assert.throws(()=>rig.normalize({...draft,volumeSecond:130}),/Verifique volumes/);
+assert.throws(()=>rig.normalize({...draft,main:{...a,program:129}}),/dois timbres/);
+assert.equal(rig.label(draft),'Dual · Pf081 + St001');
+console.log('Grauê Dual/Split: plan validates 2 parts, zones, split point, MIDI safety and favorites');

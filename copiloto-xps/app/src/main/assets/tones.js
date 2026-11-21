@@ -16,7 +16,8 @@ let favorites=new Set(Array.isArray(saved.toneFavorites)?saved.toneFavorites:[])
   if(!value||typeof value!=='object')return null;
   if(value.type==='performance')return typeof value.user==='boolean'&&Number.isInteger(value.number)&&value.number>=1&&value.number<=(value.user?128:16)
     ?{type:'performance',user:value.user,number:value.number}:null;
-  return validTone(value)?{type:'tone',code:value.code,name:value.name,msb:value.msb,lsb:value.lsb,program:value.program,category:value.category||'',part:Number.isInteger(value.part)&&value.part>=0&&value.part<16?value.part:0}:null;
+  if(value.type==='rig'){try{return {type:'rig',...window.GraueQuickRig.normalize(value)}}catch(_){return null;}}
+  return validTone(value)?{type:'tone',code:value.code,name:value.name,msb:value.msb,lsb:value.lsb,program:value.program,category:value.category||'',part:Number.isInteger(value.part)&&value.part>=0&&value.part<16?value.part:0,...(Number.isInteger(value.volume)&&value.volume>=0&&value.volume<=127?{volume:value.volume}:{})}:null;
  };
  const putFavoriteEntry=(bank,index,value)=>{
   if(!validPosition(bank,index))throw Error('Banco ou posição inválida');
@@ -24,10 +25,14 @@ let favorites=new Set(Array.isArray(saved.toneFavorites)?saved.toneFavorites:[])
   if(value?.type==='performance'){
    if(typeof value.user!=='boolean'||!Number.isInteger(value.number)||value.number<1||value.number>(value.user?128:16))throw Error('Performance inválida');
    normalized={type:'performance',user:value.user,number:value.number};
+  }else if(value?.type==='rig'){
+   if(!window.GraueQuickRig)throw Error('Editor Dual/Split indisponível.');
+   normalized={type:'rig',...window.GraueQuickRig.normalize(value)};
   }else if(value){
    if(!validTone(value))throw Error('Timbre inválido');
    if(value.part!==undefined&&(!Number.isInteger(value.part)||value.part<0||value.part>15))throw Error('Parte inválida');
-   normalized={type:'tone',code:value.code,name:value.name,msb:value.msb,lsb:value.lsb,program:value.program,category:value.category||'',part:value.part??0};
+   if(value.volume!==undefined&&(!Number.isInteger(value.volume)||value.volume<0||value.volume>127))throw Error('Volume do favorito inválido');
+   normalized={type:'tone',code:value.code,name:value.name,msb:value.msb,lsb:value.lsb,program:value.program,category:value.category||'',part:value.part??0,...(value.volume!==undefined?{volume:value.volume}:{})};
   }
   const key=bank+'-'+index,store=banks(),old=store[key],existed=Object.prototype.hasOwnProperty.call(store,key);
   if(normalized)store[key]=normalized;else delete store[key];
