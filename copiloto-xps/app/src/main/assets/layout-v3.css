@@ -206,3 +206,13 @@ body.gx-ready{--gx-bg:#0c1015;--gx-panel:#151b22;--gx-panel2:#1b232d;--gx-line:#
 #gx-shell.gx-layout-v3 .gx-store-import-details small{font-size:11px;color:#abc7c6;overflow-wrap:break-word}
 #gx-shell.gx-layout-v3 .gx-store-import-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 @media(max-width:440px){#gx-shell.gx-layout-v3 .gx-store-inbox{padding:12px}}
+
+/* JXE / MIDI probe: intentionally read-only; cannot change Roland USER memory. */
+#gx-shell.gx-layout-v3 .gx-store-binary-report{margin-top:14px;padding:12px;max-width:100%;overflow:hidden;border:1px solid #4c6c70;border-radius:11px;background:#112732}
+#gx-shell.gx-layout-v3 .gx-store-binary-report[hidden]{display:none}
+#gx-shell.gx-layout-v3 .gx-store-binary-report strong{font-size:14px;color:#bbf3df}
+#gx-shell.gx-layout-v3 .gx-store-binary-report p{font-size:12px;line-height:1.5}
+#gx-shell.gx-layout-v3 .gx-store-binary-report pre{max-height:260px;max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:9px;border:1px solid #3e5e63;border-radius:8px;background:#0a1924;color:#dbefed;font-size:11px}
+#gx-shell.gx-layout-v3 #gx-store-export-report{width:100%;min-height:48px;font-size:12px!important}
+#gx-shell.gx-layout-v3 .gx-store-import-buttons{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:440px){#gx-shell.gx-layout-v3 .gx-store-import-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell.gx-layout-v3 .gx-store-import-buttons button:last-child{grid-column:1/-1}}
