@@ -12,8 +12,8 @@ for(const token of [
  'settings.setAllowContentAccess(false)','settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)',
  'settings.setSafeBrowsingEnabled(true)','settings.setCacheMode(WebSettings.LOAD_NO_CACHE)',
  'isStorePage(request.getUrl())','openExternal(request.getUrl())',
- 'browser.setDownloadListener','new DownloadManager.Request(uri)',
- 'manager.enqueue(req)','download(String url','if (!isHttps(uri))',
+ 'browser.setDownloadListener','new DownloadManager.Request(Uri.parse(request.url))',
+ 'manager.enqueue(download)','chooseLocationBeforeDownload(String url','if (!isHttps(uri))',
  'onReceivedError(WebView view','if (request.isForMainFrame())'
 ])assert(store.includes(token),'Missing shop isolation/behavior: '+token);
 assert(!store.includes('addJavascriptInterface('),'Untrusted shop must never get access to Grauê Java/MIDI bridge');
@@ -36,7 +36,7 @@ console.log('SynthXPS store: live XPS10 URL, More menu, isolated WebView, downlo
 const receiver=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneDownloadReceiver.java'),'utf8');
 const inbox=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneImportLibrary.java'),'utf8');
 for(const expected of [
- 'ToneDownloadReceiver.track(this, id, candidate)',
+ 'ToneDownloadReceiver.track(this, id, chosenName, destination, label)',
  'ToneDownloadReceiver.reconcile(getApplicationContext())'
 ])assert(store.includes(expected),'Store must track and reconcile downloads: '+expected);
 assert(xml.includes('android:name=".ToneDownloadReceiver"'),'System download receiver must be installed');
@@ -66,3 +66,24 @@ for(const expected of [
  'window.Native?.exportStoreToneFile','window.Native?.deleteStoreToneFile'
 ])assert(ux.includes(expected),'New inbox UI missing: '+expected);
 console.log('SynthXPS 1.35.6: download auto-import, immutable originals, checksums, UI, safe export and no MIDI writes PASS');
+
+assert(store.includes('new Intent(Intent.ACTION_CREATE_DOCUMENT)'),'Must ask where to save before starting download');
+assert(store.includes('destination.putExtra(Intent.EXTRA_TITLE, name)'),'Android picker suggests original file name');
+assert(store.indexOf('startActivityForResult(destination, REQUEST_SAVE_TONE)')>0);
+assert(store.includes('new LinearLayout.LayoutParams(0, 58, 1)'),'Bottom dock always visible');
+assert(store.includes('Button home = button("⌂ Início"'));
+assert(store.includes('Button previous = button("‹ Voltar página"'));
+assert(store.includes('Button library = button("♫ Biblioteca"'));
+assert(store.includes('Button folder = button("▣ Downloads"'));
+assert(store.includes('home.setOnClickListener(v -> finishTo("home"))'));
+assert(store.includes('previous.setOnClickListener(v -> goBackInStore())'));
+assert(store.includes('library.setOnClickListener(v -> finishTo("store"))'));
+assert(store.includes('onBackPressed() { finishTo("home"); }'),'Android back must exit isolated shop');
+assert(main.includes('startActivityForResult(new Intent(MainActivity.this,ToneStoreActivity.class),17)'));
+assert(main.includes('if(req==17)'),'MainActivity should receive store navigation result');
+assert(main.includes('window.GraueNavigation && window.GraueNavigation.home()'));
+assert(receiver.includes('context.getContentResolver().openOutputStream(target, "wt")'));
+assert(receiver.includes('lib.file(imported.getString("sha256"))'));
+assert(receiver.includes('destination-" + id'));
+assert(receiver.includes('lastLocation(Context context)'));
+console.log('Android destination picker, navigation dock, explicit return Home/Library and copy of chosen file PASS');
