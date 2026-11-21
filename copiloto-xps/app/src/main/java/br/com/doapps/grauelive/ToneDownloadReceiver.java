@@ -5,6 +5,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
 import android.database.Cursor;
 import android.os.ParcelFileDescriptor;
 import java.io.InputStream;
@@ -17,10 +21,17 @@ import java.util.Map;
 public final class ToneDownloadReceiver extends BroadcastReceiver {
     static final String PREFS = "graue-synthxps-downloads";
 
-    public static void track(Context context, long id, String originalName) {
-        if (id <= 0) throw new IllegalArgumentException("Download inválido");
-        context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString("pending-" + id, originalName).apply();
+    public static void track(Context context, long id, String originalName, Uri destination, String location) {
+        if (id <= 0 || destination == null || !"content".equalsIgnoreCase(destination.getScheme()))
+            throw new IllegalArgumentException("Download sem destino válido");
+        boolean saved = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString("pending-" + id, originalName)
+            .putString("destination-" + id, destination.toString())
+            .putString("location-" + id, location)
+            .putString("last-location", location)
+            .putString("last-status", "Aguardando download: " + location)
+            .commit(); // Persist before DownloadManager can announce completion.
+        if (!saved) throw new IllegalStateException("Não foi possível registrar o local escolhido");
     }
 
     public static int pendingCount(Context context) {
@@ -58,6 +69,10 @@ public final class ToneDownloadReceiver extends BroadcastReceiver {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String key = "pending-" + id, name = prefs.getString(key, null);
         if (name == null) return;
+        String destinationKey = "destination-" + id;
+        String locationKey = "location-" + id;
+        String chosenUri = prefs.getString(destinationKey, "");
+        String chosenLocation = prefs.getString(locationKey, "Local selecionado");
         DownloadManager manager = (DownloadManager)context.getSystemService(Context.DOWNLOAD_SERVICE);
         if (manager == null) return;
         try (Cursor c = manager.query(new DownloadManager.Query().setFilterById(id))) {
@@ -65,22 +80,52 @@ public final class ToneDownloadReceiver extends BroadcastReceiver {
             int col = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
             int status = col < 0 ? 0 : c.getInt(col);
             if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                ToneImportLibrary lib = new ToneImportLibrary(context);
+                org.json.JSONObject imported;
                 try (ParcelFileDescriptor fd = manager.openDownloadedFile(id);
                      InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
-                    ToneImportLibrary lib = new ToneImportLibrary(context);
-                    lib.importStream(in, name, "SynthXPS · download Android");
-                    prefs.edit().remove(key).putString("last-status",
-                            "Arquivo da loja copiado para a biblioteca do Grauê. Nenhum MIDI enviado.").apply();
+                    imported = lib.importStream(in, name, "SynthXPS · download Android");
                 }
+                // The chosen document was created by ACTION_CREATE_DOCUMENT before download.
+                // Copy the exact validated original there, never to Roland USER or SVD.
+                if (!chosenUri.isEmpty()) {
+                    Uri target = Uri.parse(chosenUri);
+                    if (!"content".equalsIgnoreCase(target.getScheme()))
+                        throw new IllegalStateException("O destino não é um documento Android válido");
+                    File original = lib.file(imported.getString("sha256"));
+                    try (InputStream source = new FileInputStream(original);
+                         OutputStream output = context.getContentResolver().openOutputStream(target, "wt")) {
+                        if (output == null) throw new IllegalStateException("Pasta de destino inacessível");
+                        byte[] buf = new byte[16384]; int n;
+                        while ((n = source.read(buf)) != -1) output.write(buf, 0, n);
+                        output.flush();
+                    }
+                }
+                prefs.edit().remove(key).remove(destinationKey).remove(locationKey)
+                    .putString("last-location", chosenLocation)
+                    .putString("last-status",
+                        "Download salvo em " + chosenLocation + " e importado na biblioteca do Grauê. Nenhum MIDI enviado.")
+                    .apply();
             } else if (status == DownloadManager.STATUS_FAILED) {
-                prefs.edit().remove(key).putString("last-status",
-                        "Falha no download SynthXPS. Abra Downloads e tente novamente.").apply();
+                // ACTION_CREATE_DOCUMENT creates a placeholder file; remove it on failed download.
+                if (!chosenUri.isEmpty()) {
+                    try { context.getContentResolver().delete(Uri.parse(chosenUri), null, null); }
+                    catch (Exception ignored) {}
+                }
+                prefs.edit().remove(key).remove(destinationKey).remove(locationKey)
+                    .putString("last-status", "Falha no download SynthXPS. Nenhum arquivo completo foi salvo.")
+                    .apply();
             }
         } catch (Exception e) {
             // Keep the pending ID so a subsequent startup can retry copying the original.
             prefs.edit().putString("last-status",
                     "Download concluído, mas a cópia ainda não entrou no Grauê: " + e.getMessage()).apply();
         }
+    }
+
+    public static String lastLocation(Context context) {
+        return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString("last-location", "");
     }
 
     public static String lastStatus(Context context) {
