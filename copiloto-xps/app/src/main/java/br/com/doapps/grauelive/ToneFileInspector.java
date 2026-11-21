@@ -106,6 +106,19 @@ public final class ToneFileInspector {
         }
         JSONObject report = probe(prefix,used,original.length(),filename);
         report.put("sha256",sha256);
+        if (filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".xps")) {
+            try {
+                if (original.length() > XpsJsonToneInspector.MAX_JSON_BYTES)
+                    throw new IOException("Variante XPS maior que o limite de análise de 64 KB");
+                JSONObject parsed = XpsJsonToneInspector.inspect(prefix, used);
+                report.put("identifiedAs", "XPS_JSON_BASE64_ROLAND_CHECKSUM");
+                report.put("xps", parsed);
+                report.put("message", "Arquivo XPS lido: blocos e checksums Roland conferidos. Compatibilidade física e envio não validados.");
+            } catch (Exception e) {
+                report.put("identifiedAs", "XPS_UNKNOWN_OR_INVALID");
+                report.put("xpsWarning", "Arquivo XPS não validado: " + e.getMessage());
+            }
+        }
         if (KoaJxeCatalog.isKoaJunoDi(prefix)) {
             report.put("identifiedAs", "KOA_JUNO_DI_EDITOR_STATE");
             if (original.length() == KoaJxeCatalog.FILE_SIZE) {

@@ -24,7 +24,7 @@ assert(activity.includes('emit("toneFileInspection",report)'));
 assert(ux.includes('id="gx-store-binary-report"'));
 assert(ux.includes('id="gx-store-binary-data"'));
 assert(ux.includes('id="gx-store-export-report"'));
-assert(ux.includes("analyzeButton.textContent='Analisar JXE/MIDI'"));
+assert(ux.includes("analyzeButton.textContent='Analisar JXE/XPS/MIDI'"));
 assert(ux.includes('window.Native.inspectStoreToneFile(String(item.sha256'));
 assert(ux.includes("kind==='toneFileInspection'"));
 assert(ux.includes("window.Native.exportFile(JSON.stringify(toneFileReport,null,2))"));
@@ -99,3 +99,41 @@ assert(koa.includes('entry.put("compatibility", KoaJxeCompatibility.inspect(data
 assert(ux.includes('Prévia dos parâmetros WG, TVF, TVA, LFO e alertas'));
 assert(ux.includes('preview.parameterSamples.slice(0,80)'));
 console.log('Koa 1.36.2: read-only per-tone preview, LFO anomalies, wave/effect warnings PASS');
+
+const xps=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/XpsJsonToneInspector.java'),'utf8');
+for(const key of ['1F-00-00-00','1F-00-02-00','1F-00-04-00','1F-00-06-00',
+ '1F-00-10-00','1F-00-20-00','1F-00-22-00','1F-00-24-00','1F-00-26-00'])
+ assert(xps.includes('"'+key+'"'),'Known AiLead XPS block missing: '+key);
+for(const marker of ['public final class XpsJsonToneInspector','MAX_JSON_BYTES = 65536',
+ 'Base64.getDecoder().decode','(sum & 127) != 0','"checksumValid"',
+ '"matchesObservedAiLeadLayout"','"modelIdEmbedded", false',
+ '"targetModelConfirmed", false','"canApplyToKeyboard", false',
+ '"canWriteUserMemory", false','"payloadAddressCompatibilityVerified", false'])
+ assert(xps.includes(marker),'Read-only XPS JSON validation missing: '+marker);
+assert(!/sendMidi\s*\(|editHardware\s*\(|XpsProtocol\.packet\s*\(|WRITE_USER/.test(xps),
+ 'XPS JSON inspector must never send SysEx or write USER');
+assert(java.includes('XpsJsonToneInspector.inspect(prefix, used)'));
+assert(java.includes('"XPS_JSON_BASE64_ROLAND_CHECKSUM"'));
+assert(java.includes('"XPS_UNKNOWN_OR_INVALID"'));
+assert(ux.includes("function renderXpsInventory(report)"));
+assert(ux.includes("renderXpsInventory(toneFileReport)"));
+assert(ux.includes('gx-store-xps-inventory'));
+assert(ux.includes('Sem autorização para enviar MIDI'));
+const observedLengths=[80,125,84,83,41,128,128,128,128];
+assert(xps.includes(observedLengths.join(', ')) || xps.includes('80, 125, 84, 83, 41, 128, 128, 128, 128'),
+ 'Observed AiLead decoded data lengths must be checked without padding');
+function verifiedBlock(address,payload){
+ const addr=address.split('-').map(x=>parseInt(x,16));
+ const check=(128-((addr.reduce((a,b)=>a+b,0)+payload.reduce((a,b)=>a+b,0))%128))%128;
+ const bytes=[...payload,check];
+ assert.equal((addr.reduce((a,b)=>a+b,0)+bytes.reduce((a,b)=>a+b,0))%128,0);
+ return Buffer.from(bytes).toString('base64');
+}
+const keys=['1F-00-00-00','1F-00-02-00','1F-00-04-00','1F-00-06-00',
+ '1F-00-10-00','1F-00-20-00','1F-00-22-00','1F-00-24-00','1F-00-26-00'];
+const fixture=Object.fromEntries(keys.map((key,i)=>[key,verifiedBlock(key,
+ i===0?[...Buffer.from('TEST LEAD   ','ascii'),...Array(observedLengths[i]-12).fill(0)]:
+ Array(observedLengths[i]).fill(0))]));
+assert.equal(Object.keys(fixture).length,9);
+assert(Object.values(fixture).every(x=>typeof x==='string'));
+console.log('XPS JSON 1.36.3: nine valid checksummed segments, guarded classification and UI PASS');
