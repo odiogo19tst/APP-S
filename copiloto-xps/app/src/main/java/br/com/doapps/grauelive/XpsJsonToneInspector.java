@@ -68,11 +68,12 @@ public final class XpsJsonToneInspector {
         Iterator<String> iterator = object.keys();
         int dataBytes = 0;
         while (iterator.hasNext()) {
-            String key = iterator.next().toUpperCase(Locale.ROOT);
+            String rawKey = iterator.next();
+            String key = rawKey.toUpperCase(Locale.ROOT);
             if (!key.matches("(?:[0-7][0-9A-F]-){3}[0-7][0-9A-F]"))
                 throw new IOException("Endereço XPS inválido: " + key);
             if (blocks.containsKey(key)) throw new IOException("Bloco XPS repetido");
-            Object encoded = object.get(key);
+            Object encoded = object.get(rawKey);
             if (!(encoded instanceof String))
                 throw new IOException("Conteúdo XPS não é Base64");
             byte[] bytes;
