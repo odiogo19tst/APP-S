@@ -46,10 +46,10 @@ public final class ToneStoreActivity extends Activity {
     private final int mint = Color.rgb(117, 235, 191);
 
     private static final class PendingDownload {
-        final String url, userAgent, name, mime, cookie;
-        PendingDownload(String url, String userAgent, String name, String mime, String cookie) {
+        final String url, userAgent, name, mime;
+        PendingDownload(String url, String userAgent, String name, String mime) {
             this.url = url; this.userAgent = userAgent; this.name = name;
-            this.mime = mime; this.cookie = cookie;
+            this.mime = mime;
         }
     }
 
@@ -157,8 +157,7 @@ public final class ToneStoreActivity extends Activity {
         }
         String name = safeFilename(URLUtil.guessFileName(url, contentDisposition, mimeType));
         String mime = mimeType == null || mimeType.trim().isEmpty() ? "application/octet-stream" : mimeType;
-        String cookies = CookieManager.getInstance().getCookie(url);
-        pendingDownload = new PendingDownload(url, userAgent, name, mime, cookies);
+        pendingDownload = new PendingDownload(url, userAgent, name, mime);
         // The Android file picker displays locations and allows the user to rename the file.
         Intent destination = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         destination.addCategory(Intent.CATEGORY_OPENABLE);
@@ -174,7 +173,7 @@ public final class ToneStoreActivity extends Activity {
         }
     }
 
-    private void enqueueAtChosenLocation(PendingDownload request, Uri destination) {
+    private void enqueueAtChosenLocation(PendingDownload request, Uri destination, int grantedFlags) {
         if (request == null || destination == null || !"content".equalsIgnoreCase(destination.getScheme())) {
             note("Nenhum destino válido selecionado. Download cancelado.");
             return;
@@ -182,13 +181,16 @@ public final class ToneStoreActivity extends Activity {
         try {
             // Required for the receiver to copy the file after the Activity/process is stopped.
             try {
-                getContentResolver().takePersistableUriPermission(destination,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                int grants = grantedFlags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                if ((grants & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == 0)
+                    throw new SecurityException("Destino sem permissão de gravação");
+                getContentResolver().takePersistableUriPermission(destination, grants);
             } catch (SecurityException e) {
                 note("O provedor de arquivos não permite acesso persistente a essa pasta. Escolha outra localização.");
                 return;
             }
             String chosenName = new ToneImportLibrary(this).nameOf(destination);
+            if ("arquivo".equals(chosenName)) chosenName = request.name;
             String label = describeDocument(this, destination, chosenName);
             DownloadManager.Request download = new DownloadManager.Request(Uri.parse(request.url));
             download.setTitle(chosenName);
@@ -197,8 +199,9 @@ public final class ToneStoreActivity extends Activity {
             download.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             if (request.userAgent != null && !request.userAgent.isEmpty())
                 download.addRequestHeader("User-Agent", request.userAgent);
-            if (request.cookie != null && !request.cookie.isEmpty())
-                download.addRequestHeader("Cookie", request.cookie);
+            String cookies = CookieManager.getInstance().getCookie(request.url);
+            if (cookies != null && !cookies.isEmpty())
+                download.addRequestHeader("Cookie", cookies);
             DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
             if (manager == null) throw new IllegalStateException("Gerenciador de downloads indisponível");
             long id = manager.enqueue(download);
@@ -219,7 +222,7 @@ public final class ToneStoreActivity extends Activity {
             note("Download cancelado. Nenhum arquivo foi baixado.");
             return;
         }
-        enqueueAtChosenLocation(candidate, data.getData());
+        enqueueAtChosenLocation(candidate, data.getData(), data.getFlags());
     }
 
     @Override protected void onSaveInstanceState(Bundle out) {
@@ -229,7 +232,6 @@ public final class ToneStoreActivity extends Activity {
             out.putString("tone_pending_agent", pendingDownload.userAgent);
             out.putString("tone_pending_name", pendingDownload.name);
             out.putString("tone_pending_mime", pendingDownload.mime);
-            out.putString("tone_pending_cookie", pendingDownload.cookie);
         }
     }
 
@@ -238,7 +240,7 @@ public final class ToneStoreActivity extends Activity {
         if (state != null && state.containsKey(STATE_URL))
             pendingDownload = new PendingDownload(state.getString(STATE_URL),
                     state.getString("tone_pending_agent"), state.getString("tone_pending_name"),
-                    state.getString("tone_pending_mime"), state.getString("tone_pending_cookie"));
+                    state.getString("tone_pending_mime"));
         if (Build.VERSION.SDK_INT >= 33)
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
                     android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, () -> finishTo("home"));
