@@ -61,6 +61,7 @@ public final class ToneImportLibrary {
             return "MIDI_SMF_UNVERIFIED";
         if (count >= 4 && header[0] == 'P' && header[1] == 'K' && (header[2] & 0xff) == 3 && (header[3] & 0xff) == 4)
             return "ZIP_UNVERIFIED";
+        if (ext.endsWith(".xps")) return "XPS_JSON_UNVERIFIED";
         if (ext.endsWith(".jxe")) return "JXE_UNVERIFIED";
         if (ext.endsWith(".svd")) return "SVD_UNVERIFIED";
         if (ext.endsWith(".wav")) return "WAV_UNVERIFIED";
