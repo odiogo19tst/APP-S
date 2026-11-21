@@ -112,3 +112,25 @@ assert(ux.includes('Planejar mesclagem incremental'));
 assert(ux.includes('graue-xps-incremental-plan-v1'));
 assert(ux.includes('targetMemoryWrite:false,rolandRestore:false'));
 console.log('Grauê XPS 1.36.4: auto XPS download, real read-only keyboard test, backup plan without RESTORE PASS');
+
+const aud=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/XpsToneAuditioner.java'),'utf8');
+for(const marker of [
+ 'public final class XpsToneAuditioner','readback','private enum Phase',
+ 'SNAPSHOT, APPLY, VERIFY, READY, RESTORE, RESTORE_VERIFY',
+ 'private void requestBlock()','XpsProtocol.packet(0x11','XpsProtocol.packet(0x12',
+ 'XpsProtocol.decode(packet)','System.arraycopy(b.source,0,b.desired,0,b.source.length)',
+ 'Arrays.equals(complete,b.desired)','Arrays.equals(complete,b.before)',
+ 'backupModified",false','userWritten",false','performanceWritten",false',
+ 'public void restore()','if(!sameDevice())','WRITE USER'
+])assert(aud.includes(marker),'Audition engine missing: '+marker);
+assert(main.includes('new XpsToneAuditioner(new XpsToneAuditioner.Port()'));
+assert(main.includes('auditionStoreXpsTone(String sha)'));
+assert(main.includes('restoreAuditionXpsTone()'));
+assert(main.includes('EXTRA_IMPORTED_XPS_SHA'));
+assert(receiver.includes('"last-import-sha"'));
+assert(store.includes('awaitingAutomaticId'));
+assert(store.includes('EXTRA_IMPORTED_XPS_SHA'));
+assert(ux.includes("auditionButton.textContent='Ouvir no XPS-10'"));
+assert(ux.includes("kind==='toneAuditionStatus'"));
+assert(ux.includes('gx-store-audition-restore'));
+console.log('v1.36.5: incremental one-tap temporary XPS MIDI audition and safe restore PASS');
