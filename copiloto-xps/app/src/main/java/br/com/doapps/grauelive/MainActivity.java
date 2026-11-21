@@ -71,6 +71,9 @@ public class MainActivity extends Activity {
   final int msb,lsb,program,part,volume,deviceId;
   final long createdAt=android.os.SystemClock.elapsedRealtime();
   boolean refreshRequested=false;
+  boolean modeProbeSent=false,channelProbeSent=false;
+  int freshMode=-1,freshPatchChannel=-1;
+  long modeProbeAt=0,channelProbeAt=0;
   int polls=0;
   ToneChoice(int msb,int lsb,int program,int part,int volume,int deviceId){
    this.msb=msb;this.lsb=lsb;this.program=program;this.part=part;this.volume=volume;this.deviceId=deviceId;
@@ -78,6 +81,25 @@ public class MainActivity extends Activity {
  }
  private ToneChoice pendingToneChoice;
  private int physicalPatchRxChannel=-1;
+ /** Fresh read-only 1-byte Roland RQ1 probes prevent stale Performance cache from routing Patch. */
+ private void acceptToneSelectionProbe(byte[] packet){
+  final ToneChoice choice=pendingToneChoice;
+  if(choice==null||midi==null||!midi.isConnected()||midi.connectedDeviceId()!=choice.deviceId)return;
+  XpsProtocol.Data reply=XpsProtocol.decode(packet);
+  if(reply==null||reply.values.length<1)return;
+  final int modeAddress=XpsProtocol.address(1,0,0,0);
+  final int channelAddress=XpsProtocol.address(2,0,0,10);
+  if(choice.modeProbeSent&&reply.start==modeAddress
+      &&(reply.values[0]==0||reply.values[0]==1)){
+   choice.freshMode=reply.values[0];
+   padHandler.post(()->applyPendingTone(choice));
+  }
+  if(choice.channelProbeSent&&reply.start==channelAddress&&reply.values[0]>=0&&reply.values[0]<16){
+   choice.freshPatchChannel=reply.values[0]+1;
+   padHandler.post(()->applyPendingTone(choice));
+  }
+ }
+
 
  private void requestToneChange(int msb,int lsb,int program,int part,int volume){
   runOnUiThread(()->{
@@ -114,7 +136,22 @@ public class MainActivity extends Activity {
    return;
   }
   if(xps==null||xps.isBusy()){retryPendingTone(choice);return;}
-  final int mode=xps.observedSoundMode();
+  // Read the current mode now: an old Performance snapshot may no longer reflect
+  // the panel after the musician pressed [PERFORM] to enter single-Patch mode.
+  if(!choice.modeProbeSent){
+   choice.modeProbeSent=true;
+   choice.modeProbeAt=android.os.SystemClock.elapsedRealtime();
+   if(!midi.send(XpsProtocol.packet(0x11,XpsProtocol.address(1,0,0,0),XpsProtocol.digits(1)))){
+    pendingToneChoice=null;emit("status","Falha ao consultar o modo Patch/Performance por USB-MIDI.");return;
+   }
+   emit("status","Confirmando o modo atual do Roland por leitura MIDI antes de escolher o timbre.");
+   retryPendingTone(choice);
+   return;
+  }
+  if(choice.freshMode<0&&android.os.SystemClock.elapsedRealtime()-choice.modeProbeAt<2500){
+   retryPendingTone(choice);return;
+  }
+  final int mode=choice.freshMode; // -1 means the fresh read was not confirmed.
   if(mode==1){
    if(xps.hasPerformancePart(choice.part)){
     pendingToneChoice=null;
@@ -131,7 +168,22 @@ public class MainActivity extends Activity {
   }
   // In Patch mode CC0 + CC32 + Program Change must use the physical Patch Rx/Tx Ch.
   // Never send a Program Change to channel 1 by assumption.
-  int channel=PatchToneRouting.channel(mode,xps.observedPatchRxChannel(),physicalPatchRxChannel);
+  if(mode==0&&physicalPatchRxChannel<1&&!choice.channelProbeSent){
+   choice.channelProbeSent=true;
+   choice.channelProbeAt=android.os.SystemClock.elapsedRealtime();
+   if(midi.send(XpsProtocol.packet(0x11,XpsProtocol.address(2,0,0,10),XpsProtocol.digits(1)))){
+    emit("status","Lendo o canal Patch Rx/Tx diretamente do XPS-10.");
+    retryPendingTone(choice);
+    return;
+   }
+  }
+  if(mode==0&&choice.channelProbeSent&&choice.freshPatchChannel<1
+       &&android.os.SystemClock.elapsedRealtime()-choice.channelProbeAt<2500){
+   retryPendingTone(choice);return;
+  }
+  final int sysExChannel=choice.freshPatchChannel>0
+    ?choice.freshPatchChannel:xps.observedPatchRxChannel();
+  int channel=PatchToneRouting.channel(mode,sysExChannel,physicalPatchRxChannel);
   if(channel<1){
    if(!choice.refreshRequested){
     choice.refreshRequested=true;
@@ -297,7 +349,7 @@ getWindow().addFlags(128);
   liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   phraseSequencer=new PhraseSequencer((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   try{loopFiles=new MidiLoopFiles(getFilesDir());MidiLoopFiles.Entry previous=loopFiles.checkpoint();if(previous!=null)liveLooper.restore(previous.session);loopSavedRevision=liveLooper.state(System.nanoTime()).revision;}catch(Exception e){loopStartupIssue="Sessão anterior não recuperada: "+e.getMessage();}
-  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){acceptXpsToneProbe(p);if(xpsAudition!=null)xpsAudition.accept(p);xps.accept(p);}public void status(String t){
+  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){acceptXpsToneProbe(p);acceptToneSelectionProbe(p);if(xpsAudition!=null)xpsAudition.accept(p);xps.accept(p);}public void status(String t){
  if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
  emit("status",t);
  if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")))
