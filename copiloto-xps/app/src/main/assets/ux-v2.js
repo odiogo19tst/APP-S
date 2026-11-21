@@ -6,7 +6,7 @@
  const callOld=(id)=>{let el=$x(id);if(el)el.click();};
  const shell=document.createElement('div');shell.id='gx-shell';
  shell.innerHTML=[
- '<dialog id="gx-louve-dialog" class="gx-tone-dialog"><h2>Importar escala LouveApp</h2><p>Copie a escala completa. O Grauê preserva ordem, tom, BPM e links e abre cada cifra no navegador integrado.</p><textarea id="gx-louve-text" rows="10" maxlength="200000" placeholder="Cole aqui a escala do LouveApp"></textarea><button id="gx-louve-paste">Colar do celular e importar</button><button id="gx-louve-start">Importar escala colada</button><button id="gx-louve-close">Fechar</button></dialog>',
+ '<dialog id="gx-louve-dialog" class="gx-tone-dialog"><h2>Importar escala LouveApp</h2><p>Copie a escala completa. O Grauê preserva ordem, tom, BPM e links e abre cada cifra no navegador integrado.</p><textarea id="gx-louve-text" rows="10" maxlength="200000" placeholder="Cole aqui a escala do LouveApp"></textarea><button id="gx-louve-paste">Colar do celular e importar</button><button id="gx-louve-start">Importar escala colada</button><details class="gx-louve-api-box"><summary>Integração direta com LouveApp (API de parceiros)</summary><p id="gx-louve-api-state" role="status" aria-live="polite">Sincronização ainda não habilitada: é necessária a documentação da API oficial e permissão Escalas e Repertório.</p><button type="button" id="gx-louve-api-save">Guardar token com segurança no celular</button><button type="button" id="gx-louve-api-forget" hidden>Desvincular token</button><small>Nenhuma requisição será feita com a credencial enquanto o protocolo oficial não estiver validado. O método de colar a escala continua disponível.</small></details><button id="gx-louve-close">Fechar</button></dialog>',
 
  '<header class="gx-header"><div class="gx-brand"><span class="gx-mark">ϟ</span><div><b>Grauê XPS</b><small>SEU TECLADO. MAIS LONGE.</small></div></div><span class="gx-usb" id="gx-usb">● XPS-10<br><small>Não conectado</small></span><button id="gx-unified-usb" class="gx-usb-main">Conectar USB</button><button id="gx-midi-refresh" class="gx-midi-refresh" aria-label="Atualizar entradas e saídas MIDI" title="Atualizar entrada e saída MIDI">↻ <span>Atualizar MIDI</span></button><button id="gx-show-mode" class="gx-live-toggle" type="button" aria-pressed="false">▶ Entrar no Ao Vivo</button><button class="gx-gear" id="gx-open-settings" aria-label="Ajustes">⚙</button></header>',
  '<nav class="gx-nav" aria-label="Áreas do aplicativo"><button data-gx-tab="stage" class="on">Palco</button><button data-gx-tab="repertoire">Repertório</button><button data-gx-tab="sound">Sons</button><button data-gx-tab="drums">DrumPads</button><button data-gx-tab="coach">Copiloto</button><button data-gx-tab="backups">Backups</button><button data-gx-tab="store">Loja de Timbres</button><button data-gx-tab="settings">Ajustes</button></nav>',
@@ -249,7 +249,9 @@
   try{const set=GraueLouve.parse(text);saved.louveSetlist={title:set.title,items:set.items.map(x=>({...x,status:'pending',error:''}))};persist();renderLouve();$x('gx-louve-dialog').close();switchTab('repertoire');startLouve(set.items);}
   catch(e){notify(e.message);}
  };
- $x('gx-louve-open').onclick=()=>{$x('gx-louve-dialog').showModal();renderLouve();};
+ $x('gx-louve-open').onclick=()=>{$x('gx-louve-dialog').showModal();renderLouve();window.Native?.louveTokenStatus?.();};
+ $x('gx-louve-api-save').onclick=()=>{if(window.Native?.configureLouveToken)window.Native.configureLouveToken();else notify('Configuração segura disponível no APK Android.');};
+ $x('gx-louve-api-forget').onclick=()=>{window.Native?.removeLouveToken?.();};
  $x('gx-louve-close').onclick=()=>$x('gx-louve-dialog').close();
  $x('gx-louve-start').onclick=()=>importLouve($x('gx-louve-text').value);
  $x('gx-louve-paste').onclick=()=>{if(window.Native?.pasteLouveScale)window.Native.pasteLouveScale();else notify('Cole o texto na caixa e toque Importar escala colada.');};
@@ -1590,6 +1592,14 @@
   if(kind==='answer'){$x('gx-gemma-answer').textContent=String(data||'A IA não retornou texto.');}
   if(kind==='status')notify(data);
   if(kind==='sharedText'&&/^\s*\d+[.)]\s+/m.test(String(data))&&/Cifra:\s*https:/i.test(String(data))){$x('gx-louve-text').value=String(data);importLouve(String(data));}
+  if(kind==='louveTokenStatus'){
+   const configured=!!data?.configured;
+   $x('gx-louve-api-forget').hidden=!configured;
+   $x('gx-louve-api-save').textContent=configured?'Trocar token guardado no celular':'Guardar token com segurança no celular';
+   $x('gx-louve-api-state').textContent=configured
+    ?'Token protegido no Android. Falta o acesso documentado à API e a liberação dos escopos Escalas e Repertório para sincronizar.'
+    :'Integração direta pendente da documentação oficial de parceiros. Token ainda não configurado neste celular.';
+  }
   if(kind==='louveProgress'){
    const set=saved.louveSetlist;
    if(set&&data){
