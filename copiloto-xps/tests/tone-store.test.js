@@ -121,7 +121,7 @@ for(const marker of [
  'XpsProtocol.decode(packet)','System.arraycopy(b.source,0,b.desired,0,b.source.length)',
  'Arrays.equals(complete,b.desired)','Arrays.equals(complete,b.before)',
  'backupModified",false','userWritten",false','performanceWritten",false',
- 'public void restore()','if(!sameDevice())','WRITE USER'
+ 'public void restore()','if(!sameDevice())','USER WRITE'
 ])assert(aud.includes(marker),'Audition engine missing: '+marker);
 assert(main.includes('new XpsToneAuditioner(new XpsToneAuditioner.Port()'));
 assert(main.includes('auditionStoreXpsTone(String sha)'));
