@@ -1168,7 +1168,7 @@
     ' registros de Patch ('+Number(koa.distinctPatchRecords||0)+' conteúdos diferentes) · '+
     Number(koa.rhythmRecordCount||0)+' registros rítmicos ('+
     Number(koa.distinctRhythmRecords||0)+' conteúdos diferentes)');
-  add('small','Estrutura inferida deste formato JXE. Registros não são necessariamente sons USER independentes. Sem envio MIDI, sem conversão e sem escrita no backup.');
+  add('small','Layout estrutural encontrado. Validação das faixas MIDI é somente preliminar: ainda não há envio, conversão para Patch USER ou gravação de backup.');
   const label=add('h4','Patches identificados');
   const list=document.createElement('ol');holder.append(list);
   const seen=new Set();
@@ -1179,6 +1179,32 @@
    li.textContent=String(item.name||'Patch sem nome')+
      ' · '+String(item.group||'registro')+
      (duplicate?' · mesmo conteúdo de outro registro':'');
+   const layout=item.patchLayout;
+   if(layout&&Array.isArray(layout.components)){
+    const counts=document.createElement('small');
+    counts.textContent=' · '+Number(layout.parameterChecksInRange||0)+'/'+Number(layout.parameterChecks||0)+
+       ' parâmetros dentro das faixas; '+Number(layout.parameterChecksToReview||0)+
+       ' a revisar. Sem autorização para enviar MIDI.';
+    li.append(counts);
+    const details=document.createElement('details'),summary=document.createElement('summary');
+    summary.textContent='Ver 9 blocos do Patch e alertas';
+    details.append(summary);
+    const parts=document.createElement('ul');
+    for(const c of layout.components.slice(0,9)){
+     const entry=document.createElement('li');
+     entry.textContent=String(c.section||'bloco')+' · '+Number(c.bytes||0)+' bytes'+
+      ' · offset '+Number(c.relativeOffset||0)+
+      (Number(c.parametersToReview||0)>0?' · '+Number(c.parametersToReview)+' parâmetro(s) fora do mapa':'');
+     parts.append(entry);
+    }
+    details.append(parts);
+    if(layout.parameterChecksToReview){
+     const notice=document.createElement('small');
+     notice.textContent='Parâmetros marcados não devem ser enviados sem confirmar o mapa SysEx e a resposta do teclado.';
+     details.append(notice);
+    }
+    li.append(details);
+   }
    list.append(li);
   }
   const details=document.createElement('details'),sum=document.createElement('summary');

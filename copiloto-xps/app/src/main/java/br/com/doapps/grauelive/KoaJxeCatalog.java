@@ -98,6 +98,7 @@ public final class KoaJxeCatalog {
             int off = i < MAIN_SLOTS ? PREAMBLE + i * PATCH_SIZE
                 : extraPatchOffset + (i - MAIN_SLOTS) * PATCH_SIZE;
             JSONObject entry = record(data, off, PATCH_SIZE, i + 1, i >= MAIN_SLOTS);
+            entry.put("patchLayout", KoaJxePatchLayout.inspect(data, off));
             patches.put(entry);
             distinctPatches.add(entry.getString("sha256Block"));
         }
@@ -116,6 +117,9 @@ public final class KoaJxeCatalog {
             .put("editorModel", "JUNO-Di")
             .put("performanceNameCandidate", performance)
             .put("patchRecordBytes", PATCH_SIZE)
+            .put("patchStructure", "80 Common + 145 MFX + 84 Chorus + 83 Reverb + 41 TMT + 4×154 Tone")
+            .put("structuralMatchOnly", true)
+            .put("sysExConversionValidated", false)
             .put("rhythmRecordBytes", RHYTHM_SIZE)
             .put("rhythmNoteSlotCount", RHYTHM_NOTE_SLOTS)
             .put("rhythmNoteRecordBytes", RHYTHM_NOTE_SIZE)
