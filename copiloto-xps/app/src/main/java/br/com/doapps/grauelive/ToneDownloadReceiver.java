@@ -126,6 +126,10 @@ public final class ToneDownloadReceiver extends BroadcastReceiver {
                     }
                 }
                 prefs.edit().remove(key).remove(destinationKey).remove(locationKey)
+                    .putLong("last-import-id",id)
+                    .putString("last-import-sha",imported.optString("sha256",""))
+                    .putString("last-import-name",name)
+                    .putString("last-import-format",imported.optString("format","UNKNOWN"))
                     .putString("last-location", chosenLocation)
                     .putString("last-status",
                         "Download salvo em " + chosenLocation + " e importado na biblioteca do Grauê. Nenhum MIDI enviado.")
