@@ -834,20 +834,21 @@
  $x('gx-quick-apply').onclick=()=>{
   try{
    if(!usbConnected)throw Error('USB-MIDI desconectado. Conecte o XPS-10 antes de aplicar.');
-   if(quickBusy)throw Error('Aguarde o término da operação MIDI.');
    const draft=quickDraft();
-   if(hw['setup:0']?.[0]!==1||!(hw.validSysexPackets>0))throw Error('Conecte e leia uma Performance real no XPS-10 para aplicar.');
    if(draft.type==='tone'){
-    if(!hw['part:'+draft.part])throw Error('Leia a parte escolhida antes de editar.');
-    if(typeof window.Native?.selectToneWithVolume!=='function')throw Error('Esta versão não oferece controle de timbre e volume.');
+    // A single Patch does NOT require Performance mode or a selected Performance part.
+    if(typeof window.Native?.selectToneWithVolume!=='function')throw Error('Atualize o APK para trocar timbres também no modo Patch.');
     window.Native.selectToneWithVolume(draft.msb,draft.lsb,draft.program,draft.part,draft.volume);
+    quickStatus('Timbre solicitado ao XPS-10. No modo Patch o Grauê usa o canal MIDI do teclado, sem entrar em Performance.');
    }else{
+    if(quickBusy)throw Error('Aguarde o término da operação MIDI.');
+    if(hw['setup:0']?.[0]!==1||!(hw.validSysexPackets>0))throw Error('Dual/Split exige Performance ativa e leitura SysEx real.');
     const edits=quickApi.plan(hw,draft);
     if(typeof window.Native?.editHardware!=='function')throw Error('Ponte SysEx indisponível.');
     if(!confirm('Aplicar '+(draft.mode==='dual'?'Dual':'Split')+' temporariamente às Partes 1 e 2? Isso altera o som ativo, mas não executa WRITE na memória USER.'))return;
     window.Native.editHardware(JSON.stringify(edits));
+    quickStatus('Ajustes Dual/Split enviados para confirmação SysEx no XPS-10.');
    }
-   quickStatus('Comando MIDI solicitado. Aguarde a releitura SysEx e confira o resultado no XPS-10.');
   }catch(e){quickStatus(e.message);}
  };
  $x('gx-quick-save').onclick=()=>{
@@ -866,19 +867,15 @@
   $x('gx-quick-main').textContent=t.code+' · '+t.name;
   $x('gx-quick-status').textContent='Som principal: '+t.name+'. Selecione Dual/Split para combiná-lo com outro.';
   if(!usbConnected){notify('Timbre selecionado no Grauê, mas USB-MIDI desconectado. Conecte o XPS-10 para tocar.');return;}
-  if(quickBusy){notify('Aguarde a leitura ou edição MIDI antes de trocar o som.');return;}
+  // Android queues the latest tap while MIDI reads are in progress; no second tap needed.
+  // Patch mode uses its own Rx/Tx MIDI channel, not a Performance part.
   const part=+$x('gx-tone-part').value;
-  if(hw['setup:0']?.[0]!==1||!hw['part:'+part]){
-   window.Native?.readHardware?.();
-   notify('Leia uma Performance do XPS-10 antes da troca direta. Leitura solicitada; toque novamente após concluir.');
-   return;
-  }
-  if(typeof window.Native?.selectTone!=='function'){notify('Ponte de timbres USB indisponível.');return;}
+  if(typeof window.Native?.selectTone!=='function'){notify('Atualize o APK para seleção direta no modo Patch.');return;}
   if(Number.isInteger(t.volume)&&t.volume>=0&&t.volume<=127&&typeof window.Native?.selectToneWithVolume==='function'){
    $x('gx-quick-main-volume').value=String(t.volume);
    window.Native.selectToneWithVolume(t.msb,t.lsb,t.program,part,t.volume);
   }else window.Native.selectTone(t.msb,t.lsb,t.program,part);
-  notify('Timbre '+t.name+' solicitado à parte '+(part+1)+'; aguardando confirmação do XPS-10.');
+  notify('Timbre '+t.name+' solicitado. O Grauê identificará o canal Patch ou a parte Performance e informará o resultado MIDI.');
  }
  function bindToneTouch(button,t){
   let timer=null,suppressClick=false;
@@ -1461,6 +1458,12 @@
     if(count>0&&Object.keys(hw).length===0){
       $x('gx-performance-source').textContent='Última leitura salva: '+count+' de '+Number(copy.availableBlocks||0)+' blocos. Não representa necessariamente a Performance atual.';
     }
+  }
+  if(kind==='patchToneSelection'){
+   const msg=String(data?.message||'Comando Patch enviado.');
+   quickStatus(msg);
+   const status=$x('gx-store-ready-status');
+   if(status&&!$x('gx-store-ready').hidden)status.textContent=msg;
   }
   if(kind==='toneImports'){storeImports=Array.isArray(data)?data:[];renderStoreImports();if(readyXpsSha){const found=storeImports.find(f=>f.sha256===readyXpsSha);if(found)showReadyXps(readyXpsSha,found.name);}}
   if(kind==='toneFileInspection'){
