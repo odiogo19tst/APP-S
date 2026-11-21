@@ -133,7 +133,7 @@ async function run(){
    assert.match(await page.locator('#gx-store-koa-inventory').innerText(),/MASSIVE PAD/);
    assert.match(await page.locator('#gx-store-koa-inventory').innerText(),/CLOUD PAD/);
    assert.match(await page.locator('#gx-store-import-status').innerText(),/18 registros de Patch/);
-   assert.equal((await page.evaluate(midiCalls)).length,beforeReport,
+   assert.equal((await page.evaluate(midiCalls)).length,beforeShop,
      'JXE inventory listing cannot send MIDI or write USER');
 
    const beforeReport=(await page.evaluate(midiCalls)).length;
