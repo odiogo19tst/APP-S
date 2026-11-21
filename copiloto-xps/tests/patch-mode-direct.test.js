@@ -30,6 +30,11 @@ assert(main.includes('PatchToneRouting.channel(mode,xps.observedPatchRxChannel()
  'Use verified system Rx/Tx or physical MIDI note channel');
 assert(main.includes('if((s&0xf0)==0x90&&b>0)'),'Passive real keyboard channel learning');
 assert(main.includes('pendingToneChoice=new ToneChoice('),'Only latest requested sound may be queued');
+assert(main.includes('acceptToneSelectionProbe(p)'), 'Fresh read-only Roland mode response must be consumed');
+assert(main.includes('XpsProtocol.address(1,0,0,0),XpsProtocol.digits(1)'), 'Patch/Performance mode must be probed at selection time');
+assert(main.includes('XpsProtocol.address(2,0,0,10),XpsProtocol.digits(1)'), 'Patch receive channel must be probed directly');
+assert(main.includes('final int mode=choice.freshMode'), 'Stale Performance mode must never decide Patch routing');
+
 assert(main.includes('xpsAudition.restoreThen(()->applyPendingTone(choice))'),
  'Restore temporary external sound before Patch switch');
 assert(main.includes('pendingToneChoice=null;')&&main.includes('modeVerified'),
