@@ -69,7 +69,7 @@
  const favoriteLib=()=>window.ToneLibrary;
  const favoriteMessage=t=>{q('favorite-status').textContent=String(t);message(t);};
  const favoriteEntry=i=>favoriteLib()?.favoriteEntry?.(favoriteBank,i)||null;
- const favoriteLabel=e=>!e?'Não cadastrado':e.type==='performance'?(e.user?'USER ':'PRESET ')+String(e.number).padStart(3,'0'):e.name+' · '+e.code;
+ const favoriteLabel=e=>!e?'Não cadastrado':e.type==='rig'?(window.GraueQuickRig?.label(e)||'Dual/Split'):e.type==='performance'?(e.user?'USER ':'PRESET ')+String(e.number).padStart(3,'0'):e.name+' · '+e.code;
  const validFavoriteTone=t=>t&&Number.isInteger(t.msb)&&Number.isInteger(t.lsb)&&Number.isInteger(t.program);
  function updateFavoriteKind(){
   const type=q('favorite-kind').value;
@@ -110,6 +110,13 @@
   if(!connected){favoriteMessage('USB desconectado. Favorito salvo no celular; conecte o XPS-10 para tocar.');return;}
   if(entry.type==='performance'){
    if(!call('selectPerformance',entry.number,entry.user))return;
+  }else if(entry.type==='rig'){
+   try{
+    if(busy)throw Error('Aguarde o término da operação MIDI atual.');
+    const edits=window.GraueQuickRig?.plan(hw,entry);
+    if(!edits)throw Error('Editor Dual/Split indisponível.');
+    if(!call('editHardware',JSON.stringify(edits)))return;
+   }catch(e){favoriteMessage(e.message);return;}
   }else{
    if(!validFavoriteTone(entry)||!Number.isInteger(entry.part)||entry.part<0||entry.part>15){favoriteMessage('Timbre ou parte inválida. Edite o favorito antes de tocar.');return;}
    if(!call('selectTone',entry.msb,entry.lsb,entry.program,entry.part))return;
