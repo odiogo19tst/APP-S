@@ -220,6 +220,7 @@ public final class ToneStoreActivity extends Activity {
         // inbox. Backups are never restored when downloaded.
         String lower=name.toLowerCase(Locale.ROOT);
         if(lower.endsWith(".xps")||lower.endsWith(".jxe")||lower.endsWith(".svd")
+            ||lower.endsWith(".zip")||lower.endsWith(".bin")||lower.endsWith(".wav")
             ||lower.endsWith(".mid")||lower.endsWith(".midi")){
             enqueueAutomatically(url,userAgent,name,mime);
             return;
