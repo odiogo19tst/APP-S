@@ -185,7 +185,19 @@ getWindow().addFlags(128);
    public boolean send(byte[] packet){return midi!=null&&midi.isConnected()&&midi.send(packet);}
    public boolean connected(){return midi!=null&&midi.isConnected();}
    public int deviceId(){return midi==null?-1:midi.connectedDeviceId();}
-   public void status(JSONObject update){MainActivity.this.emit("toneAuditionStatus",update);}
+   public void status(JSONObject update){
+    MainActivity.this.emit("toneAuditionStatus",update);
+    if("playing".equals(update.optString("stage"))){
+     String testedSha=update.optString("sha256");
+     int device=update.optInt("deviceId",-1);
+     worker.execute(()->{
+      try{
+       toneImports.recordTemporaryAudition(testedSha,device);
+       emit("toneImports",toneImports.list());
+      }catch(Exception e){emit("toneImportStatus","Prévia confirmada, mas histórico não salvo: "+e.getMessage());}
+     });
+    }
+   }
   });
   loopThread=new HandlerThread("GraueMidiClock",android.os.Process.THREAD_PRIORITY_AUDIO);loopThread.start();loopClock=new Handler(loopThread.getLooper());
   liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
