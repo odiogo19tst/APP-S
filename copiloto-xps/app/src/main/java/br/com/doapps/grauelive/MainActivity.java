@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
   for(JSONObject tone:entries.values())merged.put(tone);
   if(merged.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",merged.toString()).apply();
  }
- private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
+ private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private XpsToneAuditioner xpsAudition; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
  private MidiLooper liveLooper;
  private PhraseSequencer phraseSequencer;
  private final Runnable phraseTick=new Runnable(){public void run(){if(phraseSequencer==null)return;phraseSequencer.tick(System.nanoTime());if(phraseSequencer.playing())loopClock.postDelayed(this,4);else publishPhrase();}};
@@ -181,13 +181,21 @@ getWindow().addFlags(128);
    mergeUserToneCache((JSONArray)d);
   }
  }});
+  xpsAudition=new XpsToneAuditioner(new XpsToneAuditioner.Port(){
+   public boolean send(byte[] packet){return midi!=null&&midi.isConnected()&&midi.send(packet);}
+   public boolean connected(){return midi!=null&&midi.isConnected();}
+   public int deviceId(){return midi==null?-1:midi.connectedDeviceId();}
+   public void status(JSONObject update){MainActivity.this.emit("toneAuditionStatus",update);}
+  });
   loopThread=new HandlerThread("GraueMidiClock",android.os.Process.THREAD_PRIORITY_AUDIO);loopThread.start();loopClock=new Handler(loopThread.getLooper());
   liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   phraseSequencer=new PhraseSequencer((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   try{loopFiles=new MidiLoopFiles(getFilesDir());MidiLoopFiles.Entry previous=loopFiles.checkpoint();if(previous!=null)liveLooper.restore(previous.session);loopSavedRevision=liveLooper.state(System.nanoTime()).revision;}catch(Exception e){loopStartupIssue="Sessão anterior não recuperada: "+e.getMessage();}
-  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){acceptXpsToneProbe(p);xps.accept(p);}public void status(String t){
+  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){acceptXpsToneProbe(p);if(xpsAudition!=null)xpsAudition.accept(p);xps.accept(p);}public void status(String t){
  if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
  emit("status",t);
+ if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")))
+  if(xpsAudition!=null)xpsAudition.disconnect();
  if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
   stopLiveLoop();liveLooper.retrySilence();publishLoopState();stopDrone();stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
   armed=true;emit("armed",true);emit("xpsConnection",true);
@@ -606,6 +614,37 @@ getWindow().addFlags(128);
     });
    }catch(Exception e){emit("toneImportStatus","Teste XPS impedido: "+e.getMessage());}
   });}
+  /**
+   * Audition only the temporary 1F region, with complete nine-block physical
+   * snapshot and verification. No USER Patch, Performance WRITE or SVD restore.
+   */
+  @JavascriptInterface public void auditionStoreXpsTone(String sha){worker.execute(()->{
+   try{
+    if(sha==null||!sha.matches("[a-f0-9]{64}"))throw new IOException("Arquivo XPS inválido");
+    String filename=toneImports.originalName(sha);
+    if(!filename.toLowerCase(java.util.Locale.ROOT).endsWith(".xps"))
+     throw new IOException("A prévia instantânea prioriza apenas arquivos .XPS");
+    File original=toneImports.file(sha);
+    java.util.List<XpsToneAuditioner.Block> sections=XpsToneAuditioner.parse(original);
+    JSONObject report=ToneFileInspector.analyze(original,filename,sha);
+    JSONObject xpsJson=report.optJSONObject("xps");
+    String patchName=xpsJson==null?filename:xpsJson.optString("patchName",filename);
+    runOnUiThread(()->{
+     if(xps==null||midi==null||!midi.isConnected()){
+      emit("toneImportStatus","Conecte o Roland XPS-10 por USB-MIDI para ouvir o timbre.");
+      return;
+     }
+     if(xps.isBusy()){
+      emit("toneImportStatus","Outra operação Roland está em andamento. A leitura de segurança aguarda término.");
+      return;
+     }
+     xpsAudition.start(sha,patchName,sections);
+    });
+   }catch(Exception e){emit("toneImportStatus","Prévia XPS bloqueada: "+e.getMessage());}
+  });}
+  @JavascriptInterface public void restoreAuditionXpsTone(){
+   runOnUiThread(()->{if(xpsAudition!=null)xpsAudition.restore();});
+  }
   @JavascriptInterface public void inspectStoreToneFile(String sha){worker.execute(()->{
    try{
     File original=toneImports.file(sha);
@@ -1112,5 +1151,5 @@ getWindow().addFlags(128);
  if(req==6){File source=backupArchive.fileFor(backupExportSha);try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IOException("Arquivo de destino indisponivel");byte[] buf=new byte[16384];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);}emit("status","Backup original exportado sem modificações.");return;}
  if(req==4){try(OutputStream out=getContentResolver().openOutputStream(data.getData())){out.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}emit("status","Repertório exportado.");return;}if(req==3){if(llm!=null){llm.close();llm=null;}ModelImport.install(getContentResolver().openInputStream(data.getData()),getFilesDir(),candidate->{emit("modelInfo","Pacote .task verificado. Carregando a IA no aparelho…");try(LlmInference check=openModel(candidate)){}},total->emit("modelInfo","Copiando modelo: "+(total/1048576)+" MB…"));File oldTemp=new File(getFilesDir(),"model.tmp");if(oldTemp.exists())oldTemp.delete();getPreferences(MODE_PRIVATE).edit().putBoolean("gemma270",false).apply();modelInfo();emit("status","Modelo carregado com sucesso na verificação. Use Testar IA para testar uma resposta.");}else{java.util.List<android.net.Uri> uris=new java.util.ArrayList<>();if(data.getClipData()!=null){if(data.getClipData().getItemCount()>100)throw new IOException("Selecione até 100 arquivos por lote");for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());}else uris.add(data.getData());for(android.net.Uri uri:uris){try(InputStream in=getContentResolver().openInputStream(uri);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1){if(out.size()+n>MAX_STATE_BYTES)throw new IOException("Arquivo maior que 10 MB");out.write(b,0,n);}emit("import",out.toString("UTF-8"));}catch(Exception error){emit("status","Um arquivo do lote falhou: "+error.getMessage());}}}}catch(Exception e){emit("status","Falha no arquivo: "+e.getMessage());if(req==3){String detail=String.valueOf(e.getMessage());emit("modelInfo","Importação não concluída. "+(detail.contains("Error building tflite model")?"O pacote passou na verificação, mas o runtime não conseguiu carregar o modelo. Informe o nome exato do arquivo e esta mensagem.":detail)+" O modelo anterior, se havia, foi preservado.");}}});}
  @Override protected void onStop(){super.onStop();stopLiveLoop();stoppedWhileConnected=midi!=null&&midi.isConnected();if(cifraPanel!=null)cifraPanel.pause();sequencer.stop();stopPadNotes();padSamples.stop();audio.stop();xps.cancelWrites();armed=false;emit("armed",false);emit("mic",false);emit("pause","");emit("clear","");}
- @Override protected void onDestroy(){stopLiveLoop();if(loopThread!=null)loopThread.quitSafely();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();loopStorage.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
+ @Override protected void onDestroy(){stopLiveLoop();if(loopThread!=null)loopThread.quitSafely();if(cifraPanel!=null)cifraPanel.destroy();gemmaCancel.set(true);modelInstallerWorker.shutdownNow();stopPadNotes();padSamples.release();chromaticPad.release();if(xpsAudition!=null)xpsAudition.disconnect();midi.close();audio.stop();worker.execute(()->{if(llm!=null)llm.close();});worker.shutdown();loopStorage.shutdown();web.destroy();web=null;xps.reset();super.onDestroy();}
 }
