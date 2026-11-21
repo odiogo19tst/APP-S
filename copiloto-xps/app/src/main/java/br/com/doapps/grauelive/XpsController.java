@@ -15,7 +15,15 @@ public final class XpsController {
  private void operation(String status){try{io.emit("hardwareOperation",new JSONObject().put("id",operationSerial).put("status",status).put("time",System.currentTimeMillis()).put("parameters",expected.size()));}catch(JSONException ignored){}}
  private void finishOperation(String status){if(operationPending){operation(status);operationPending=false;}}
  public boolean isBusy(){return busy;}
- public void patchSelectionInput(){if(deepPart<0)return;invalidatePatch();io.emit("status","Seleção MIDI mudou no teclado. Releia o Patch antes de editar.");h.postDelayed(()->readWhenIdle(5),300);}
+ private int panelSelectionSerial=0;
+ /** Panel Bank Select / Program Change invalidates the old Patch/Performance mode snapshot. */
+ public void patchSelectionInput(){
+  state.remove(XpsProtocol.address(1,0,0,0));
+  if(deepPart>=0)invalidatePatch();
+  final int generation=++panelSelectionSerial;
+  // A bank/program selection arrives as multiple events. Debounce to one read.
+  h.postDelayed(()->{if(generation==panelSelectionSerial)readWhenIdle(30);},650);
+ }
  private boolean patchIdentityMatches(){if(deepPart<0||deepIdentity==null||!hasPerformancePart(deepPart))return false;XpsProtocol.Block part=XpsProtocol.block("part",deepPart);for(int i=0;i<3;i++)if(!Integer.valueOf(deepIdentity[i]).equals(state.get(part.start+4+i)))return false;return true;}
  private void invalidatePatch(){if(deepPart>=0&&busy&&patchTransfer){finishOperation("cancelled");generation++;busy=false;expected.clear();io.emit("hardwareBusy",false);}deepPart=-1;deepIdentity=null;deepValid=false;deepRevision++;patchUndo.clear();patchUndoExpected.clear();publishPatch();}
  public void publishPatch(){
@@ -81,6 +89,17 @@ public final class XpsController {
  }
  private List<XpsProtocol.Block> performanceBlocks(){List<XpsProtocol.Block> b=XpsProtocol.blocks();b.addAll(XpsProtocol.patches());return b;}
  public boolean hasConfirmedSetup(){if(!hasValidSysex())return false;XpsProtocol.Block b=XpsProtocol.block("setup",0);for(int i=0;i<b.size;i++)if(!state.containsKey(b.start+i))return false;return true;}
+ /** 0=Patch and 1=Performance, from Roland Setup SysEx (never from a cached UI flag). */
+ public int observedSoundMode(){
+  Integer mode=state.get(XpsProtocol.address(1,0,0,0));
+  return hasValidSysex()&&mode!=null&&(mode==0||mode==1)?mode:-1;
+ }
+ /** The System Common Patch Rx/Tx Ch is zero-based at 02-00-00-0A (valid channels 1–16). */
+ public int observedPatchRxChannel(){
+  Integer channel=state.get(XpsProtocol.address(2,0,0,10));
+  return hasValidSysex()&&channel!=null&&channel>=0&&channel<16?channel+1:-1;
+ }
+
  public void readUsers(){
   if(!hasConfirmedSetup()){io.emit("status","Leia primeiro o estado atual do XPS-10. A leitura USER não começou porque o bloco Setup não foi confirmado.");return;}
   if(busy){io.emit("status","Aguarde a operação atual.");return;}
