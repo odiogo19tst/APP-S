@@ -26,19 +26,24 @@ console.log('Interface: MIDI, sustain, chord comparison, repertoire, transpose a
 
 els.hardwarePart.value='0';els.mfxUnit.value='0';
 for(const file of ['effects-data.js','hardware.js','tones-data.js','tones.js'])vm.runInContext(fs.readFileSync(__dirname+'/../app/src/main/assets/'+file,'utf8'),ctx);
-assert.equal(els.applyTone.disabled,true);
+assert.equal(els.applyTone.disabled,false); // Patch selection does not require Performance
 const part=Array(49).fill(0),zone=Array(27).fill(0);part[4]=87;part[5]=64;part[6]=0;part[7]=100;part[21]=64;zone[13]=127;
 ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:0':zone,readAt:Date.now()});
 assert.equal(els.applyTone.disabled,false);assert.match(els.selectedTone.textContent,/88StageGrand/);
 els.toneSearch.value='piano';els.toneSearch.oninput();assert(els.toneResults.children.length>0);
 els.toneResults.children[0].children[0].onclick();els.applyTone.onclick();let edit=calls.filter(c=>c[0]==='edit').at(-1)[1];assert.equal(edit.length,3);assert.equal(JSON.stringify(edit.map(x=>x.offset)),'[4,5,6]');
+ctx.window.receive('hardware',{'setup:0':[0],readAt:Date.now()});
+els.patchMsb.value='87';els.patchLsb.value='0';els.patchProgram.value='1';
+els.applyTone.onclick();
+assert.deepEqual(calls.at(-1),['selectTone',87,0,1,0],'Patch button uses direct bank/program, not a Performance edit');
+ctx.window.receive('hardware',{'setup:0':[1],'part:0':part,'zone:0':zone,readAt:Date.now()});
 els.toneResults.children[0].children[1].onclick();assert(calls.filter(c=>c[0]==='save').at(-1)[1].toneFavorites.length===1);
 ctx.window.receive('userTones',[{code:'USER001',name:'Meu Pad Igreja',category:'USER',msb:87,lsb:0,program:1}]);els.toneSearch.value='';els.toneSearch.oninput();assert.equal(els.toneResults.children.length,1);assert.match(els.toneResults.children[0].children[0].textContent,/Meu Pad/);
 els.toneResults.children[0].children[0].onclick();els.applyTone.onclick();edit=calls.filter(c=>c[0]==='edit').at(-1)[1];assert.equal(edit[1].value,0);assert.equal(edit[2].value,0);
-ctx.window.receive('hardwareReset',true);assert.equal(els.applyTone.disabled,true);assert.equal(els.toneResults.children.length,1); // USER remains in cache after disconnect.
+ctx.window.receive('hardwareReset',true);assert.equal(els.applyTone.disabled,false);assert.equal(els.toneResults.children.length,1); // USER remains in cache after disconnect.
 assert.equal(ctx.window.XPS_TONES.length,1564);assert.equal(new Set(ctx.window.XPS_TONES.map(t=>t.code)).size,1564);
 assert.equal(ctx.window.XPS_TONES.find(t=>t.code==='Dr020').name,'GM2 STANDARD');
-console.log('Hardware UI: read gating, patch-only write, favorites, user patches and disconnect reset passed');
+console.log('Hardware UI: direct Patch select, Performance-part edits, favorites, USER patches and disconnect reset passed');
 
 const parser=require('../app/src/main/assets/import-text.js'),parseChord=ctx.Music.parse;
 assert.equal(parser('C Am7 F G7\nUma linha de letra',parseChord).chords.join(' '),'C Am7 F G7');
