@@ -1,0 +1,32 @@
+/* Grauê Show Guardian: integrated rehearsal checks / local Performance parameter vault.
+ * Compact by default; never covers the chord sheet or bottom navigation. */
+#gx-shell .gx-guardian{margin:12px 0;border:1px solid #395c61;border-radius:14px;background:#14272f;color:#d9eae8;overflow:hidden}
+#gx-shell .gx-guardian>summary{cursor:pointer;display:flex;align-items:center;min-height:52px;padding:13px 16px;color:#a1ebd0;font-size:15px;font-weight:700;list-style-position:inside}
+#gx-shell .gx-guardian[open]>summary{border-bottom:1px solid #365458}
+#gx-shell .gx-guardian-intro{font-size:13px;line-height:1.5;margin:12px 14px;color:#bed2d0}
+#gx-shell .gx-guardian-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0 12px 12px}
+#gx-shell .gx-guardian-section{min-width:0;padding:13px;border:1px solid #375560;border-radius:12px;background:#0c1e28}
+#gx-shell .gx-guardian-section h3{font-size:16px;color:#c7f4e5;margin:0 0 10px}
+#gx-shell .gx-guardian-section>p{font-size:12px;line-height:1.55}
+#gx-shell .gx-guardian-suggest{grid-column:1/-1}
+#gx-shell .gx-guardian-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+#gx-shell .gx-guardian-actions button{min-height:46px;min-width:0;flex:1 1 145px;padding:9px 10px!important;border:1px solid #4a7773;border-radius:9px;background:#203a42;color:#f2f8f7;font-size:12px!important;white-space:normal;overflow-wrap:break-word}
+#gx-shell .gx-guardian-actions button:disabled{opacity:.5}
+#gx-shell #gx-guardian-capture,#gx-shell #gx-guardian-check,#gx-shell #gx-guardian-suggest{background:#14594d;color:#e4f9ef;border-color:#3b9c81}
+#gx-shell .gx-guardian-section label{display:flex;flex-direction:column;gap:7px;font-size:12px}
+#gx-shell .gx-guardian-section select{width:100%;max-width:100%;min-height:46px;padding:8px;border:1px solid #527274;border-radius:8px;background:#132934;color:#e4f8f5;font-size:13px}
+#gx-shell .gx-guardian-checks{list-style:none;padding:0;display:flex;flex-direction:column;gap:5px;margin:10px 0}
+#gx-shell .gx-guardian-checks li{font-size:12px;padding:6px 8px;border-radius:6px;line-height:1.45}
+#gx-shell .gx-guardian-good{color:#a2ebce;background:#15372f}
+#gx-shell .gx-guardian-warn{color:#f7d5a3;background:#453225}
+#gx-shell .gx-guardian-message{padding:10px;margin:9px 0;border:1px solid #39585d;background:#142a32;border-radius:8px;color:#e1efea;font-size:12px;line-height:1.55;white-space:normal;overflow-wrap:break-word}
+#gx-shell .gx-guardian-songlist{display:flex;flex-direction:column;gap:5px;max-height:210px;overflow:auto}
+#gx-shell .gx-guardian-song{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:7px;background:#142a31;border-radius:7px;font-size:12px}
+#gx-shell .gx-guardian-song>span{flex:1;min-width:0;overflow-wrap:break-word}
+#gx-shell .gx-guardian-song>small{max-width:48%;text-align:right;color:#c5d5cf;overflow-wrap:break-word}
+#gx-shell .gx-guardian-tone-list{display:flex;flex-wrap:wrap;gap:6px}
+#gx-shell .gx-guardian-tone{border:1px solid #3e726b;border-radius:7px;color:#c4f3df;padding:7px 8px;font-size:12px}
+#gx-shell .gx-guardian-tone-list>strong{width:100%;margin-top:7px;font-size:13px}
+#gx-shell.gx-live-mode .gx-guardian{display:none}
+@media(max-width:760px){#gx-shell .gx-guardian-columns{grid-template-columns:minmax(0,1fr)}#gx-shell .gx-guardian-suggest{grid-column:auto}#gx-shell .gx-guardian-section{padding:11px}#gx-shell .gx-guardian-actions button{flex-basis:calc(50% - 5px)}}
+@media(max-width:390px){#gx-shell .gx-guardian-actions button{flex-basis:100%}#gx-shell .gx-guardian>summary{font-size:13px}}

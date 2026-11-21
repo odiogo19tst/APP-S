@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict'),m=require('../app/src/main/assets/stage-live-model.js');
+const tones=[{code:'Pf001',name:'Stage Grand',category:'PNO'},{code:'Ky001',name:'B3',category:'ORG'},{code:'Sy001',name:'Soft Pad',category:'SPD'},{code:'USER001',name:'Meu piano',category:'USER'}];
+assert.deepEqual(m.filterTones(tones,{query:'órgão'}).map(t=>t.code),['Ky001']);assert.equal(m.filterTones(tones,{query:'piano',category:'piano'}).length,1);assert.equal(m.filterTones(tones,{query:'sóft pad',category:'pad'}).length,1);
+assert.deepEqual(m.filterTones(tones,{category:'recent',recent:['Sy001','Pf001']}).map(t=>t.code),['Sy001','Pf001']);assert.equal(m.filterTones(tones,{category:'favorites',favorites:['USER001']})[0].code,'USER001');
+const hw={'system:0':Array(30).fill(0),'setup:0':Array(52).fill(0),validSysexPackets:2};hw['system:0'][4]=64;hw['setup:0'][18]=64;
+assert.deepEqual(m.keyboardPlan(hw,2).commands,[{section:'system',index:0,offset:4,value:66}]);assert.equal(m.keyboardPlan(hw,0).commands.length,0);
+hw['setup:0'][18]=66;assert.equal(m.keyboardPlan(hw,2).commands.length,0,'Compensate existing panel shift without stacking');assert.equal(m.keyboardPlan(hw,4).commands[0].value,66);assert.equal(m.keyboardPlan(hw,4).current,2);
+assert.throws(()=>m.keyboardPlan({...hw,validSysexPackets:undefined},2));assert.throws(()=>m.keyboardPlan({...hw,validSysexPackets:0},2));assert.throws(()=>m.keyboardPlan({},2));assert.throws(()=>m.keyboardPlan(hw,25));assert.throws(()=>m.keyboardPlan(hw,0.5));assert.throws(()=>m.keyboardPlan(hw,-24),'Combined global/panel bounds');
+console.log('Stage live model PASS: accent-aware tone search, categories, favorites, recent order, documented global transpose, panel compensation and readback guards');

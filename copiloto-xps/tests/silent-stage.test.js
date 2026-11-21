@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const src=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/ux-v2.js'),'utf8');
+const css=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/ux-v2.css'),'utf8');
+for(const id of ['gx-silent-advisor','gx-silent-source','gx-silent-next','gx-silent-tone','gx-silent-accept','gx-silent-alternate','gx-silent-ai','gx-silent-dismiss','gx-silent-ai-text'])assert(src.includes('id="'+id+'"'),'Missing silent stage control: '+id);
+assert(src.includes('function renderSilentAdvisor()'),'Silent advisor not connected');
+assert(src.includes('renderSilentAdvisor();'),'Stage does not render recommendations');
+assert(src.includes('song.chords'),'Suggestions require real repertoire');
+assert(src.includes("const next=current.length?current[(idx+1)%current.length]:null"),'Next chord must come from score, not hallucinated');
+assert(src.includes("window.ToneLibrary")&&src.includes("lib.favorites()"),'Favorite selection must use saved sounds');
+assert(src.includes("if(silentSuggested)chooseTone(silentSuggested)"),'MIDI tone change must require explicit touch');
+assert(src.includes('Não execute MIDI')&&src.includes('Não alegue ouvir a banda'),'No autopilot or fabricated audio');
+assert(src.includes("window.Native.ask(prompt)")&&src.includes("if(silentPending)"),'Optional local model must be user-triggered');
+assert(src.includes("silentDismissedKey")&&src.includes("gx-silent-dismiss"),'Dismiss must persist for current chord');
+assert(src.includes("silentToneIndex=(silentToneIndex+1)%count"),'One-tap alternate tone required');
+assert(css.includes('.gx-silent-actions')&&css.includes('@media(max-width:700px)'),'Responsive stage layout missing');
+console.log('Jarvis silencioso: cifra, favoritos, aprovação manual, IA opcional e layout responsivo OK');

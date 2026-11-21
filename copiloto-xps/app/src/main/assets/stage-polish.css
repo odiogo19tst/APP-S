@@ -1,0 +1,20 @@
+/* Compact live shortcuts and accessible overlay controls. */
+#gx-shell.gx-layout-v3 .gx-stage-tool-grid{order:35;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;min-width:0}
+#gx-shell.gx-layout-v3 .gx-stage-tool-grid button{min-height:56px;padding:8px 3px;font-size:11px;overflow-wrap:anywhere;border-radius:10px}
+#gx-shell.gx-layout-v3 .gx-tool-dialog{padding:14px;width:min(94vw,700px);max-height:88dvh;overflow:auto;overscroll-behavior:contain;background:var(--gx-bg);border:1px solid var(--gx-line);color:var(--gx-white);border-radius:16px}
+#gx-shell.gx-layout-v3 .gx-tool-dialog::backdrop{background:#000b}
+#gx-shell.gx-layout-v3 .gx-tool-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:-14px;z-index:2;background:var(--gx-bg);padding:8px 0}
+#gx-shell.gx-layout-v3 .gx-tool-heading h2{font-size:16px;margin:0}
+#gx-shell.gx-layout-v3 .gx-tool-content{margin:8px 0 0;border:0}
+#gx-shell.gx-layout-v3 .gx-tool-content>summary{display:none}
+#gx-shell.gx-layout-v3 .gx-tool-content[hidden]{display:none!important}
+#gx-shell.gx-layout-v3 .gx-palette-choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+#gx-shell.gx-layout-v3 .gx-palette-choices button{padding:10px 4px;font-size:12px;border-top:4px solid var(--swatch)}
+#gx-shell.gx-layout-v3 .gx-palette-choices button[aria-pressed="true"]{outline:2px solid var(--swatch);outline-offset:1px}
+#gx-shell.gx-layout-v3 [data-gx-screen="drums"] .gx-section-label{font-size:12px;letter-spacing:.025em;line-height:1.4;flex-wrap:wrap;gap:6px}
+#gx-shell.gx-layout-v3 [data-gx-screen="drums"] .gx-section-label small{font-size:11px;letter-spacing:0;line-height:1.4}
+#gx-shell.gx-layout-v3 [data-gx-screen="drums"] p{font-size:12px;line-height:1.5}
+#gx-shell.gx-layout-v3 [data-gx-screen="drums"] strong{font-size:16px;line-height:1.35;overflow-wrap:anywhere}
+#gx-shell.gx-layout-v3 [data-gx-screen="drums"] .gx-page-heading{padding-bottom:12px}
+#gx-shell.gx-layout-v3 [data-gx-screen="drums"] .gx-page-heading h1{font-size:23px}
+@media(orientation:landscape){#gx-shell.gx-layout-v3 .gx-stage-tool-grid{grid-template-columns:repeat(7,minmax(0,1fr))}}

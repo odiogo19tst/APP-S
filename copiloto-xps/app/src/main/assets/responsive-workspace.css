@@ -1,0 +1,64 @@
+/* Android root already applies system bar insets. Never reserve them twice. */
+#gx-shell.gx-layout-v3{min-height:100dvh;max-width:1380px;width:100%}
+#gx-shell.gx-layout-v3 .gx-more-menu{margin:0;padding:0;min-height:0}
+#gx-shell.gx-layout-v3 .gx-nav>button span,#gx-shell.gx-layout-v3 .gx-more-menu>summary span{font:inherit;line-height:1.2;color:inherit}
+#gx-shell.gx-layout-v3 .gx-screen,#gx-shell.gx-layout-v3 .gx-panel,#gx-shell.gx-layout-v3 .gx-sound-center,#gx-shell.gx-layout-v3 .gx-sound-right{min-width:0;max-width:100%}
+#gx-shell.gx-layout-v3 .gx-panel p,#gx-shell.gx-layout-v3 .gx-panel small{overflow-wrap:anywhere}
+#gx-shell.gx-layout-v3 .gx-mixer-grid{min-height:0;align-items:stretch}
+#gx-shell.gx-layout-v3 .gx-channel{min-width:0}
+@media(max-width:700px){
+ #gx-shell.gx-layout-v3{padding-bottom:82px}
+ #gx-shell.gx-layout-v3 .gx-nav{height:66px;min-height:0;max-height:66px;grid-template-rows:50px;align-items:center;align-content:center;padding:7px 8px;margin:0;border-radius:14px 14px 0 0}
+ #gx-shell.gx-layout-v3 .gx-nav>button,#gx-shell.gx-layout-v3 .gx-nav>.gx-more-menu>summary{height:50px;min-height:44px;gap:3px;padding:4px 2px;font-size:10px}
+ #gx-shell.gx-layout-v3 .gx-nav svg{width:19px;height:19px}
+ #gx-shell.gx-layout-v3 .gx-mixer-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+ #gx-shell.gx-layout-v3 .gx-sound-right{width:100%}
+}
+@media(orientation:landscape) and (max-height:560px) and (max-width:700px){
+ #gx-shell.gx-layout-v3 .gx-nav{height:52px;max-height:52px;grid-template-rows:44px;padding:4px 8px;margin:0}
+ #gx-shell.gx-layout-v3 .gx-nav>button,#gx-shell.gx-layout-v3 .gx-nav>.gx-more-menu>summary{height:44px;flex-direction:row;gap:5px}
+ #gx-shell.gx-layout-v3{padding-bottom:64px}
+}
+/* Full editor: same instrument language, shorter pages and reachable return. */
+body.gx-ready.gx-legacy{padding:0 12px 24px!important;max-width:1120px}
+body.gx-ready.gx-legacy>header{padding-top:12px;gap:8px;flex-wrap:wrap}
+body.gx-legacy #gx-return{position:sticky;top:0;bottom:auto;right:auto;display:block!important;width:100%;min-height:44px;padding:10px 14px;z-index:30;border-radius:0 0 6px 6px;background:#25282e;color:#ffe0e8;border-color:#8c4d60;text-align:left;font-size:13px}
+body.gx-ready.gx-legacy>nav{top:44px;padding:7px 0;gap:4px}
+body.gx-ready.gx-legacy>nav button{min-width:0;padding:9px 5px;font-size:11px;border-radius:5px}
+.sound-workspace{--accent:#ed6b89;--card:#202328;--input:#14171c;--line:#434850;--muted:#adb6c3}
+.sound-workspace h2{font-size:21px;margin:14px 0}
+.sound-workspace h3{font-size:15px;margin:4px 0 12px}
+.sound-workspace article{padding:14px;margin:10px 0;border-radius:7px;min-width:0}
+.sound-workspace button{min-height:44px;border-radius:5px;background:linear-gradient(#34373d,#25282d);font-size:12px;padding:9px 12px}
+.sound-workspace .sound-workspace-tabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:5px}
+.sound-workspace-tabs button{flex:1 0 auto}
+.sound-workspace-tabs button[aria-selected="true"]{background:linear-gradient(#714050,#472730);border-color:#d6657e;color:#ffe0e8;box-shadow:inset 0 -2px #e86681}
+.sound-workspace-page[hidden]{display:none!important}
+.sound-workspace .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sound-workspace label{min-width:0;margin:9px 0;font-size:12px}
+.sound-workspace select{max-width:100%;min-height:44px;font-size:13px}
+.sound-workspace input[type=number]{min-height:44px;width:100%!important;max-width:100%;font-size:14px}
+.sound-workspace p{font-size:12px;line-height:1.5;margin:10px 0;overflow-wrap:anywhere}
+.sound-workspace .family-chips{flex-wrap:wrap;overflow:visible;gap:4px}
+.sound-workspace .family-chips button{white-space:normal;flex:1 0 90px;padding:7px;font-size:11px}
+.sound-workspace #toneResults{max-height:min(42dvh,360px);overscroll-behavior:contain}
+.sound-workspace #toneResults .song{gap:5px}
+.sound-workspace #toneResults .song button:first-child{min-width:0;overflow-wrap:anywhere}
+.sound-workspace #toneSearch{min-height:44px;font-size:13px}
+.sound-workspace #controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sound-workspace #controls label{background:#292c32;border:1px solid #434850;border-radius:5px;padding:10px 8px;grid-template-columns:1fr;align-content:start;gap:8px;font-size:11px}
+.sound-workspace #controls output{font-variant-numeric:tabular-nums;color:#ffd6e1;font-size:15px}
+.sound-workspace #controls input{grid-column:1;width:100%;height:44px}
+.sound-workspace input[type=checkbox]{appearance:none;width:42px;height:25px;border:1px solid #6a6c74;border-radius:4px;background:linear-gradient(90deg,#737781 48%,#17191e 49%);vertical-align:middle;flex:0 0 42px;min-height:25px;margin:0 5px 0 0}
+.sound-workspace input[type=checkbox]:checked{background:linear-gradient(90deg,#9e405a 51%,#c5a8b0 52%);border-color:#e87a94}
+.sound-workspace .sound-part-options{border-top:1px solid #434850;padding-top:5px}
+.sound-workspace .gx-instrument-control{position:relative;height:52px;display:flex;align-items:center;gap:8px;margin:3px 0}
+.sound-workspace .gx-instrument-control input[type=range]{width:100%;height:44px;accent-color:#ed6b89}
+.sound-workspace .gx-control-readout{display:none}
+.sound-workspace .gx-control-unread input[type=range]{visibility:hidden}
+.sound-workspace .gx-knob-face{width:52px;height:52px;flex:0 0 52px}
+.sound-workspace input:focus-visible,.sound-workspace button:focus-visible{outline:2px solid #ed7d98;outline-offset:2px}
+@media(min-width:800px){.sound-workspace-page{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}.sound-workspace-page>article:first-child{grid-column:1/-1}.sound-workspace #controls{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:360px){.sound-workspace #controls{grid-template-columns:repeat(2,minmax(0,1fr))}.sound-workspace .grid{gap:7px}}
+
+@media(max-width:700px){#gx-shell.gx-layout-v3 .gx-channel{gap:5px;padding:8px 4px}#gx-shell.gx-layout-v3 .gx-channel input[type=range]{height:120px;min-height:100px}#gx-shell.gx-layout-v3 .gx-channel span{min-height:25px;font-size:10px}}
