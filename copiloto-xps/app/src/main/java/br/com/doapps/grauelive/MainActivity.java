@@ -653,10 +653,10 @@ getWindow().addFlags(128);
        emit("toneImportStatus","O teclado foi desconectado antes da prévia.");return;
       }
       if(xps.isBusy()){
-       if(++attempts[0]<=15){
-        if(attempts[0]==1)emit("toneImportStatus","Aguardando a sincronização MIDI antes de abrir o timbre...");
+       if(++attempts[0]<=35){
+        if(attempts[0]==1)emit("toneImportStatus","Aguardando a leitura inicial MIDI (até 18 segundos). Não será enviado nenhum Patch antes da resposta do Roland.");
         new Handler(Looper.getMainLooper()).postDelayed(tryStart[0],500);
-       }else emit("toneImportStatus","A leitura do teclado não terminou. A prévia externa foi preservada no Grauê para nova tentativa.");
+       }else emit("toneImportStatus","O controlador MIDI permaneceu ocupado. Nenhum timbre externo foi enviado; tente novamente após a leitura terminar.");
        return;
       }
       xpsAudition.start(sha,patchName,sections);
