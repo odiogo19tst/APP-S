@@ -147,6 +147,28 @@ public final class ToneStoreActivity extends Activity {
     /** Android system Back returns to Grauê, never trapping the musician in WebView history. */
     @Override public void onBackPressed() { finishTo("home"); }
 
+    /** Download straight into the protected library; export is optional later. */
+    private void enqueueAutomatically(String url,String userAgent,String filename,String mime){
+        try{
+            Uri link=Uri.parse(url);
+            if(!isHttps(link))throw new IllegalArgumentException("Endereço inseguro");
+            DownloadManager.Request download=new DownloadManager.Request(link);
+            download.setTitle(filename);
+            download.setDescription("Importação automática para a biblioteca Grauê");
+            download.setMimeType(mime);
+            download.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            if(userAgent!=null&&!userAgent.isEmpty())download.addRequestHeader("User-Agent",userAgent);
+            String cookies=CookieManager.getInstance().getCookie(url);
+            if(cookies!=null&&!cookies.isEmpty())download.addRequestHeader("Cookie",cookies);
+            DownloadManager manager=(DownloadManager)getSystemService(Context.DOWNLOAD_SERVICE);
+            if(manager==null)throw new IllegalStateException("Gerenciador de downloads indisponível");
+            long id=manager.enqueue(download);
+            ToneDownloadReceiver.trackAutomatic(this,id,filename);
+            destinationStatus.setText("Destino automático: Biblioteca Grauê");
+            note("Baixando "+filename+"; a biblioteca recebe uma cópia. Nenhum comando MIDI é enviado.");
+        }catch(Exception e){note("Não foi possível importar automaticamente: "+e.getMessage());}
+    }
+
     private void chooseLocationBeforeDownload(String url, String userAgent,
                                               String contentDisposition, String mimeType) {
         Uri uri;
@@ -161,6 +183,14 @@ public final class ToneStoreActivity extends Activity {
         }
         String name = safeFilename(URLUtil.guessFileName(url, contentDisposition, mimeType));
         String mime = mimeType == null || mimeType.trim().isEmpty() ? "application/octet-stream" : mimeType;
+        // Sounds and backups are downloaded directly into the immutable app
+        // inbox. Backups are never restored when downloaded.
+        String lower=name.toLowerCase(Locale.ROOT);
+        if(lower.endsWith(".xps")||lower.endsWith(".jxe")||lower.endsWith(".svd")
+            ||lower.endsWith(".mid")||lower.endsWith(".midi")){
+            enqueueAutomatically(url,userAgent,name,mime);
+            return;
+        }
         pendingDownload = new PendingDownload(url, userAgent, name, mime);
         // The Android file picker displays locations and allows the user to rename the file.
         Intent destination = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -279,14 +309,14 @@ public final class ToneStoreActivity extends Activity {
         destinationStatus.setTextColor(mint);
         destinationStatus.setTextSize(12);
         destinationStatus.setPadding(14, 8, 14, 8);
-        destinationStatus.setText("Destino: escolha a pasta ao tocar em Baixar.");
+        destinationStatus.setText("Timbres XPS/JXE e backups SVD: download automático para o Grauê.");
         root.addView(destinationStatus);
 
         status = new TextView(this);
         status.setTextColor(ink);
         status.setTextSize(12);
         status.setPadding(14, 7, 14, 10);
-        status.setText("Baixar abre o seletor de pasta antes de transferir o arquivo.");
+        status.setText("Toque no arquivo XPS na loja. O Grauê baixa e guarda na biblioteca sem escolher pasta.");
         root.addView(status);
 
         browser = new WebView(this);
