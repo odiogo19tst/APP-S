@@ -112,3 +112,56 @@ assert(ux.includes('Planejar mesclagem incremental'));
 assert(ux.includes('graue-xps-incremental-plan-v1'));
 assert(ux.includes('targetMemoryWrite:false,rolandRestore:false'));
 console.log('Grauê XPS 1.36.4: auto XPS download, real read-only keyboard test, backup plan without RESTORE PASS');
+
+const aud=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/XpsToneAuditioner.java'),'utf8');
+for(const marker of [
+ 'public final class XpsToneAuditioner','readback','private enum Phase',
+ 'SNAPSHOT, APPLY, VERIFY, READY, RESTORE, RESTORE_VERIFY',
+ 'private void requestBlock()','XpsProtocol.packet(0x11','XpsProtocol.packet(0x12',
+ 'XpsProtocol.decode(packet)','System.arraycopy(b.source,0,b.desired,0,b.source.length)',
+ 'Arrays.equals(complete,b.desired)','Arrays.equals(complete,b.before)',
+ 'backupModified",false','userWritten",false','performanceWritten",false',
+ 'public void restore()','if(!sameDevice())','USER WRITE'
+])assert(aud.includes(marker),'Audition engine missing: '+marker);
+assert(main.includes('new XpsToneAuditioner(new XpsToneAuditioner.Port()'));
+assert(main.includes('auditionStoreXpsTone(String sha)'));
+assert(main.includes('restoreAuditionXpsTone()'));
+assert(main.includes('EXTRA_IMPORTED_XPS_SHA'));
+assert(receiver.includes('"last-import-sha"'));
+assert(store.includes('awaitingAutomaticId'));
+assert(store.includes('EXTRA_IMPORTED_XPS_SHA'));
+assert(ux.includes("auditionButton.textContent='Ouvir no XPS-10'"));
+assert(ux.includes("kind==='toneAuditionStatus'"));
+assert(ux.includes('gx-store-audition-restore'));
+console.log('v1.36.5: incremental one-tap temporary XPS MIDI audition and safe restore PASS');
+
+const importer=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneZipImporter.java'),'utf8');
+for(const marker of ['ZipInputStream','MAX_ENTRIES=120','MAX_UNPACKED=240L*1024L*1024L',
+ 'library.importStream(bounded,name','backups.importOriginal','rolandRestore",false',
+ 'svdMergeExecuted",false','FilterInputStream'])
+ assert(importer.includes(marker),'Safe incremental ZIP importer missing: '+marker);
+assert(store.includes('lower.endsWith(".zip")'));
+assert(store.includes('lower.endsWith(".bin")'));
+assert(receiver.includes('ToneZipImporter.importArchive('));
+assert(receiver.includes('"last-import-id"'));
+assert(receiver.includes('"last-import-format"'));
+assert(main.includes('ToneZipImporter.importArchive('));
+assert(main.includes('recordTemporaryAudition(testedSha,device)'));
+assert(inbox.includes('recordTemporaryAudition(String sha,int deviceId)'));
+assert(ux.includes('item.temporaryAuditionConfirmed'));
+assert(ux.includes('Prévia USB confirmada'));
+console.log('v1.36.5 ZIP incremental library, verified-only audition history PASS');
+
+const collection=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneCollectionBundle.java'),'utf8');
+for(const marker of ['public final class ToneCollectionBundle','ZipOutputStream',
+ '"graue-xps-collection-v1"','MAX_SIZE=240L*1024L*1024L',
+ '"userMemoryModified",false','"svdMerged",false',
+ 'backups.fileFor(sha)','tones.file(sha)','sha.equals(hex(digest.digest()))',
+ 'already.add(sha)','manifest.json'])
+ assert(collection.includes(marker),'Real incremental ZIP bundle export missing: '+marker);
+assert(main.includes('exportIncrementalTonePack()'));
+assert(main.includes('ToneCollectionBundle.create(MainActivity.this)'));
+assert(main.includes('if(req==18)'));
+assert(ux.includes("window.Native.exportIncrementalTonePack()"));
+assert(ux.includes('Mesclar coleção de timbres (ZIP)'));
+console.log('v1.36.5 archive union: lossless hashes and import/export ZIP without destructive SVD restore PASS');

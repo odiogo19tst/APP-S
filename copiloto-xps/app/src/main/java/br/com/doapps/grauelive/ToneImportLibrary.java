@@ -167,6 +167,30 @@ public final class ToneImportLibrary {
         return row;
     }
 
+    /**
+     * Records only an actually read-back-confirmed TEMPORARY keyboard audition.
+     * Never equates it with a persisted USER patch or Performance.
+     */
+    public synchronized void recordTemporaryAudition(String sha,int deviceId) throws Exception {
+        if(sha==null||!sha.matches("[a-f0-9]{64}")||deviceId<0)
+            throw new IOException("Identificador MIDI não confirmado");
+        JSONArray items=readCatalog();
+        boolean found=false;
+        for(int i=0;i<items.length();i++){
+            JSONObject row=items.getJSONObject(i);
+            if(!sha.equals(row.optString("sha256")))continue;
+            if(!row.optString("name").toLowerCase(Locale.ROOT).endsWith(".xps"))
+                throw new IOException("Esta gravação de estado é exclusiva de .XPS");
+            row.put("temporaryAuditionConfirmed",true)
+               .put("temporaryAuditionAt",System.currentTimeMillis())
+               .put("temporaryAuditionDeviceId",deviceId)
+               .put("writtenToKeyboard",false);
+            found=true;break;
+        }
+        if(!found)throw new IOException("Timbre não pertence à biblioteca");
+        persist(items);
+    }
+
     public synchronized File file(String sha) throws Exception {
         if (sha == null || !sha.matches("[a-f0-9]{64}")) throw new IOException("Identificador de arquivo inválido");
         JSONArray items = readCatalog();
