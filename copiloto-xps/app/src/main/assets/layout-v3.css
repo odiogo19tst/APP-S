@@ -216,3 +216,16 @@ body.gx-ready{--gx-bg:#0c1015;--gx-panel:#151b22;--gx-panel2:#1b232d;--gx-line:#
 #gx-shell.gx-layout-v3 #gx-store-export-report{width:100%;min-height:48px;font-size:12px!important}
 #gx-shell.gx-layout-v3 .gx-store-import-buttons{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:440px){#gx-shell.gx-layout-v3 .gx-store-import-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell.gx-layout-v3 .gx-store-import-buttons button:last-child{grid-column:1/-1}}
+
+
+/* Read-only JXE performance/patch inventory, not a MIDI importer. */
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory{margin:12px 0;padding:12px;border:1px solid #427e76;border-radius:11px;background:#123332;max-width:100%;min-width:0}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory[hidden]{display:none}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory h3{font-size:16px;color:#b8f2de;line-height:1.4;overflow-wrap:break-word}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory h4{font-size:14px;margin:12px 0 6px}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory p{font-size:12px;line-height:1.5}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory small{font-size:11px;color:#d2e7df;line-height:1.5}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory ol{padding:0 0 0 24px;margin:9px 0;display:grid;gap:5px}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory li{font-size:12px;padding:6px;border-radius:6px;background:#173d3c;overflow-wrap:break-word}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory details{margin-top:12px;padding:10px;border:1px solid #3b6a68;border-radius:8px}
+#gx-shell.gx-layout-v3 .gx-store-koa-inventory summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:13px;color:#c8efe2}

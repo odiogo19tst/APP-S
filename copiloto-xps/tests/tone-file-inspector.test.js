@@ -30,3 +30,30 @@ assert(ux.includes("kind==='toneFileInspection'"));
 assert(ux.includes("window.Native.exportFile(JSON.stringify(toneFileReport,null,2))"));
 assert(css.includes('.gx-store-binary-report'));
 console.log('JXE research: bounded-read, SMF header check, immutable source, no MIDI/USER write, exportable JSON PASS');
+
+
+const koa=fs.readFileSync(path.join(root,'java/br/com/doapps/grauelive/KoaJxeCatalog.java'),'utf8');
+for(const expected of [
+ 'public final class KoaJxeCatalog','FILE_SIZE = 336127','PREAMBLE = 2425','PATCH_SIZE = 1049',
+ 'RHYTHM_SIZE = 17490','MAIN_SLOTS = 16','EXTRA_SLOTS = 2','RHYTHM_NOTE_SLOTS = 88',
+ 'RHYTHM_NOTE_SIZE = 195','RHYTHM_COMMON_SIZE = 330','KoaDataFile00001fm',
+ 'JUNO-Di         ','static boolean isKoaJunoDi','static JSONObject parse(byte[] data)',
+ 'printableName(data, 328, 12)','distinctPatchRecords','distinctRhythmRecords',
+ '"canApplyToKeyboard", false','"canConvertToPerformance", false','"canUpdateSvdBackup", false',
+ 'MessageDigest.getInstance("SHA-256")','"empirical_one_sample"'
+])assert(koa.includes(expected),'Koa JXE read-only layout probe is missing: '+expected);
+assert(!koa.includes('sendMidi(')&&!koa.includes('editHardware(')&&!koa.includes('WRITE_USER'),
+ 'JXE layout recognition must never issue MIDI or USER WRITE');
+assert(java.includes('KoaJxeCatalog.isKoaJunoDi(prefix)'));
+assert(java.includes('report.put("koa", KoaJxeCatalog.parse(complete))'));
+assert(java.includes('report.put("identifiedAs", "KOA_JUNO_DI_EDITOR_STATE")'));
+assert(java.includes('original.length() == KoaJxeCatalog.FILE_SIZE'),
+ 'Unknown JXE variants must never be parsed with the empirical fixed offsets');
+assert(ux.includes('id="gx-store-koa-inventory"'));
+assert(ux.includes('function renderKoaInventory(report)'));
+assert(ux.includes('renderKoaInventory(toneFileReport)'));
+assert(ux.includes('performanceNameCandidate'));
+assert(ux.includes('koa.patches.slice(0,24)'));
+assert(ux.includes('koa.rhythms.slice(0,24)'));
+assert(css.includes('.gx-store-koa-inventory'));
+console.log('Koa JXE catalog: empirical 18 patch and 18 rhythm records, read-only preview and no MIDI PASS');
