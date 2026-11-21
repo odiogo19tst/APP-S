@@ -1134,7 +1134,7 @@ body.light #gx-shell .gx-cifra-text{color:#222e3a}
 #gx-shell .gx-quick-rig{display:flex;flex-direction:column;gap:10px;padding:12px;margin:10px 0;border:1px solid #41706d;background:#122b31;border-radius:13px}
 #gx-shell .gx-quick-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 #gx-shell .gx-quick-heading strong{color:#87e2cf;font-size:15px}
-#gx-shell .gx-quick-heading small{font-size:12px;overflow-wrap:anywhere}
+#gx-shell .gx-quick-heading small{font-size:12px;overflow-wrap:break-word}
 #gx-shell .gx-quick-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
 #gx-shell .gx-quick-modes button{min-height:46px;font-size:12px!important;white-space:normal;padding:7px 5px!important}
 #gx-shell .gx-quick-modes button.on{border-color:#70e1c7;background:#125248}
