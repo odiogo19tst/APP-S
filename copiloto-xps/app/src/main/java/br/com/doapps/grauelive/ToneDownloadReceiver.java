@@ -34,6 +34,24 @@ public final class ToneDownloadReceiver extends BroadcastReceiver {
         if (!saved) throw new IllegalStateException("Não foi possível registrar o local escolhido");
     }
 
+    /**
+     * One-touch portal import. The Android DownloadManager owns the download;
+     * the immutable app library receives the bytes on completion. No user
+     * filename dialog, no restore operation, no MIDI transmission.
+     */
+    public static void trackAutomatic(Context context, long id, String originalName) {
+        if (id <= 0 || originalName == null || originalName.trim().isEmpty())
+            throw new IllegalArgumentException("Download automático inválido");
+        boolean saved=context.getApplicationContext().getSharedPreferences(PREFS,Context.MODE_PRIVATE)
+            .edit().putString("pending-" + id,originalName)
+            .putString("destination-" + id,"")
+            .putString("location-" + id,"Biblioteca Grauê")
+            .putString("last-location","Biblioteca Grauê")
+            .putString("last-status","Baixando " + originalName + " para a biblioteca...")
+            .commit();
+        if (!saved) throw new IllegalStateException("Não foi possível registrar o download");
+    }
+
     public static int pendingCount(Context context) {
         Map<String, ?> all = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).getAll();
         int n = 0;
@@ -85,6 +103,12 @@ public final class ToneDownloadReceiver extends BroadcastReceiver {
                 try (ParcelFileDescriptor fd = manager.openDownloadedFile(id);
                      InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
                     imported = lib.importStream(in, name, "SynthXPS · download Android");
+                }
+                // Valid Roland backup copies are also indexed in the dedicated vault,
+                // preserving the complete binary. This is NOT a binary SVD merge.
+                if ("SVD_XPS10_BACKUP_ORIGINAL".equals(imported.optString("format"))) {
+                    new BackupArchive(context).importOriginal(
+                        lib.file(imported.getString("sha256")), name);
                 }
                 // The chosen document was created by ACTION_CREATE_DOCUMENT before download.
                 // Copy the exact validated original there, never to Roland USER or SVD.
