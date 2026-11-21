@@ -188,7 +188,7 @@
  $x('gx-start').onclick=()=>{if(!playing)callOld('play');switchTab('stage');sync();};
  $x('gx-pause').onclick=()=>{if(playing)callOld('play');sync();};
  $x('gx-score-next').onclick=()=>{callOld('nextBtn');syncStage();};
- $x('gx-next').onclick=()=>{const at=activeSongIndex();if(songs.length>1){const next=(at+1+songs.length)%songs.length;selectRepertoireSong(songs[next],next);sync();}else{notify('Adicione outra música ao repertório para usar Próxima música.');}};
+ $x('gx-next').onclick=()=>{const at=activeSongIndex(),order=GraueLouve.orderedIndexes(songs,saved.louveSetlist);if(order.length>1){const pos=order.indexOf(at),next=order[(pos+1+order.length)%order.length];selectRepertoireSong(songs[next],next);sync();}else{notify('Adicione outra música ao repertório para usar Próxima música.');}};
  $x('gx-stage-reapply-rig').onclick=()=>{
   const entry=activeSongEntry();
   if(!entry){notify('Selecione uma música específica no repertório antes de reaplicar.');return;}
@@ -229,7 +229,7 @@
   const count=document.createElement('span');count.className='gx-louve-count';const done=set.items.filter(x=>x.status==='done').length;count.textContent=done+'/'+set.items.length+' importadas';
   summary.append(title,count);details.append(summary);
   const rows=document.createElement('div');rows.className='gx-louve-rows';
-  set.items.forEach(item=>{const line=document.createElement('p');line.textContent=(item.status==='done'?'✓ ':item.status==='failed'?'⚠ ':'… ')+item.title+' · Tom '+(item.key||'—')+' · BPM '+item.bpm+(item.error?' · '+item.error:'')+(item.status==='done'&&!item.keyMatched?' · conferir tom da fonte':'');rows.append(line);});
+  set.items.forEach((item,i)=>{const line=document.createElement('p');const order=Number.isInteger(item.order)&&item.order>0?item.order:i+1;line.textContent=order+'. '+(item.status==='done'?'✓ ':item.status==='failed'?'⚠ ':'… ')+item.title+' · Tom '+(item.key||'—')+' · BPM '+item.bpm+(item.error?' · '+item.error:'')+(item.status==='done'&&!item.keyMatched?' · conferir tom da fonte':'');rows.append(line);});
   details.append(rows);box.append(details);
   $x('gx-louve-retry').hidden=!set.items.some(x=>x.status!=='done');
  };
@@ -625,18 +625,43 @@
  saved.songFavorites=songs.filter(s=>oldSongFavorites.has(s.loopId)||oldSongFavorites.has(s.title)).map(s=>s.loopId);
  if(JSON.stringify([...oldSongFavorites])!==JSON.stringify(saved.songFavorites))persist();
  const songFavoriteSet=()=>new Set(Array.isArray(saved.songFavorites)?saved.songFavorites:[]);
- function renderStageSongOptions(){const dropdown=$x('gx-live-song-select');const catalog=songs.map((entry,i)=>i+':'+S(entry?.title)).join('|');if(dropdown.dataset.catalog!==catalog){dropdown.replaceChildren();songs.forEach((entry,i)=>{if(!entry)return;const option=document.createElement('option');option.value=String(i);option.textContent=S(entry.title||'Música '+(i+1));dropdown.append(option);});dropdown.dataset.catalog=catalog;}const current=activeSongIndex();if(current>=0)dropdown.value=String(current);else dropdown.selectedIndex=-1;}
+ function repertoireKey(s,meta){
+  if(meta)return meta.key||'—';
+  const requested=String(s.requestedKey||'').trim();
+  return requested||((M.names[s.root]||'—')+(s.minor?'m':''));
+ }
+ function renderStageSongOptions(){
+  const dropdown=$x('gx-live-song-select'),ordered=GraueLouve.orderedIndexes(songs,saved.louveSetlist);
+  const catalog=JSON.stringify({songs:songs.map(s=>[s.loopId,s.title,s.category,s.root,s.minor,s.requestedKey]),scale:saved.louveSetlist?.items?.map(x=>[x.id,x.order,x.key,x.status])});
+  if(dropdown.dataset.catalog!==catalog){
+   dropdown.replaceChildren();
+   for(const i of ordered){const entry=songs[i];if(!entry)continue;
+    const meta=GraueLouve.songMeta(entry,saved.louveSetlist),option=document.createElement('option');
+    option.value=String(i);option.textContent=(meta?meta.order+'. ':'')+S(entry.title||'Música '+(i+1))+' · Tom '+repertoireKey(entry,meta);
+    dropdown.append(option);
+   }
+   dropdown.dataset.catalog=catalog;
+  }
+  const current=activeSongIndex();if(current>=0)dropdown.value=String(current);else dropdown.selectedIndex=-1;
+ }
  function renderSongs(){renderStageSongOptions();
-  const box=$x('gx-songs'),q=$x('gx-search').value.trim().toLowerCase(),favs=songFavoriteSet();box.replaceChildren();
-  let items=songs.map((s,i)=>({s,i})).filter(({s})=>(S(s.title)+' '+S(s.category)+' '+S(s.root)).toLowerCase().includes(q));
+  const box=$x('gx-songs'),q=$x('gx-search').value.trim().toLowerCase(),favs=songFavoriteSet(),ordered=GraueLouve.orderedIndexes(songs,saved.louveSetlist);box.replaceChildren();
+  let items=ordered.map(i=>({s:songs[i],i,meta:GraueLouve.songMeta(songs[i],saved.louveSetlist)}))
+   .filter(({s,meta})=>(S(s.title)+' '+S(s.category)+' '+S(s.root)+' '+repertoireKey(s,meta)+' '+(meta?.order||'')).toLowerCase().includes(q));
   if(filter==='favorites')items=items.filter(({s})=>favs.has(s.loopId));
-  if(filter==='setlist')items=items.filter(({s})=>S(s.category).toLowerCase().includes('setlist'));
-  if(filter==='recent')items=items.slice(-12).reverse();
+  if(filter==='setlist')items=items.filter(({s,meta})=>!!meta||S(s.category).toLowerCase().includes('setlist'));
+  if(filter==='recent')items=items.sort((a,b)=>b.i-a.i).slice(0,12);
   if(!items.length){let p=document.createElement('p');p.className='gx-empty';p.textContent='Nenhuma música encontrada. Abra o Cifra Club e importe uma cifra.';box.append(p);}
-  items.forEach(({s,i})=>{
-   let row=document.createElement('div');row.className='gx-song-row'+(i===activeSongIndex()?' active':'');
-   let pick=document.createElement('button'),star=document.createElement('button');
-   pick.className='gx-song-pick';let title=document.createElement('strong');title.textContent=s.title;let sub=document.createElement('small');sub.textContent=s.category||'Sem categoria';pick.append(title,sub);
+  items.forEach(({s,i,meta})=>{
+   const row=document.createElement('div');row.className='gx-song-row'+(i===activeSongIndex()?' active':'');
+   const pick=document.createElement('button'),star=document.createElement('button');
+   pick.className='gx-song-pick';
+   const heading=document.createElement('span');heading.className='gx-song-title-line';
+   const title=document.createElement('strong');title.textContent=(meta?meta.order+'. ':'')+s.title;
+   const key=document.createElement('span');key.className='gx-song-key';key.textContent='Tom '+repertoireKey(s,meta);
+   const sub=document.createElement('small');sub.textContent=s.category||'Sem categoria';
+   heading.append(title,key);pick.append(heading,sub);
+   pick.setAttribute('aria-label',(meta?'Música '+meta.order+' da escala, ':'')+s.title+', tom '+repertoireKey(s,meta));
    pick.onclick=()=>selectRepertoireSong(s,i);
    star.className='gx-song-star';star.textContent=favs.has(s.loopId)?'★':'☆';star.setAttribute('aria-label','Favoritar '+s.title);
    star.onclick=()=>{let set=songFavoriteSet();set.has(s.loopId)?set.delete(s.loopId):set.add(s.loopId);saved.songFavorites=[...set];persist();renderSongs();};
@@ -673,7 +698,7 @@
  function renderRepertoire(){
    renderSongRig();
    $x('gx-cifra-title').textContent=song.title||'Escolha uma música';
-   $x('gx-cifra-meta').textContent=(song.category||'Repertório local')+(song.sourceUrl?' · Cifra Club: página importada':'');
+   const scaleMeta=GraueLouve.songMeta(song,saved.louveSetlist);$x('gx-cifra-meta').textContent=(scaleMeta?scaleMeta.order+'ª da escala · ':'')+(song.category||'Repertório local')+' · Tom '+repertoireKey(song,scaleMeta)+(song.sourceUrl?' · Cifra Club: página importada':'');
    $x('gx-cifra-key').textContent='Tom de referência: '+M.names[root]+(minor?' menor':' maior');
    const content=$x('gx-cifra-content');
    const retainedScroll=content.querySelector('pre')?.scrollTop||0;

@@ -2,7 +2,24 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),L=require('../app/src/main/assets/louve-import'),M=require('../app/src/main/assets/music'),parse=require('../app/src/main/assets/import-text'),transpose=require('../app/src/main/assets/cifra-transpose');
 const fixture=fs.readFileSync(__dirname+'/fixtures/louve-scale.txt','utf8');const set=L.parse(fixture);
 assert.equal(set.items.length,3);assert.equal(set.title,'Culto Louvor e Adoração');
-assert.deepEqual(set.items.map(x=>x.key),['C','E','C']);assert.deepEqual(set.items.map(x=>x.bpm),[162,150,124]);
+assert.deepEqual(set.items.map(x=>x.key),['C','E','C']);
+
+assert.deepEqual(set.items.map(x=>x.order),[1,2,3],'Original song numbers must be retained');
+assert.deepEqual(L.parse(fixture.replace('1. Um Chamado','5. Um Chamado')).items.map(x=>x.order),[5,2,3],'Never synthesize the original numbering');
+const imported=[
+ {title:set.items[1].title,category:set.title,sourceUrl:set.items[1].sourceUrl,requestedKey:'E',louveEntryId:'entry-1'},
+ {title:'Deus do Secreto',category:'Cifra Club',sourceUrl:'https://www.cifraclub.com.br/outro/nao-confundir/',root:0,minor:false},
+ {title:set.items[0].title,category:set.title,sourceUrl:set.items[0].sourceUrl,requestedKey:'C',louveEntryId:'entry-0'}
+];
+assert.deepEqual(L.orderedIndexes(imported,set),[2,0,1],'Scale songs first, exact numeric order, local songs afterward');
+assert.deepEqual(L.songMeta(imported[0],set),{order:2,key:'E',title:set.title,index:1});
+assert.deepEqual(L.songMeta(imported[2],set),{order:1,key:'C',title:set.title,index:0});
+assert.equal(L.songMeta(imported[1],set),null,'Unrelated Cifra Club music never gets a scale number');
+const legacy={title:set.items[1].title,category:set.title,sourceUrl:set.items[1].sourceUrl};
+assert.equal(L.songMeta(legacy,set).order,2,'Older persisted songs still match the original setlist');
+const pending={...set,items:set.items.map((entry,i)=>({...entry,status:i===1?'pending':'done'}))};
+assert.equal(L.songMeta(imported[0],pending).order,2,'Pending songs never renumber imported songs');
+assert.deepEqual(set.items.map(x=>x.bpm),[162,150,124]);
 assert.equal(L.parse(fixture.replace('Tom: C','Tom: F#')).items[0].key,'F#');
 assert.equal(set.items[0].artist,'Quatro por Um');assert.equal(set.items[1].title,'Poder Pra Salvar (Mighty to Save)');
 assert(set.items[2].sourceUrl.endsWith('#instrument=guitar&key=3'));

@@ -12,8 +12,8 @@ assert(ux.includes("if(!usbConnected){hw={};rigRunner?.cancel();"),'USB loss mus
 assert(ux.includes('activeSongIndex=()=>'),'Song identity guard missing');
 assert(ux.includes('matches.length===1?matches[0]:-1'),'Ambiguous duplicate song title must not choose arbitrary rig');
 assert(ux.includes('i===activeSongIndex()'), 'Active song UI must compare selected index');
-assert(ux.includes('const next=(at+1+songs.length)%songs.length;selectRepertoireSong(songs[next],next);sync();'),
- 'Next music must follow the same safe MIDI path as repertoire selection');
+assert(ux.includes('const at=activeSongIndex(),order=GraueLouve.orderedIndexes(songs,saved.louveSetlist);')&&ux.includes('selectRepertoireSong(songs[next],next);sync();'),
+ 'Next music must follow original scale order and the safe MIDI selection path');
 assert(!ux.includes("selectedIndex=(at+1+songs.length)%songs.length;select(songs[selectedIndex]);"),
  'Do not navigate without applying next song setup');
 assert(ux.includes('if(!preset||!preset.auto)'), 'Retry may not override manually configured songs');
