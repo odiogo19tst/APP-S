@@ -244,7 +244,7 @@ public final class XpsToneAuditioner {
             writeNext();
         }else if(phase==Phase.VERIFY){
             phase=Phase.READY;index=9;
-            publish("playing","Timbre temporário confirmado por SysEx. Experimente tocar no XPS-10. Para manter o som, salve PATCH USER e depois PERFORMANCE no painel do Roland.");
+            publish("playing","Dados do Patch temporário confirmados por SysEx (9/9). Toque no XPS-10 para confirmar que está audível. Isso não significa que foi salvo em USER nem que o WRITE da Performance está disponível.");
         }else if(phase==Phase.RESTORE_VERIFY){
             // Never start the next tone unless ALL nine previous blocks were recovered.
             final List<Block> next=pendingBlocks;
