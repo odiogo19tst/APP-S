@@ -431,10 +431,11 @@
  let readyXpsSha='';
  function showReadyXps(sha,filename){
   if(!/^[a-f0-9]{64}$/.test(String(sha||'')))return;
+  const changed=readyXpsSha!==sha||$x('gx-store-ready').hidden;
   readyXpsSha=sha;
   $x('gx-store-ready').hidden=false;
   $x('gx-store-ready-name').textContent=filename||'Timbre .XPS baixado';
-  $x('gx-store-ready-status').textContent='Pronto para integrar. A gravação permanente em USER será feita pelo WRITE no Roland.';
+  if(changed)$x('gx-store-ready-status').textContent='Pronto para integrar. A gravação permanente em USER será feita pelo WRITE no Roland.';
  }
  function integrateXps(sha,filename){
   if(!/^[a-f0-9]{64}$/.test(String(sha||'')))return notify('Arquivo XPS inválido.');
@@ -1484,7 +1485,12 @@
     goToTab('store');
    }
   }
-  if(kind==='toneImportStatus'){$x('gx-store-import-status').textContent=String(data||'Biblioteca atualizada.');}
+  if(kind==='toneImportStatus'){
+   const message=String(data||'Biblioteca atualizada.');
+   $x('gx-store-import-status').textContent=message;
+   if(!$x('gx-store-ready').hidden&&/(conecte|desconect|bloquead|não foi possível|não terminou|inacessível|inválid|não é um|incompleto)/i.test(message))
+    $x('gx-store-ready-status').textContent=message;
+  }
   if(kind==='toneAuditionStatus'){
    const panel=$x('gx-store-audition-panel'),heading=$x('gx-store-audition-heading'),
      message=$x('gx-store-audition-message'),restore=$x('gx-store-audition-restore');
