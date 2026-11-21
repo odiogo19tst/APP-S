@@ -130,6 +130,12 @@ public final class ToneStoreActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(bg);
+        // Android 15+ can draw edge-to-edge: keep shop controls above system bars.
+        root.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
+                    insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            return insets;
+        });
 
         TextView title = new TextView(this);
         title.setText("Loja de Timbres · XPS-10");
