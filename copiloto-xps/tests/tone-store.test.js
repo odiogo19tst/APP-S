@@ -103,7 +103,7 @@ for(const marker of ['probeXpsToneKeyboard(String sha)','acceptXpsToneProbe(byte
  'XpsProtocol.packet(0x11','XpsProtocol.address(0x1f,0,0,0)',
  '"canAudition",false','"wroteKeyboard",false'])
  assert(main.includes(marker),'Read-only physical compatibility probe absent: '+marker);
-assert(!/XpsProtocol\\.packet\\s*\\(0x12/.test(main),
+assert(!/XpsProtocol\.packet\s*\(0x12/.test(main),
  'Imported XPS files must not send DT1 before physical validation');
 assert(protocol.includes('public static Data decode(byte[] p)'));
 assert(ux.includes("probeButton.textContent='Verificar no XPS-10'"));
