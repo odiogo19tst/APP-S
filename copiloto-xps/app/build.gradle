@@ -9,7 +9,14 @@ android {
         versionCode 98
         versionName '1.36.8-louve-token-staging'
     }
-    buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
+    buildTypes {
+        debug {
+            // Separate from the official release: no data or signing-key conflicts.
+            applicationIdSuffix '.louvepreview'
+            versionNameSuffix '-test'
+            signingConfig signingConfigs.debug
+        }
+    } // Official APK still requires the permanent release signing key.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 
