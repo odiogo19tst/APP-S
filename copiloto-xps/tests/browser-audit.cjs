@@ -78,6 +78,27 @@ async function run(){
    assert.equal((await page.evaluate(midiCalls)).length,beforeShop,'Store actions cannot change Roland parameters');
    await noOverflow(page,'SynthXPS store '+size.width);
    await page.screenshot({path:path.join(out,size.width+'-synthxps-store.png'),fullPage:true});
+
+   // The new store inbox shows copies, not playable Roland Performances.
+   await page.evaluate(()=>window.receive('toneImports',[
+     {sha256:'a'.repeat(64),name:'Piano-XPS.jxe',bytes:2560,format:'JXE_UNVERIFIED'},
+     {sha256:'b'.repeat(64),name:'Pacote Original.svd',bytes:3072,format:'SVD_XPS10_BACKUP_ORIGINAL'}
+   ]));
+   assert.equal(await page.locator('.gx-store-import').count(),2);
+   assert.match(await page.locator('.gx-store-import').first().innerText(),/Piano-XPS.jxe/);
+   assert.match(await page.locator('.gx-store-import').first().innerText(),/Ainda não convertido em Performance/);
+   await page.locator('#gx-store-library-refresh').click();
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='listStoreTones').length)>=2,true);
+   await page.locator('#gx-store-import-file').click();
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='importStoreToneFile').length),1);
+   await page.locator('.gx-store-import-buttons button').first().click();
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='exportStoreToneFile'&&c.args[0]==='a'.repeat(64)).length),1);
+   page.once('dialog',d=>d.dismiss());
+   await page.locator('.gx-store-import-buttons button').nth(1).click();
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='deleteStoreToneFile').length),0,'Cancel retains original');
+   await page.evaluate(()=>window.receive('toneImportStatus','Download concluído e preservado na biblioteca'));
+   assert.match(await page.locator('#gx-store-import-status').innerText(),/Download concluído/);
+   assert.equal((await page.evaluate(midiCalls)).length,beforeShop,'Catalog updates and copies cannot send MIDI');
    await page.locator('#gx-store-backups').click();
    assert(await page.locator('[data-gx-screen="backups"]').evaluate(n=>n.classList.contains('on')),'Store uses existing Backups');
    await tab(page,'stage');

@@ -190,3 +190,19 @@ body.gx-ready{--gx-bg:#0c1015;--gx-panel:#151b22;--gx-panel2:#1b232d;--gx-line:#
 #gx-shell.gx-layout-v3 .gx-store-guide p{font-size:13px;line-height:1.6}
 #gx-shell.gx-layout-v3 .gx-store-guide small{color:#a9c1c2;font-size:12px;line-height:1.5}
 @media(max-width:420px){#gx-shell.gx-layout-v3 .gx-store-actions{grid-template-columns:minmax(0,1fr)}#gx-shell.gx-layout-v3 .gx-store-panel,#gx-shell.gx-layout-v3 .gx-store-guide{padding:12px}}
+
+
+/* Dedicated immutable downloaded-tone inbox: distinct from SVD backup/Performance. */
+#gx-shell.gx-layout-v3 .gx-store-inbox{max-width:100%;min-width:0;padding:16px;margin:0 0 12px;border-radius:15px}
+#gx-shell.gx-layout-v3 .gx-store-inbox-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#gx-shell.gx-layout-v3 .gx-store-inbox h3{font-size:17px;margin:0}
+#gx-shell.gx-layout-v3 .gx-store-inbox p,#gx-shell.gx-layout-v3 .gx-store-inbox small{font-size:12px;line-height:1.5}
+#gx-shell.gx-layout-v3 .gx-store-inbox-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+#gx-shell.gx-layout-v3 .gx-store-inbox-actions button,#gx-shell.gx-layout-v3 .gx-store-import-buttons button{min-height:46px;min-width:0;padding:8px!important;white-space:normal;font-size:12px!important}
+#gx-shell.gx-layout-v3 .gx-store-library{display:flex;flex-direction:column;gap:10px}
+#gx-shell.gx-layout-v3 .gx-store-import{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid #45646a;border-radius:11px;background:#172832;min-width:0}
+#gx-shell.gx-layout-v3 .gx-store-import-details{display:flex;flex-direction:column;gap:5px;min-width:0}
+#gx-shell.gx-layout-v3 .gx-store-import-details strong{font-size:14px;white-space:normal;overflow-wrap:break-word}
+#gx-shell.gx-layout-v3 .gx-store-import-details small{font-size:11px;color:#abc7c6;overflow-wrap:break-word}
+#gx-shell.gx-layout-v3 .gx-store-import-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media(max-width:440px){#gx-shell.gx-layout-v3 .gx-store-inbox{padding:12px}}

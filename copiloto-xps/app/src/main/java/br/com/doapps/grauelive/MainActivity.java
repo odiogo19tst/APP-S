@@ -120,7 +120,7 @@ public class MainActivity extends Activity {
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private final ExecutorService modelInstallerWorker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
  private PadSampleEngine padSamples; private ChromaticPadEngine chromaticPad;
  private final java.util.Set<Integer> chromaticMidiNotes=new java.util.HashSet<>(); private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1,exportRolandBank=-1; private String exportKitSettings="{}";
- private BackupArchive backupArchive; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
+ private BackupArchive backupArchive; private ToneImportLibrary toneImports; private String toneExportSha=""; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  private void navigateBack(){
   if(web==null||!pageReady){finish();return;}
@@ -130,7 +130,7 @@ public class MainActivity extends Activity {
  @Override public void onCreate(Bundle b){super.onCreate(b);
   if(Build.VERSION.SDK_INT>=33)getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,this::navigateBack);
 getWindow().addFlags(128);
-  backupArchive=new BackupArchive(this);padSamples=new PadSampleEngine(this);chromaticPad=new ChromaticPadEngine(this);jarvisGateway=new JarvisCloudGateway(this);directApi=new JarvisDirectOpenAI(this);
+  backupArchive=new BackupArchive(this);toneImports=new ToneImportLibrary(this);padSamples=new PadSampleEngine(this);chromaticPad=new ChromaticPadEngine(this);jarvisGateway=new JarvisCloudGateway(this);directApi=new JarvisDirectOpenAI(this);
   getWindow().setStatusBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().setNavigationBarColor(android.graphics.Color.rgb(7,17,28));
   getWindow().getDecorView().setSystemUiVisibility(0);
@@ -245,6 +245,10 @@ getWindow().addFlags(128);
   }
   if(midi!=null&&!midi.isConnected())autoConnectUsb();
   stoppedWhileConnected=false;
+  worker.execute(()->{
+   try{ToneDownloadReceiver.reconcile(getApplicationContext());emit("toneImports",toneImports.list());}
+   catch(Exception e){emit("toneImportStatus","Biblioteca de timbres: "+e.getMessage());}
+  });
  }
  private void emit(String type,Object data){runOnUiThread(()->{try{if(web!=null)web.evaluateJavascript("window.receive&&window.receive("+JSONObject.quote(type)+","+(new JSONArray().put(data).toString()+"[0]")+")",null);}catch(Exception ignored){} });}
  private void publishLatestBackup(){try{JSONArray files=backupArchive.list();if(files.length()==0)return;JSONObject latest=files.getJSONObject(files.length()-1);String sha=latest.getString("sha256");emit("backupCatalog",RolandBackupInspector.inspect(backupArchive.fileFor(sha),latest.optString("name")));}catch(Exception e){emit("status","Catálogo do backup não disponível: "+e.getMessage());}}
@@ -521,6 +525,36 @@ getWindow().addFlags(128);
   @JavascriptInterface public void startLouveImport(String json){runOnUiThread(()->{try{if(json==null||json.length()>70000)throw new IllegalArgumentException("Escala grande demais");org.json.JSONArray items=new org.json.JSONArray(json);showCifra();cifraPanel.importBatch(items);}catch(Exception e){emit("status","Escala: "+e.getMessage());}});}
   @JavascriptInterface public void cancelLouveImport(){runOnUiThread(()->{if(cifraPanel!=null)cifraPanel.cancelBatch();});}
   @JavascriptInterface public void pasteLouveScale(){runOnUiThread(()->{try{android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);if(clipboard==null||!clipboard.hasPrimaryClip())throw new IllegalArgumentException("Copie a escala do LouveApp primeiro");CharSequence text=clipboard.getPrimaryClip().getItemAt(0).coerceToText(MainActivity.this);if(text==null)throw new IllegalArgumentException("Texto não disponível");emit("sharedText",text.toString().substring(0,Math.min(text.length(),200000)));}catch(Exception e){emit("status",e.getMessage());}});}
+  /** No imported store file is automatically decoded, transmitted or written to the keyboard. */
+  @JavascriptInterface public void listStoreTones(){worker.execute(()->{
+   try{
+    ToneDownloadReceiver.reconcile(getApplicationContext());
+    emit("toneImports",toneImports.list());
+    emit("toneImportStatus",ToneDownloadReceiver.lastStatus(getApplicationContext()));
+   }catch(Exception e){emit("toneImportStatus","Não foi possível consultar os arquivos: "+e.getMessage());}
+  });}
+  @JavascriptInterface public void importStoreToneFile(){runOnUiThread(()->{
+   Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
+   startActivityForResult(pick,15);
+  });}
+  @JavascriptInterface public void exportStoreToneFile(String sha){worker.execute(()->{
+   try{
+    File file=toneImports.file(sha);
+    String name=toneImports.originalName(sha);
+    toneExportSha=sha;
+    runOnUiThread(()->startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT)
+     .setType("application/octet-stream").addCategory(Intent.CATEGORY_OPENABLE)
+     .putExtra(Intent.EXTRA_TITLE,name),16));
+   }catch(Exception e){emit("toneImportStatus","Não foi possível exportar o original: "+e.getMessage());}
+  });}
+  @JavascriptInterface public void deleteStoreToneFile(String sha){worker.execute(()->{
+   try{
+    if(toneImports.remove(sha)){
+     emit("toneImports",toneImports.list());
+     emit("toneImportStatus","Cópia local apagada. Arquivo do Android e teclado não foram alterados.");
+    }
+   }catch(Exception e){emit("toneImportStatus","Erro ao excluir cópia: "+e.getMessage());}
+  });}
   @JavascriptInterface public void openToneStore(){runOnUiThread(()->{
     try{startActivity(new Intent(MainActivity.this,ToneStoreActivity.class));}
     catch(Exception e){emit("status","Não foi possível abrir a Loja de Timbres: "+e.getMessage());}
@@ -901,6 +935,31 @@ getWindow().addFlags(128);
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);
+
+ if(req==15||req==16){
+  if(result!=RESULT_OK||data==null||data.getData()==null){
+   emit("toneImportStatus","Operação cancelada. Nenhum timbre foi alterado.");return;
+  }
+  final android.net.Uri uri=data.getData();
+  final String filenameSha=toneExportSha;
+  worker.execute(()->{
+   try{
+    if(req==15){
+     org.json.JSONObject row=toneImports.importUri(uri,null,"Arquivo selecionado pelo músico");
+     emit("toneImportStatus","Original importado: "+row.optString("name")+". Formato: "+row.optString("format")+". Sem gravação MIDI.");
+     emit("toneImports",toneImports.list());
+    }else{
+     File original=toneImports.file(filenameSha);
+     try(InputStream in=new FileInputStream(original);OutputStream out=getContentResolver().openOutputStream(uri)){
+      if(out==null)throw new IOException("Destino indisponível");
+      byte[] buf=new byte[16384];int n;
+      while((n=in.read(buf))!=-1)out.write(buf,0,n);
+     }
+     emit("toneImportStatus","Arquivo original exportado sem conversão ou gravação no Roland.");
+    }
+   }catch(Exception e){emit("toneImportStatus","Importação/exportação interrompida: "+e.getMessage());}
+  });return;
+ }
  if(req==13||req==14){
   if(result!=RESULT_OK||data==null||data.getData()==null){loopExportBytes=null;emit("loopLibraryInfo","Operação cancelada. Sessão preservada.");return;}
   final byte[] export=loopExportBytes;loopExportBytes=null;

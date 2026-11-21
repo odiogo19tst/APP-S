@@ -115,8 +115,9 @@ public final class ToneStoreActivity extends Activity {
             // No automatic Roland USER write or third-party code execution.
             DownloadManager manager = (DownloadManager)getSystemService(Context.DOWNLOAD_SERVICE);
             if (manager == null) throw new IllegalStateException("Downloads não disponível");
-            manager.enqueue(req);
-            note("Download solicitado ao Android. Acompanhe o resultado em Downloads.");
+            long id = manager.enqueue(req);
+            ToneDownloadReceiver.track(this, id, candidate);
+            note("Download iniciado. Ao terminar, o original também será copiado para a biblioteca de timbres do Grauê.");
         } catch (Exception e) {
             note("O download não pôde ser iniciado. Abra o arquivo no navegador.");
             Toast.makeText(this, "Download não iniciado: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -221,6 +222,11 @@ public final class ToneStoreActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         if (browser != null) browser.onResume();
+        new Thread(() -> {
+            ToneDownloadReceiver.reconcile(getApplicationContext());
+            String state = ToneDownloadReceiver.lastStatus(getApplicationContext());
+            runOnUiThread(() -> { if (browser != null) note(state); });
+        }, "graue-store-reconcile").start();
     }
     @Override protected void onDestroy() {
         if (browser != null) {

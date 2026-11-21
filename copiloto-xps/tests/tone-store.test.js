@@ -26,9 +26,43 @@ assert(main.includes('public void openToneStoreDownloads()'));
 assert(main.includes('if(name.equals("toneStore"))url=ToneStoreActivity.STORE_URL'));
 assert(ux.includes('data-gx-tab="store"'));
 assert(ux.includes('data-gx-screen="store"'));
-assert(ux.includes("if(name==='store'&&typeof window.Native?.openToneStore==='function')window.Native.openToneStore();"));
+assert(ux.includes("if(name==='store'){window.Native?.listStoreTones?.();if(typeof window.Native?.openToneStore==='function')window.Native.openToneStore();}"));
 assert(ux.includes("window.Native.openReference('toneStore')"));
 assert(ux.includes("window.Native.openToneStoreDownloads()"));
 assert(layout.includes("['store','Loja de Timbres']"));
 assert(layout.includes("['store','coach','backups','settings']"));
 console.log('SynthXPS store: live XPS10 URL, More menu, isolated WebView, downloads, no MIDI bridge or auto-write PASS');
+
+const receiver=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneDownloadReceiver.java'),'utf8');
+const inbox=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneImportLibrary.java'),'utf8');
+for(const expected of [
+ 'ToneDownloadReceiver.track(this, id, candidate)',
+ 'ToneDownloadReceiver.reconcile(getApplicationContext())'
+])assert(store.includes(expected),'Store must track and reconcile downloads: '+expected);
+assert(xml.includes('android:name=".ToneDownloadReceiver"'),'System download receiver must be installed');
+for(const expected of [
+ 'DownloadManager.ACTION_DOWNLOAD_COMPLETE','getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)',
+ 'prefs.contains("pending-" + id)','manager.openDownloadedFile(id)',
+ 'new ToneImportLibrary(context)','importStream(in, name, "SynthXPS · download Android")',
+ 'DownloadManager.STATUS_SUCCESSFUL','DownloadManager.STATUS_FAILED'
+])assert(receiver.includes(expected),'Download inbox rule absent: '+expected);
+for(const expected of [
+ 'MessageDigest.getInstance("SHA-256")','LIMIT = 120L * 1024L * 1024L',
+ 'readCatalog()','temp.renameTo(target)','importUri(Uri uri',
+ 'originalName(String sha)','file(String sha)','classify(String name',
+ '"JXE_UNVERIFIED"','"SVD_XPS10_BACKUP_ORIGINAL"',
+ '"verifiedForKeyboard", false','"convertedToPerformance", false',
+ '"writtenToKeyboard", false'
+])assert(inbox.includes(expected),'Import library validation missing: '+expected);
+assert(!receiver.includes('midi.send(')&&!receiver.includes('xps.write('),'Download callbacks may not alter keyboard');
+assert(!inbox.includes('midi.send(')&&!inbox.includes('xps.write('),'File imports are read only for Roland');
+for(const expected of [
+ 'listStoreTones()','importStoreToneFile()','exportStoreToneFile(String sha)',
+ 'deleteStoreToneFile(String sha)','if(req==15||req==16)','ToneDownloadReceiver.reconcile(getApplicationContext())'
+])assert(main.includes(expected),'Android inbox bridge missing: '+expected);
+for(const expected of [
+ 'id="gx-store-library"','id="gx-store-import-file"','id="gx-store-import-status"',
+ 'function renderStoreImports()',"kind==='toneImports'","kind==='toneImportStatus'",
+ 'window.Native?.exportStoreToneFile','window.Native?.deleteStoreToneFile'
+])assert(ux.includes(expected),'New inbox UI missing: '+expected);
+console.log('SynthXPS 1.35.6: download auto-import, immutable originals, checksums, UI, safe export and no MIDI writes PASS');
