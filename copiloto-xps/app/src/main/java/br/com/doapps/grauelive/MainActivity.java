@@ -734,7 +734,7 @@ getWindow().addFlags(128);
     input.setPadding(36,24,36,24);
     new AlertDialog.Builder(MainActivity.this)
      .setTitle("Guardar acesso ao LouveApp")
-     .setMessage("A credencial ficará criptografada neste celular, não no GitHub. A sincronização direta ainda depende da documentação oficial de parceiros e dos escopos Escalas/Repertório.")
+     .setMessage("A credencial ficará criptografada neste celular, não no GitHub. A sincronização depende da documentação oficial de parceiros. Leitura de Repertório não autoriza consultar Escalas; são permissões separadas.")
      .setView(input)
      .setNegativeButton("Cancelar",(d,w)->input.setText(""))
      .setPositiveButton("Guardar somente no aparelho",(d,w)->{
