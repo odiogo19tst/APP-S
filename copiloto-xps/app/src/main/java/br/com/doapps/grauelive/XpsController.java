@@ -81,6 +81,17 @@ public final class XpsController {
  }
  private List<XpsProtocol.Block> performanceBlocks(){List<XpsProtocol.Block> b=XpsProtocol.blocks();b.addAll(XpsProtocol.patches());return b;}
  public boolean hasConfirmedSetup(){if(!hasValidSysex())return false;XpsProtocol.Block b=XpsProtocol.block("setup",0);for(int i=0;i<b.size;i++)if(!state.containsKey(b.start+i))return false;return true;}
+ /** 0=Patch and 1=Performance, from Roland Setup SysEx (never from a cached UI flag). */
+ public int observedSoundMode(){
+  Integer mode=state.get(XpsProtocol.address(1,0,0,0));
+  return hasValidSysex()&&mode!=null&&(mode==0||mode==1)?mode:-1;
+ }
+ /** The System Common Patch Rx/Tx Ch is zero-based at 02-00-00-0A (valid channels 1–16). */
+ public int observedPatchRxChannel(){
+  Integer channel=state.get(XpsProtocol.address(2,0,0,10));
+  return hasValidSysex()&&channel!=null&&channel>=0&&channel<16?channel+1:-1;
+ }
+
  public void readUsers(){
   if(!hasConfirmedSetup()){io.emit("status","Leia primeiro o estado atual do XPS-10. A leitura USER não começou porque o bloco Setup não foi confirmado.");return;}
   if(busy){io.emit("status","Aguarde a operação atual.");return;}
