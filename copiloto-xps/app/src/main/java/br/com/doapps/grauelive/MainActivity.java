@@ -1073,8 +1073,21 @@ getWindow().addFlags(128);
    try{
     if(req==15){
      org.json.JSONObject row=toneImports.importUri(uri,null,"Arquivo selecionado pelo músico");
-     emit("toneImportStatus","Original importado: "+row.optString("name")+". Formato: "+row.optString("format")+". Sem gravação MIDI.");
+     String format=row.optString("format");
+     String detail="";
+     if("ZIP_UNVERIFIED".equals(format)){
+      JSONObject expanded=ToneZipImporter.importArchive(MainActivity.this,
+       toneImports.file(row.getString("sha256")),row.optString("name"));
+      detail=" · ZIP: "+expanded.optInt("xps")+" .XPS e "+expanded.optInt("svd")+
+       " backup(s) SVD incorporados à biblioteca sem restaurar bancos.";
+     }else if("SVD_XPS10_BACKUP_ORIGINAL".equals(format)){
+      backupArchive.importOriginal(toneImports.file(row.getString("sha256")),row.optString("name"));
+      detail=" · Backup preservado separadamente sem RESTORE.";
+     }
+     emit("toneImportStatus","Original importado: "+row.optString("name")+". Formato: "+format+detail+".");
      emit("toneImports",toneImports.list());
+     if("ZIP_UNVERIFIED".equals(format)||"SVD_XPS10_BACKUP_ORIGINAL".equals(format))
+      emit("backups",backupArchive.list());
     }else{
      File original=toneImports.file(filenameSha);
      try(InputStream in=new FileInputStream(original);OutputStream out=getContentResolver().openOutputStream(uri)){
