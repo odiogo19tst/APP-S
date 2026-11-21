@@ -70,7 +70,7 @@ console.log('SynthXPS 1.35.6: download auto-import, immutable originals, checksu
 assert(store.includes('new Intent(Intent.ACTION_CREATE_DOCUMENT)'),'Must ask where to save before starting download');
 assert(store.includes('destination.putExtra(Intent.EXTRA_TITLE, name)'),'Android picker suggests original file name');
 assert(store.indexOf('startActivityForResult(destination, REQUEST_SAVE_TONE)')>0);
-assert(store.includes('new LinearLayout.LayoutParams(0, 58, 1)'),'Bottom dock always visible');
+assert(store.includes('new LinearLayout.LayoutParams(0, dp(58), 1)'),'Bottom dock always visible and >=48dp');
 assert(store.includes('Button home = button("⌂ Início"'));
 assert(store.includes('Button previous = button("‹ Voltar página"'));
 assert(store.includes('Button library = button("♫ Biblioteca"'));
