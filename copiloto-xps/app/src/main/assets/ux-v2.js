@@ -1307,7 +1307,13 @@
   if(!storeImports.length){
    const empty=document.createElement('p');empty.textContent='Nenhum arquivo no Grauê ainda. Baixe um timbre na loja ou importe um arquivo pelo seletor do Android.';list.append(empty);return;
   }
-  for(const item of storeImports){
+  for(const item of [...storeImports].sort((a,b)=>{
+   const priority=item=>{
+    const name=String(item.name||'').toLowerCase();
+    return name.endsWith('.xps')?0:name.endsWith('.jxe')?1:name.endsWith('.svd')?3:2;
+   };
+   return priority(a)-priority(b)||Number(b.importedAt||0)-Number(a.importedAt||0);
+  })){
    const row=document.createElement('article');row.className='gx-store-import';
    const heading=document.createElement('div');heading.className='gx-store-import-details';
    const name=document.createElement('strong');name.textContent=String(item.name||'Arquivo sem nome');
