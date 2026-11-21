@@ -151,3 +151,17 @@ assert(inbox.includes('recordTemporaryAudition(String sha,int deviceId)'));
 assert(ux.includes('item.temporaryAuditionConfirmed'));
 assert(ux.includes('Prévia USB confirmada'));
 console.log('v1.36.5 ZIP incremental library, verified-only audition history PASS');
+
+const collection=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneCollectionBundle.java'),'utf8');
+for(const marker of ['public final class ToneCollectionBundle','ZipOutputStream',
+ '"graue-xps-collection-v1"','MAX_SIZE=240L*1024L*1024L',
+ '"userMemoryModified",false','"svdMerged",false',
+ 'backups.fileFor(sha)','tones.file(sha)','sha.equals(hex(digest.digest()))',
+ 'already.add(sha)','manifest.json'])
+ assert(collection.includes(marker),'Real incremental ZIP bundle export missing: '+marker);
+assert(main.includes('exportIncrementalTonePack()'));
+assert(main.includes('ToneCollectionBundle.create(MainActivity.this)'));
+assert(main.includes('if(req==18)'));
+assert(ux.includes("window.Native.exportIncrementalTonePack()"));
+assert(ux.includes('Mesclar coleção de timbres (ZIP)'));
+console.log('v1.36.5 archive union: lossless hashes and import/export ZIP without destructive SVD restore PASS');
