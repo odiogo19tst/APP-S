@@ -366,6 +366,7 @@ getWindow().addFlags(128);
    if(loopClock!=null)loopClock.removeCallbacks(loopTick);loopUi.removeCallbacks(loopUiTick);
    liveLooper.clearAll();publishLoopState();
   });}
+  @JavascriptInterface public void openSynthXpsPortal(){runOnUiThread(()->startActivity(new Intent(MainActivity.this,SynthXpsPortalActivity.class)));}
   @JavascriptInterface public void openCifra(){runOnUiThread(()->showCifra());}
   @JavascriptInterface public void importCifra(){runOnUiThread(()->{if(cifraPanel==null){showCifra();emit("status","Abra uma música no Cifra Club e toque Importar novamente.");}else cifraPanel.importCurrent();});}
   @JavascriptInterface public void showMode(boolean on){runOnUiThread(()->setRequestedOrientation(on?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR));}
