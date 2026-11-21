@@ -9,8 +9,34 @@ android {
         versionCode 95
         versionName '1.36.5-xps-live-audition'
     }
-    buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
+    buildTypes {
+        debug {
+            // Side-by-side QA only: never overwrites the official Grauê app
+            // nor the earlier v1.36.4 preview signed with another CI key.
+            applicationIdSuffix '.livepreview'
+            versionNameSuffix '-hardware-test'
+            signingConfig signingConfigs.debug
+        }
+    } // The official release uses its distinct permanent signing key.
+
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 
 dependencies { implementation 'com.google.mediapipe:tasks-genai:0.10.27' }
+
+// Preserve the existing CI upload path while exporting a SIGNED test APK.
+// Only this isolated test branch uses this file-name compatibility copy.
+afterEvaluate {
+    tasks.named('assembleDebug') {
+        doLast {
+            def outputDir = file("$buildDir/outputs/apk/debug")
+            def signed = new File(outputDir, 'app-debug.apk')
+            if (!signed.exists()) throw new GradleException('Signed hardware preview APK missing')
+            copy {
+                from signed
+                into outputDir
+                rename { 'app-debug-unsigned.apk' }
+            }
+        }
+    }
+}
