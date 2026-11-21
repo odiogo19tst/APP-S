@@ -1179,6 +1179,30 @@
    li.textContent=String(item.name||'Patch sem nome')+
      ' · '+String(item.group||'registro')+
      (duplicate?' · mesmo conteúdo de outro registro':'');
+   const preview=item.compatibility;
+   if(preview&&Array.isArray(preview.parameterSamples)){
+    const gate=document.createElement('small');
+    gate.textContent=' · Prévia: '+Number(preview.samplesInRange||0)+' amostras dentro das faixas, '+
+      Number(preview.samplesOutOfRange||0)+' fora, '+Number(preview.zeroLfoStepValues||0)+
+      ' valores LFO Step zerados. Transferência desativada.';
+    li.append(gate);
+    const previewDetails=document.createElement('details'), previewTitle=document.createElement('summary');
+    previewTitle.textContent='Prévia dos parâmetros WG, TVF, TVA, LFO e alertas';
+    previewDetails.append(previewTitle);
+    const issues=document.createElement('ul');previewDetails.append(issues);
+    for(const warning of (preview.warnings||[]).slice(0,8)){
+     const line=document.createElement('li');line.textContent=String(warning);issues.append(line);
+    }
+    const sampleList=document.createElement('ul');previewDetails.append(sampleList);
+    for(const p of preview.parameterSamples.slice(0,80)){
+     const line=document.createElement('li');
+     line.textContent=String(p.section||'bloco')+' · '+String(p.parameter||'parâmetro')+
+       ' = '+(p.inXpsRange?String(p.valueCandidate):'fora da faixa')+
+       ' (bytes '+JSON.stringify(p.rawBytes||[])+') · ainda não validado no teclado';
+     sampleList.append(line);
+    }
+    li.append(previewDetails);
+   }
    const layout=item.patchLayout;
    if(layout&&Array.isArray(layout.components)){
     const counts=document.createElement('small');
