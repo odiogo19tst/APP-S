@@ -23,7 +23,7 @@ import org.json.JSONObject;
  * original byte intact and without changing the Roland USER banks.
  */
 public final class ToneCollectionBundle {
-    private static final int MAX_ITEMS=120;
+    private static final int MAX_ITEMS=119;
     private static final long MAX_SIZE=240L*1024L*1024L;
     private ToneCollectionBundle(){}
 
@@ -82,7 +82,7 @@ public final class ToneCollectionBundle {
                 String sha=row.optString("sha256");
                 if(!sha.matches("[a-f0-9]{64}")||!already.add(sha))continue;
                 String name=row.optString("name","backup.svd");
-                if(++totalFiles>MAX_ITEMS)throw new IOException("Limite de 120 itens na coleção");
+                if(++totalFiles>MAX_ITEMS)throw new IOException("Limite de 119 arquivos na coleção (mais manifest.json)");
                 String ext=extension(name);
                 if(ext.isEmpty())ext=".bin";
                 String entryName="backups/"+sha+ext;
@@ -98,7 +98,7 @@ public final class ToneCollectionBundle {
                 String sha=row.optString("sha256"),name=row.optString("name");
                 String ext=extension(name);
                 if(ext.isEmpty()||!sha.matches("[a-f0-9]{64}")||!already.add(sha))continue;
-                if(++totalFiles>MAX_ITEMS)throw new IOException("Limite de 120 itens na coleção");
+                if(++totalFiles>MAX_ITEMS)throw new IOException("Limite de 119 arquivos na coleção (mais manifest.json)");
                 String entryName="timbres/"+sha+ext;
                 copied+=add(zip,tones.file(sha),entryName,sha,MAX_SIZE-copied);
                 items.put(new JSONObject().put("origin","Grauê tone library")
