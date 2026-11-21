@@ -113,6 +113,14 @@ async function run(){
      'Grand Pno DS','INIT PATCH'
    ].map((name,index)=>({index:index+1,name,group:index<16?'principal':'adicional',
      sha256Block:name==='Grand Pno DS'?'c'.repeat(64):('x'+index).repeat(32)}));
+   koaPatches[0].patchLayout={
+     byteLength:1049,parameterChecks:664,parameterChecksInRange:664,parameterChecksToReview:0,
+     safeToTransmit:false,safeToWriteUserMemory:false,
+     components:['common','mfx','chorus','reverb','tmt','tone1','tone2','tone3','tone4']
+       .map((section,index)=>({section,bytes:[80,145,84,83,41,154,154,154,154][index],
+         relativeOffset:[0,80,225,309,392,433,587,741,895][index],
+         parametersToReview:0}))
+   };
    const koaRhythms=Array.from({length:18},(_,index)=>({
      index:index+1,name:index===9?'Pop Kit 2':'INIT RHYTHM',
      sha256Block:index===9?'d'.repeat(64):'e'.repeat(64)
@@ -130,6 +138,11 @@ async function run(){
    assert.equal(await page.locator('#gx-store-koa-inventory').isVisible(),true);
    assert.match(await page.locator('#gx-store-koa-inventory h3').innerText(),/Gnd Imperial/);
    assert.equal(await page.locator('#gx-store-koa-inventory > ol > li').count(),18);
+   const firstPatch=page.locator('#gx-store-koa-inventory > ol > li').first();
+   assert.match(await firstPatch.innerText(),/664\/664 parâmetros/);
+   await firstPatch.locator('details summary').click();
+   assert.equal(await firstPatch.locator('details ul li').count(),9,'JXE preflight must show nine real byte segments');
+   assert.match(await firstPatch.locator('details ul li').nth(4).innerText(),/tmt · 41 bytes/);
    assert.match(await page.locator('#gx-store-koa-inventory').innerText(),/MASSIVE PAD/);
    assert.match(await page.locator('#gx-store-koa-inventory').innerText(),/CLOUD PAD/);
    assert.match(await page.locator('#gx-store-import-status').innerText(),/18 registros de Patch/);
