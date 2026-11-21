@@ -95,7 +95,14 @@
  }
  function openFavoriteEditor(index){
   favoriteIndex=index;
-  const entry=favoriteEntry(index);q('favorite-editor').open=true;
+  const entry=favoriteEntry(index);
+  if(entry?.type==='rig'){
+   selectPage('tones');
+   if(typeof window.GraueOpenQuickRig==='function')window.GraueOpenQuickRig(entry,favoriteBank,index);
+   else favoriteMessage('Abra Timbres para editar este Dual/Split.');
+   return;
+  }
+  q('favorite-editor').open=true;
   q('favorite-edit-label').textContent='Banco '+favoriteBank+' · posição '+index+(entry?' · substituir':' · nova');
   q('favorite-kind').value=entry?.type==='performance'?'performance':'tone';
   q('favorite-tone-search').value=entry?.type==='tone'?entry.code:'';
@@ -119,7 +126,8 @@
    }catch(e){favoriteMessage(e.message);return;}
   }else{
    if(!validFavoriteTone(entry)||!Number.isInteger(entry.part)||entry.part<0||entry.part>15){favoriteMessage('Timbre ou parte inválida. Edite o favorito antes de tocar.');return;}
-   if(!call('selectTone',entry.msb,entry.lsb,entry.program,entry.part))return;
+   const hasLevel=Number.isInteger(entry.volume)&&entry.volume>=0&&entry.volume<=127;
+   if(!call(hasLevel?'selectToneWithVolume':'selectTone',entry.msb,entry.lsb,entry.program,entry.part,...(hasLevel?[entry.volume]:[])))return;
   }
   favoriteMessage('Solicitado ao XPS-10: '+favoriteLabel(entry)+' · confirme o som no teclado.');
  }
