@@ -130,10 +130,25 @@ assert(main.includes('EXTRA_IMPORTED_XPS_SHA'));
 assert(receiver.includes('"last-import-sha"'));
 assert(store.includes('awaitingAutomaticId'));
 assert(store.includes('EXTRA_IMPORTED_XPS_SHA'));
-assert(ux.includes("auditionButton.textContent='Ouvir no XPS-10'"));
+assert(ux.includes("auditionButton.textContent='Integrar ao XPS-10'"));
+assert(ux.includes('id=\\"gx-store-integrate\\"') || ux.includes('id="gx-store-integrate"'));
+assert(ux.includes("kind==='toneDownloaded'"),'Download must present the Integrar action');
+assert(ux.includes('gx-store-item-more'),'Advanced actions should not crowd the main flow');
+assert(main.includes('emit("toneDownloaded"'),'Download must notify UI instead of auto-audition');
+assert(!main.includes('new Bridge().auditionStoreXpsTone(completedXpsSha)'),
+ 'Downloaded XPS cannot transmit MIDI without user tapping Integrar');
 assert(ux.includes("kind==='toneAuditionStatus'"));
 assert(ux.includes('gx-store-audition-restore'));
-console.log('v1.36.5: incremental one-tap temporary XPS MIDI audition and safe restore PASS');
+assert(aud.includes('pendingBlocks=new ArrayList<>(source)'), 'Second XPS sound must be queued safely');
+assert(aud.includes('restoreInternal();'), 'Switch must restore the old temporary Patch first');
+assert(aud.includes('phase==Phase.RESTORE_VERIFY'), 'Switch requires full nine-block Roland readback');
+assert(aud.includes('if(next!=null)start(nextSha,nextName,next)'), 'Start next timbre only after rollback completes');
+assert(aud.includes('public void restoreThen(Runnable afterRestore)'), 'Factory tone switch must wait for rollback');
+assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectTone('), 'Standard tone changes must restore XPS preview');
+assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectPerformance('), 'Performance changes must restore XPS preview');
+assert(main.includes('xpsAudition.restoreThen(()->new Bridge().selectToneWithVolume('), 'Tone+volume changes must restore XPS preview');
+assert(aud.includes('publish("checking"'), 'Visible block-by-block progress required');
+console.log('SynthXPS simplified: download, explicit Integrar action, temporary XPS audition and safe restore PASS');
 
 const importer=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneZipImporter.java'),'utf8');
 for(const marker of ['ZipInputStream','MAX_ENTRIES=120','MAX_UNPACKED=240L*1024L*1024L',

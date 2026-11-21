@@ -70,6 +70,7 @@ async function run(){
    assert(await page.locator('.gx-more-menu').evaluate(n=>n.classList.contains('gx-more-active')));
    assert.match(await page.locator('[data-gx-screen="store"]').innerText(),/SynthXPS/);
    await page.locator('#gx-store-open').click();
+   await page.locator('.gx-store-panel > details').evaluate(n=>n.open=true);
    assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='openToneStore').length),beforeStoreOpen+2);
    await page.locator('#gx-store-external').click();
    assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='openReference'&&c.args[0]==='toneStore').length),1);
@@ -87,16 +88,18 @@ async function run(){
    assert.equal(await page.locator('.gx-store-import').count(),2);
    assert.match(await page.locator('.gx-store-import').first().innerText(),/Piano-XPS.jxe/);
    assert.match(await page.locator('.gx-store-import').first().innerText(),/Ainda não convertido em Performance/);
+   await page.locator('.gx-store-inbox > details').evaluate(n=>n.open=true);
    await page.locator('#gx-store-library-refresh').click();
    assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='listStoreTones').length)>=2,true);
    await page.locator('#gx-store-import-file').click();
    assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='importStoreToneFile').length),1);
-   await page.locator('.gx-store-import-buttons button').first().click();
+   await page.locator('.gx-store-import').first().locator('details.gx-store-item-more').evaluate(n=>n.open=true);
+   await page.locator('.gx-store-import').first().locator('details.gx-store-item-more button').nth(0).click();
    assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='exportStoreToneFile'&&c.args[0]==='a'.repeat(64)).length),1);
+   await page.locator('.gx-store-import').first().locator('details.gx-store-item-more button').nth(1).click();
    page.once('dialog',d=>d.dismiss());
-   await page.locator('.gx-store-import-buttons button').nth(1).click();
+   await page.locator('.gx-store-import').first().locator('details.gx-store-item-more button').nth(2).click();
    assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='deleteStoreToneFile').length),0,'Cancel retains original');
-   await page.locator('.gx-store-import-buttons button').nth(2).click();
    assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='inspectStoreToneFile'&&c.args[0]==='a'.repeat(64)).length),1);
    const safeReport={name:'Piano-XPS.jxe',bytes:2560,sha256:'a'.repeat(64),identifiedAs:'JXE_BINARY_OR_UNKNOWN',readOnly:true,
      prefixHex:'00010203',canApplyToKeyboard:false,convertedToPatch:false,convertedToPerformance:false,midiSent:false,userWrite:false};

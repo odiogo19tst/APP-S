@@ -198,7 +198,7 @@ public final class ToneStoreActivity extends Activity {
             autoHandler.removeCallbacks(autoPoll);
             autoHandler.postDelayed(autoPoll,500);
             destinationStatus.setText("Destino automático: Biblioteca Grauê");
-            note("Baixando "+filename+"; a biblioteca recebe uma cópia. Nenhum comando MIDI é enviado.");
+            note("Baixando "+filename+". Ao terminar, o Grauê mostrará Integrar ao XPS-10.");
         }catch(Exception e){note("Não foi possível importar automaticamente: "+e.getMessage());}
     }
 
@@ -343,14 +343,14 @@ public final class ToneStoreActivity extends Activity {
         destinationStatus.setTextColor(mint);
         destinationStatus.setTextSize(12);
         destinationStatus.setPadding(14, 8, 14, 8);
-        destinationStatus.setText("Timbres XPS/JXE e backups SVD: download automático para o Grauê.");
+        destinationStatus.setText("Download direto para o Grauê. Nenhum backup será restaurado.");
         root.addView(destinationStatus);
 
         status = new TextView(this);
         status.setTextColor(ink);
         status.setTextSize(12);
         status.setPadding(14, 7, 14, 10);
-        status.setText("Toque no arquivo XPS na loja. O Grauê baixa e guarda na biblioteca sem escolher pasta.");
+        status.setText("Baixe o arquivo .XPS. Depois, no Grauê, toque em Integrar ao XPS-10.");
         root.addView(status);
 
         browser = new WebView(this);
@@ -392,7 +392,7 @@ public final class ToneStoreActivity extends Activity {
                 return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
-                if (!loadFailed) note("Loja pronta. O botão de download permite escolher a pasta antes de baixar.");
+                if (!loadFailed) note("Loja pronta. Baixe o timbre e toque em Integrar na tela do Grauê.");
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
