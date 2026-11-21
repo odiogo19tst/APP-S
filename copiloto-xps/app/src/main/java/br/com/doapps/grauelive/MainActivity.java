@@ -940,7 +940,8 @@ getWindow().addFlags(128);
   if(result!=RESULT_OK||data==null||data.getData()==null){
    emit("toneImportStatus","Operação cancelada. Nenhum timbre foi alterado.");return;
   }
-  final android.net.Uri uri=data.getData(),filenameSha=toneExportSha;
+  final android.net.Uri uri=data.getData();
+  final String filenameSha=toneExportSha;
   worker.execute(()->{
    try{
     if(req==15){
