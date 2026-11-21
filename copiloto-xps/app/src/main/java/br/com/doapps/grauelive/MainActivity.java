@@ -120,6 +120,24 @@ public class MainActivity extends Activity {
  private final ExecutorService worker=Executors.newSingleThreadExecutor(); private final ExecutorService modelInstallerWorker=Executors.newSingleThreadExecutor(); private LlmInference llm; private String exportText="";
  private PadSampleEngine padSamples; private ChromaticPadEngine chromaticPad;
  private final java.util.Set<Integer> chromaticMidiNotes=new java.util.HashSet<>(); private int importPadBank=-1,importPadIndex=-1; private int importKitBank=-1,importZipBank=-1; private int exportKitBank=-1,exportRolandBank=-1; private String exportKitSettings="{}";
+ private volatile String pendingXpsToneProbeSha="";
+ private volatile long pendingXpsToneProbeStarted=0;
+ /** Physical readback test; no DT1/USER write occurs in this path. */
+ private void acceptXpsToneProbe(byte[] sysex){
+  final String sha=pendingXpsToneProbeSha;
+  if(sha.isEmpty()||System.currentTimeMillis()-pendingXpsToneProbeStarted>4500)return;
+  XpsProtocol.Data reply=XpsProtocol.decode(sysex);
+  if(reply==null||reply.start!=XpsProtocol.address(0x1f,0,0,0)||reply.values.length<12)return;
+  pendingXpsToneProbeSha="";
+  try{
+   emit("toneKeyboardProbe",new JSONObject()
+    .put("sha256",sha).put("readback",true)
+    .put("address","1F-00-00-00")
+    .put("readBytes",reply.values.length)
+    .put("canAudition",false).put("wroteKeyboard",false)
+    .put("message","XPS-10 respondeu à leitura de 1F-00-00-00. Próxima validação: mapa completo, ondas e FX; nenhum timbre foi enviado."));
+  }catch(Exception ignored){}
+ }
  private BackupArchive backupArchive; private ToneImportLibrary toneImports; private String toneExportSha=""; private String backupExportSha=""; private JarvisCloudGateway jarvisGateway; private JarvisDirectOpenAI directApi;
 
  private void navigateBack(){
@@ -167,7 +185,7 @@ getWindow().addFlags(128);
   liveLooper=new MidiLooper((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   phraseSequencer=new PhraseSequencer((status,data1,data2)->midi!=null&&midi.isConnected()&&midi.send(status,data1,data2));
   try{loopFiles=new MidiLoopFiles(getFilesDir());MidiLoopFiles.Entry previous=loopFiles.checkpoint();if(previous!=null)liveLooper.restore(previous.session);loopSavedRevision=liveLooper.state(System.nanoTime()).revision;}catch(Exception e){loopStartupIssue="Sessão anterior não recuperada: "+e.getMessage();}
-  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){xps.accept(p);}public void status(String t){
+  midi=new UsbMidi(this,new UsbMidi.Listener(){public void sysex(byte[] p){acceptXpsToneProbe(p);xps.accept(p);}public void status(String t){
  if(t!=null&&(t.startsWith("Conectando USB")||t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")||t.startsWith("Não foi possível abrir"))){stopLiveLoop();liveLooper.disconnected();publishLoopState();}
  emit("status",t);
  if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
@@ -536,6 +554,57 @@ getWindow().addFlags(128);
   @JavascriptInterface public void importStoreToneFile(){runOnUiThread(()->{
    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
    startActivityForResult(pick,15);
+  });}
+  /**
+   * XPS external-import hardware test: request 12 bytes from the source
+   * temporary-patch address and wait for Roland-model SysEx readback.
+   * This is READ ONLY and never sends DT1 or performs WRITE USER.
+   */
+  @JavascriptInterface public void probeXpsToneKeyboard(String sha){worker.execute(()->{
+   try{
+    if(sha==null||!sha.matches("[a-f0-9]{64}"))throw new IOException("Timbre inválido");
+    String name=toneImports.originalName(sha);
+    if(!name.toLowerCase(java.util.Locale.ROOT).endsWith(".xps"))
+     throw new IOException("Teste de endereço disponível somente para timbres .XPS");
+    File original=toneImports.file(sha);
+    JSONObject inspected=ToneFileInspector.analyze(original,name,sha);
+    JSONObject xpsJson=inspected.optJSONObject("xps");
+    if(xpsJson==null||!xpsJson.optBoolean("matchesObservedAiLeadLayout"))
+     throw new IOException("Estrutura diferente da amostra AiLead; envio USB de teste bloqueado");
+    runOnUiThread(()->{
+     if(midi==null||!midi.isConnected()){
+      emit("toneImportStatus","Conecte o XPS-10 ao celular via USB-MIDI antes do teste de endereço.");
+      return;
+     }
+     String old=pendingXpsToneProbeSha;
+     if(old!=null&&!old.isEmpty()){
+      emit("toneImportStatus","Uma consulta SysEx de timbre já está em andamento.");
+      return;
+     }
+     pendingXpsToneProbeSha=sha;
+     pendingXpsToneProbeStarted=System.currentTimeMillis();
+     // Safe MIDI RQ1: read 12 bytes from 1F-00-00-00; cannot change
+     // the temporary patch or the USER performance banks.
+     boolean sent=midi.send(XpsProtocol.packet(0x11,
+       XpsProtocol.address(0x1f,0,0,0),XpsProtocol.digits(12)));
+     if(!sent){
+      pendingXpsToneProbeSha="";
+      emit("toneImportStatus","Não foi possível enviar a consulta de leitura MIDI.");
+      return;
+     }
+     emit("toneImportStatus","Consulta Roland RQ1 enviada. Aguardando resposta ao endereço 1F-00-00-00. Nenhum timbre gravado.");
+     new Handler(Looper.getMainLooper()).postDelayed(()->{
+      if(sha.equals(pendingXpsToneProbeSha)){
+       pendingXpsToneProbeSha="";
+       try{emit("toneKeyboardProbe",new JSONObject()
+        .put("sha256",sha).put("readback",false).put("address","1F-00-00-00")
+        .put("canAudition",false).put("wroteKeyboard",false)
+        .put("message","O XPS-10 não confirmou o endereço 1F-00-00-00. Não é seguro carregar o timbre nesta variante."));}
+       catch(Exception ignored){}
+      }
+     },2500);
+    });
+   }catch(Exception e){emit("toneImportStatus","Teste XPS impedido: "+e.getMessage());}
   });}
   @JavascriptInterface public void inspectStoreToneFile(String sha){worker.execute(()->{
    try{

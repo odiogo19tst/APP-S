@@ -43,6 +43,45 @@ public final class BackupArchive {
   return cleaned.substring(0,Math.min(120,cleaned.length()));
  }
  private static String hex(byte[] data){StringBuilder sb=new StringBuilder();for(byte b:data)sb.append(String.format(java.util.Locale.ROOT,"%02x",b&255));return sb.toString();}
+ /**
+  * Preserve a verified downloaded SVD as an independent vault entry.
+  * SHA-256 deduplicates exact originals. NEVER combines SVD binary blobs.
+  */
+ public synchronized JSONObject importOriginal(File original,String sourceName) throws Exception {
+  if(original==null||!original.isFile()||original.length()<=0||original.length()>MAX_SIZE)
+   throw new IOException("Backup ausente ou fora do limite de 120 MB");
+  String name=sourceName==null?"backup.svd":sourceName.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]","_");
+  if(name.length()>120)name=name.substring(name.length()-120);
+  File tmp=File.createTempFile("downloaded-",".tmp",dir);
+  MessageDigest digest=MessageDigest.getInstance("SHA-256");
+  long size=0;
+  try(InputStream in=new FileInputStream(original);OutputStream out=new FileOutputStream(tmp)){
+   byte[] buffer=new byte[16384];int n;
+   while((n=in.read(buffer))!=-1){
+    size+=n;if(size>MAX_SIZE)throw new IOException("Backup excede limite");
+    digest.update(buffer,0,n);out.write(buffer,0,n);
+   }
+  }catch(Exception e){tmp.delete();throw e;}
+  String sha=hex(digest.digest());
+  JSONArray items=read();
+  for(int i=0;i<items.length();i++){
+   JSONObject old=items.getJSONObject(i);
+   if(sha.equals(old.optString("sha256"))){tmp.delete();return old;}
+  }
+  File target=new File(dir,sha+".bin");
+  if(!target.exists()&&!tmp.renameTo(target)){
+   tmp.delete();throw new IOException("Não foi possível guardar o backup");
+  }
+  tmp.delete();
+  JSONObject item=new JSONObject().put("sha256",sha).put("name",name)
+   .put("bytes",size).put("importedAt",System.currentTimeMillis())
+   .put("source","SynthXPS · download automático")
+   .put("formatVerified",false).put("mergedIntoKeyboard",false);
+  items.put(item);
+  try{save(items);}catch(Exception e){target.delete();throw e;}
+  return item;
+ }
+
  public synchronized JSONArray importFiles(java.util.List<Uri> uris) throws Exception {
   if(uris.size()>25)throw new IOException("Maximo 25 arquivos por lote");
   JSONArray catalog=read();
