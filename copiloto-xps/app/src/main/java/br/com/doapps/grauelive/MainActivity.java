@@ -537,6 +537,13 @@ getWindow().addFlags(128);
    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
    startActivityForResult(pick,15);
   });}
+  @JavascriptInterface public void inspectStoreToneFile(String sha){worker.execute(()->{
+   try{
+    File original=toneImports.file(sha);
+    org.json.JSONObject report=ToneFileInspector.analyze(original,toneImports.originalName(sha),sha);
+    emit("toneFileInspection",report);
+   }catch(Exception e){emit("toneImportStatus","Não foi possível examinar o arquivo: "+e.getMessage());}
+  });}
   @JavascriptInterface public void exportStoreToneFile(String sha){worker.execute(()->{
    try{
     File file=toneImports.file(sha);
