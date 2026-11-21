@@ -563,7 +563,7 @@ getWindow().addFlags(128);
    }catch(Exception e){emit("toneImportStatus","Erro ao excluir cópia: "+e.getMessage());}
   });}
   @JavascriptInterface public void openToneStore(){runOnUiThread(()->{
-    try{startActivity(new Intent(MainActivity.this,ToneStoreActivity.class));}
+    try{startActivityForResult(new Intent(MainActivity.this,ToneStoreActivity.class),17);}
     catch(Exception e){emit("status","Não foi possível abrir a Loja de Timbres: "+e.getMessage());}
   });}
   @JavascriptInterface public void openToneStoreDownloads(){runOnUiThread(()->{
@@ -942,6 +942,14 @@ getWindow().addFlags(128);
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==1&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED){audio.start();emit("mic",audio.isRunning());}else emit("status","Microfone não autorizado.");}
  @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);
+ if(req==17){
+  final String destination=(result==RESULT_OK&&data!=null)?data.getStringExtra(ToneStoreActivity.EXTRA_RETURN_TO):"store";
+  if(web!=null&&pageReady){
+   final String route="home".equals(destination)?"window.GraueNavigation && window.GraueNavigation.home();":"window.Native && window.Native.listStoreTones && window.Native.listStoreTones();";
+   web.evaluateJavascript(route,null);
+  }
+  return;
+ }
 
  if(req==15||req==16){
   if(result!=RESULT_OK||data==null||data.getData()==null){
