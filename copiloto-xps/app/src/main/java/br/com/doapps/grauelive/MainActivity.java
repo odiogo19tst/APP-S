@@ -1101,8 +1101,12 @@ getWindow().addFlags(128);
    final String route="home".equals(destination)?"window.GraueNavigation && window.GraueNavigation.home();":"window.Native && window.Native.listStoreTones && window.Native.listStoreTones();";
    web.evaluateJavascript(route,null);
   }
-  if(completedXpsSha!=null&&completedXpsSha.matches("[a-f0-9]{64}"))
-   new Bridge().auditionStoreXpsTone(completedXpsSha);
+  // Explicit user action only: downloading never starts a SysEx transmission.
+  // The main screen presents one "Integrar ao XPS-10" button for this file.
+  if(completedXpsSha!=null&&completedXpsSha.matches("[a-f0-9]{64}")){
+   try{emit("toneDownloaded",new JSONObject().put("sha256",completedXpsSha));}
+   catch(Exception ignored){}
+  }
   return;
  }
 
