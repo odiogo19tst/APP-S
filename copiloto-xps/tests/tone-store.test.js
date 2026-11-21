@@ -87,3 +87,28 @@ assert(receiver.includes('lib.file(imported.getString("sha256"))'));
 assert(receiver.includes('destination-" + id'));
 assert(receiver.includes('lastLocation(Context context)'));
 console.log('Android destination picker, navigation dock, explicit return Home/Library and copy of chosen file PASS');
+
+const backupArchive=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/BackupArchive.java'),'utf8');
+const protocol=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/XpsProtocol.java'),'utf8');
+for(const marker of ['enqueueAutomatically(String url','ToneDownloadReceiver.trackAutomatic(this,id,filename)',
+ 'lower.endsWith(".xps")','lower.endsWith(".jxe")','lower.endsWith(".svd")'])
+ assert(store.includes(marker),'One-tap automatic download absent: '+marker);
+for(const marker of ['void trackAutomatic(Context context','"Biblioteca Grauê"',
+ 'new BackupArchive(context).importOriginal','"SVD_XPS10_BACKUP_ORIGINAL"'])
+ assert(receiver.includes(marker),'Auto library/backup indexing absent: '+marker);
+for(const marker of ['importOriginal(File original,String sourceName)','MessageDigest.getInstance("SHA-256")',
+ '"formatVerified",false','"mergedIntoKeyboard",false'])
+ assert(backupArchive.includes(marker),'Safe backup vault import absent: '+marker);
+for(const marker of ['probeXpsToneKeyboard(String sha)','acceptXpsToneProbe(byte[] sysex)',
+ 'XpsProtocol.packet(0x11','XpsProtocol.address(0x1f,0,0,0)',
+ '"canAudition",false','"wroteKeyboard",false'])
+ assert(main.includes(marker),'Read-only physical compatibility probe absent: '+marker);
+assert(!/XpsProtocol\\.packet\\s*\\(0x12/.test(main),
+ 'Imported XPS files must not send DT1 before physical validation');
+assert(protocol.includes('public static Data decode(byte[] p)'));
+assert(ux.includes("probeButton.textContent='Verificar no XPS-10'"));
+assert(ux.includes("kind==='toneKeyboardProbe'"));
+assert(ux.includes('Planejar mesclagem incremental'));
+assert(ux.includes('graue-xps-incremental-plan-v1'));
+assert(ux.includes('targetMemoryWrite:false,rolandRestore:false'));
+console.log('Grauê XPS 1.36.4: auto XPS download, real read-only keyboard test, backup plan without RESTORE PASS');
