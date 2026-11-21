@@ -415,6 +415,53 @@ async function run(){
    assert.equal((await p.evaluate(midiCalls)).length,0,'Setlist numbering and key never send MIDI');
    results.push({scaleOrder:true,pass:true});await p.close();
   }
+  // Show Guardian: preflight and version vault never transmit without a fresh and confirmed Performance.
+  {
+   const p=await browser.newPage({viewport:{width:390,height:844}});
+   p.on('pageerror',e=>errors.push('guardian: '+e.stack));
+   await boot(p,{songs:notes,scenes:[]});
+   assert.equal(await p.locator('#gx-guardian').count(),1);
+   await p.locator('#gx-guardian summary').click();
+   const before=(await p.evaluate(midiCalls)).length;
+   await p.locator('#gx-guardian-check').click();
+   assert.match(await p.locator('#gx-guardian-audit-status').innerText(),/pendências/);
+   assert.equal((await p.evaluate(midiCalls)).length,before,'Preflight never sends MIDI');
+   await p.locator('#gx-guardian-capture').click();
+   assert.match(await p.locator('#gx-guardian-vault-status').innerText(),/Conecte o USB/);
+   await p.evaluate(()=>{
+    const hw={validSysexPackets:12,readAt:Date.now(),'setup:0':Array(54).fill(0),'common:0':Array(56).fill(32)};
+    hw['setup:0'][0]=1;hw['setup:0'][1]=1;hw['setup:0'][2]=1;hw['setup:0'][3]=1;
+    const str='Worship USER';for(let i=0;i<str.length;i++)hw['common:0'][i]=str.charCodeAt(i);
+    for(let i=0;i<16;i++){const row=Array(49).fill(64);row[7]=100;row[32]=1;hw['part:'+i]=row;}
+    window.receive('xpsConnection',true);window.receive('hardware',hw);
+   });
+   await p.locator('#gx-guardian-capture').click();
+   assert.equal(await p.locator('#gx-guardian-vault-select option').count(),1);
+   assert.equal(await p.evaluate(()=>window.lastSaved.guardianVault.length),1,'Guardian snapshot actually persisted');
+   assert.equal((await p.evaluate(midiCalls)).length,before,'Saving snapshot never writes');
+   await p.evaluate(()=>{
+    const state=window.GraueStageUX.state(),hw={...state.hw,'part:0':state.hw['part:0'].slice(),readAt:Date.now()};
+    hw['part:0'][7]=85;window.receive('hardware',hw);
+   });
+   await p.locator('#gx-guardian-compare').click();
+   assert.match(await p.locator('#gx-guardian-vault-status').innerText(),/1 parâmetro/);
+   assert.equal(await p.locator('#gx-guardian-apply').isEnabled(),true);
+   p.once('dialog',d=>d.accept());
+   await p.locator('#gx-guardian-apply').click();
+   const last=(await p.evaluate(midiCalls)).at(-1);
+   assert.equal(last.method,'editHardware');
+   assert.deepEqual(JSON.parse(last.args[0]),[{section:'part',index:0,offset:7,value:100}]);
+   const n=(await p.evaluate(midiCalls)).length;
+   await p.evaluate(()=>window.receive('xpsConnection',false));
+   await p.locator('#gx-guardian-compare').click();
+   assert.equal(await p.locator('#gx-guardian-apply').isEnabled(),false);
+   assert.equal((await p.evaluate(midiCalls)).length,n,'Disconnected MIDI cannot restore');
+   await p.locator('#gx-guardian-suggest').click();
+   assert.match(await p.locator('#gx-guardian-suggest-status').innerText(),/Sugestão local por regras/);
+   await noOverflow(p,'Guardian at phone width');
+   await p.screenshot({path:path.join(out,'390-show-guardian.png'),fullPage:true});
+   results.push({showGuardian:true,pass:true});await p.close();
+  }
   // Valid JSON that is not a state object must not break startup.
   for(const value of [null,[],{songs:[null,{title:'Inválida'},...notes],scenes:[null]}]){const p=await browser.newPage();p.on('pageerror',e=>errors.push(e.stack));await boot(p,value);if(value?.songs?.includes(null)){const recovery=await p.evaluate(()=>window.lastSaved);assert.equal(recovery.recoverySongs.length,2);assert.equal(recovery.recoveryScenes.length,1);assert.equal(recovery.songs.length,2);}await p.close();}
   assert.deepEqual(errors,[],'Browser runtime errors');
