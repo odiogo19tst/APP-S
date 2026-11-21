@@ -49,6 +49,10 @@ public final class XpsToneAuditioner {
     private int[] waiting;
     private boolean[] received;
     private boolean wroteAny=false;
+    // One pending replacement at a time. It is released only AFTER verified recovery.
+    private List<Block> pendingBlocks;
+    private String pendingSha="",pendingName="";
+    private Runnable afterVerifiedRestore;
 
     static final class Block {
         final int address;
@@ -128,20 +132,50 @@ public final class XpsToneAuditioner {
     public boolean ready(){return phase==Phase.READY;}
 
     public void start(String sha,String patchName,List<Block> source) {
-        if(phase!=Phase.IDLE){
-            publish("blocked",phase==Phase.READY
-                ?"Há outro timbre carregado. Restaure a prévia anterior antes de trocar."
-                :"Uma operação MIDI já está em andamento.");
+        if(source==null||source.size()!=9){publish("blocked","Arquivo XPS incompleto.");return;}
+        if(!port.connected()){publish("blocked","Conecte o XPS-10 via USB-MIDI.");return;}
+        if(phase==Phase.READY&&sha.equals(this.sha)){
+            publish("playing","Este timbre já está carregado. Você pode tocar ou escolher outro timbre.");
             return;
         }
-        if(!port.connected()){publish("blocked","Conecte o XPS-10 via USB-MIDI.");return;}
-        if(source==null||source.size()!=9){publish("blocked","Arquivo XPS incompleto.");return;}
+        if(phase==Phase.RESTORE||phase==Phase.RESTORE_VERIFY){
+            publish("restoring","Aguardando a recuperação anterior. Só troque após a confirmação do Roland.");
+            return;
+        }
+        if(phase!=Phase.IDLE){
+            if(!sameDevice()){disconnect();return;}
+            // Undo the active temporary patch before applying a different one.
+            pendingBlocks=new ArrayList<>(source);
+            pendingSha=sha;pendingName=patchName;afterVerifiedRestore=null;
+            publish("switching","Trocando para "+patchName+": restaurando e conferindo o som anterior.");
+            restoreInternal();
+            return;
+        }
         blocks.clear();blocks.addAll(source);
         this.sha=sha;name=patchName;
         connectedDevice=port.deviceId();
         token++;phase=Phase.SNAPSHOT;index=0;wroteAny=false;
-        publish("checking","Lendo os nove blocos originais do Roland para permitir recuperação.");
+        publish("checking","Lendo o bloco 1/9 do Roland. Nenhum som será substituído antes da leitura completa.");
         requestBlock();
+    }
+
+    /** Used when changing factory tones or Performances while an external XPS is active. */
+    public void restoreThen(Runnable afterRestore){
+        if(afterRestore==null)return;
+        if(phase==Phase.IDLE){
+            if(port.connected())afterRestore.run();
+            else publish("blocked","USB-MIDI desconectado; troca não efetuada.");
+            return;
+        }
+        if(phase==Phase.RESTORE||phase==Phase.RESTORE_VERIFY){
+            publish("restoring","Recuperação do som anterior em andamento. Aguarde a confirmação.");
+            return;
+        }
+        if(!sameDevice()){disconnect();return;}
+        pendingBlocks=null;pendingSha="";pendingName="";
+        afterVerifiedRestore=afterRestore;
+        publish("switching","Restaurando e verificando o timbre anterior antes de trocar.");
+        restoreInternal();
     }
 
     private boolean sameDevice(){
@@ -152,6 +186,8 @@ public final class XpsToneAuditioner {
         if(!sameDevice()){disconnect();return;}
         if(index>=blocks.size()){finishReads();return;}
         Block b=blocks.get(index);
+        publish(phase==Phase.SNAPSHOT?"checking":phase==Phase.VERIFY?"verifying":"restoring",
+            "XPS-10: "+(index+1)+"/9 — "+b.label+" (leitura e confirmação MIDI).");
         waiting=new int[b.fullLength];Arrays.fill(waiting,-1);
         received=new boolean[b.fullLength];
         final int expectedToken=++token,expectedIndex=index;
@@ -210,8 +246,14 @@ public final class XpsToneAuditioner {
             phase=Phase.READY;index=9;
             publish("playing","Timbre temporário confirmado por SysEx. Experimente tocar no XPS-10. Para manter o som, salve PATCH USER e depois PERFORMANCE no painel do Roland.");
         }else if(phase==Phase.RESTORE_VERIFY){
-            publish("restored","Timbre original recuperado e confirmado pelo Roland. Nenhum banco USER alterado.");
+            // Never start the next tone unless ALL nine previous blocks were recovered.
+            final List<Block> next=pendingBlocks;
+            final String nextSha=pendingSha,nextName=pendingName;
+            final Runnable followup=afterVerifiedRestore;
+            publish("restored","Estado anterior recuperado e verificado, 9/9 blocos. Nenhum banco USER alterado.");
             reset();
+            if(next!=null)start(nextSha,nextName,next);
+            else if(followup!=null&&port.connected())followup.run();
         }
     }
 
@@ -241,14 +283,26 @@ public final class XpsToneAuditioner {
     }
 
     public void restore(){
+        // The musician explicitly chose to stop: cancel any pending replacement.
+        pendingBlocks=null;pendingSha="";pendingName="";afterVerifiedRestore=null;
+        restoreInternal();
+    }
+
+    private void restoreInternal(){
         if(phase==Phase.IDLE){publish("idle","Nenhuma prévia MIDI carregada.");return;}
         if(phase==Phase.RESTORE||phase==Phase.RESTORE_VERIFY){
             publish("restoring","Recuperação já iniciada.");return;
         }
         token++;
         if(!wroteAny){
-            publish("restored","Nenhum dado foi enviado ao teclado. Estado preservado.");
-            reset();return;
+            final List<Block> next=pendingBlocks;
+            final String nextSha=pendingSha,nextName=pendingName;
+            final Runnable followup=afterVerifiedRestore;
+            publish("restored","Nenhum dado foi enviado ao Roland. Estado anterior preservado.");
+            reset();
+            if(next!=null)start(nextSha,nextName,next);
+            else if(followup!=null&&port.connected())followup.run();
+            return;
         }
         if(!sameDevice()){disconnect();return;}
         phase=Phase.RESTORE;index=0;
@@ -278,5 +332,6 @@ public final class XpsToneAuditioner {
     public void reset(){
         token++;phase=Phase.IDLE;index=0;waiting=null;received=null;
         blocks.clear();name="";sha="";connectedDevice=-1;wroteAny=false;
+        pendingBlocks=null;pendingSha="";pendingName="";afterVerifiedRestore=null;
     }
 }
