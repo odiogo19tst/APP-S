@@ -173,3 +173,20 @@ body.gx-ready{--gx-bg:#0c1015;--gx-panel:#151b22;--gx-panel2:#1b232d;--gx-line:#
 #gx-shell.gx-layout-v3 .gx-more-menu:not([open])>.gx-more-items,#gx-shell.gx-layout-v3 .gx-disclosure:not([open])>:not(summary),#gx-shell.gx-layout-v3 .gx-loop-options:not([open])>:not(summary){display:none!important}
 
 #gx-shell.gx-layout-v3 [data-layout-order="90"]{order:90}#gx-shell.gx-layout-v3 [data-layout-order="100"]{order:100}
+
+/* Loja de Timbres is a real More tab: native isolated live browser, no MIDI bridge. */
+#gx-shell.gx-layout-v3 .gx-store-panel,#gx-shell.gx-layout-v3 .gx-store-guide{max-width:100%;min-width:0;padding:16px;border-radius:15px;margin:0 0 12px}
+#gx-shell.gx-layout-v3 .gx-store-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#gx-shell.gx-layout-v3 .gx-store-top>div{display:flex;flex-direction:column;gap:4px}
+#gx-shell.gx-layout-v3 .gx-store-top strong{font-size:21px;color:#e1fdf1}
+#gx-shell.gx-layout-v3 .gx-store-top small{font-size:12px;color:#b1c9bf}
+#gx-shell.gx-layout-v3 .gx-store-badge{padding:7px 9px;border:1px solid #3a7969;border-radius:12px;color:#a4edd5;background:#133b34;font-size:12px}
+#gx-shell.gx-layout-v3 .gx-store-intro{font-size:14px;line-height:1.55;margin:14px 0}
+#gx-shell.gx-layout-v3 .gx-store-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#gx-shell.gx-layout-v3 .gx-store-actions button{min-width:0;min-height:48px;font-size:13px!important;white-space:normal;line-height:1.35;padding:10px 8px!important}
+#gx-shell.gx-layout-v3 .gx-store-actions .gx-store-primary{color:#082318;background:#7de8bf;border-color:#60c9a8;font-weight:700}
+#gx-shell.gx-layout-v3 .gx-store-status{color:#b2dbd0;font-size:12px;line-height:1.45;padding:8px 0}
+#gx-shell.gx-layout-v3 .gx-store-guide h3{color:#d1f3e3;font-size:16px}
+#gx-shell.gx-layout-v3 .gx-store-guide p{font-size:13px;line-height:1.6}
+#gx-shell.gx-layout-v3 .gx-store-guide small{color:#a9c1c2;font-size:12px;line-height:1.5}
+@media(max-width:420px){#gx-shell.gx-layout-v3 .gx-store-actions{grid-template-columns:minmax(0,1fr)}#gx-shell.gx-layout-v3 .gx-store-panel,#gx-shell.gx-layout-v3 .gx-store-guide{padding:12px}}
