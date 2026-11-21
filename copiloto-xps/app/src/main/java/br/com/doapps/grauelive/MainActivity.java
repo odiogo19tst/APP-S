@@ -66,6 +66,100 @@ public class MainActivity extends Activity {
   if(merged.length()>0)getPreferences(MODE_PRIVATE).edit().putString("xpsUserCache",merged.toString()).apply();
  }
  private boolean pageReady=false; private String pendingShare=""; private final java.util.Map<Integer,Integer> padTokens=new java.util.HashMap<>();private final Handler padHandler=new Handler(Looper.getMainLooper());private int padSerial=0; private XpsController xps; private XpsToneAuditioner xpsAudition; private WebView web; private UsbMidi midi; private AudioAnalyzer audio;
+ /** A single latest tap may wait for the physical Patch Rx/Tx channel; no automatic bank overwrite. */
+ private static final class ToneChoice {
+  final int msb,lsb,program,part,volume,deviceId;
+  final long createdAt=android.os.SystemClock.elapsedRealtime();
+  boolean refreshRequested=false;
+  int polls=0;
+  ToneChoice(int msb,int lsb,int program,int part,int volume,int deviceId){
+   this.msb=msb;this.lsb=lsb;this.program=program;this.part=part;this.volume=volume;this.deviceId=deviceId;
+  }
+ }
+ private ToneChoice pendingToneChoice;
+ private int physicalPatchRxChannel=-1;
+
+ private void requestToneChange(int msb,int lsb,int program,int part,int volume){
+  runOnUiThread(()->{
+   if(!PatchToneRouting.validTone(msb,lsb,program,part,volume)){
+    emit("status","Dados de timbre inválidos para o Roland XPS-10.");return;
+   }
+   if(midi==null||!midi.isConnected()){
+    emit("status","USB-MIDI desconectado. Conecte o XPS-10 para mudar o Patch.");return;
+   }
+   pendingToneChoice=new ToneChoice(msb,lsb,program,part,volume,midi.connectedDeviceId());
+   applyPendingTone(pendingToneChoice);
+  });
+ }
+ private void retryPendingTone(ToneChoice choice){
+  if(pendingToneChoice!=choice)return;
+  if(++choice.polls%8==1){
+   emit("status","Aguardando modo/canal MIDI do XPS-10 para trocar timbre. No modo Patch, o app não precisa de Performance.");
+  }
+  padHandler.postDelayed(()->applyPendingTone(choice),400);
+ }
+ private void applyPendingTone(ToneChoice choice){
+  if(pendingToneChoice!=choice)return;
+  if(midi==null||!midi.isConnected()||midi.connectedDeviceId()!=choice.deviceId){
+   pendingToneChoice=null;emit("status","Troca cancelada: o dispositivo MIDI mudou ou foi desconectado.");return;
+  }
+  if(android.os.SystemClock.elapsedRealtime()-choice.createdAt>30000){
+   pendingToneChoice=null;
+   emit("status","Não consegui identificar o canal MIDI Patch. No XPS-10, abra MENU > MIDI > Patch Rx/Tx Ch e confira o canal; toque uma tecla para o Grauê detectá-lo, depois escolha o som novamente.");
+   return;
+  }
+  if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){
+   emit("status","Restaurando a prévia externa antes de mudar o timbre.");
+   xpsAudition.restoreThen(()->applyPendingTone(choice));
+   return;
+  }
+  if(xps==null||xps.isBusy()){retryPendingTone(choice);return;}
+  final int mode=xps.observedSoundMode();
+  if(mode==1){
+   if(xps.hasPerformancePart(choice.part)){
+    pendingToneChoice=null;
+    xps.auditionToneConfig(choice.part,choice.msb,choice.lsb,choice.program,choice.volume);
+    return;
+   }
+   if(!choice.refreshRequested){
+    choice.refreshRequested=true;
+    emit("status","Modo Performance confirmado, mas parte ainda não lida; buscando os parâmetros antes de mudar.");
+    xps.readWhenIdle(15);
+   }
+   retryPendingTone(choice);
+   return;
+  }
+  // In Patch mode CC0 + CC32 + Program Change must use the physical Patch Rx/Tx Ch.
+  // Never send a Program Change to channel 1 by assumption.
+  int channel=PatchToneRouting.channel(mode,xps.observedPatchRxChannel(),physicalPatchRxChannel);
+  if(channel<1){
+   if(!choice.refreshRequested){
+    choice.refreshRequested=true;
+    emit("status","Lendo canal Patch Rx/Tx no XPS-10. Você também pode tocar uma tecla para identificar o canal MIDI.");
+    xps.readWhenIdle(15);
+   }
+   retryPendingTone(choice);
+   return;
+  }
+  int[][] commands=PatchToneRouting.commands(channel,choice.msb,choice.lsb,choice.program,choice.volume);
+  boolean sent=true;
+  for(int[] message:commands){
+   if(message.length==2)sent=midi.sendProgram(channel,message[1]);
+   else sent=midi.send(message[0],message[1],message[2]);
+   if(!sent)break;
+  }
+  pendingToneChoice=null;
+  if(sent){
+   emit("status","Patch solicitado pelo USB-MIDI no canal "+channel+" (CC0/CC32 + Program Change)"
+    +(choice.volume>=0?" e volume CC7":"")+". Toque no XPS-10 para conferir o som; transmissão não confirma áudio nem grava memória USER.");
+   try{emit("patchToneSelection",new JSONObject().put("channel",channel)
+    .put("msb",choice.msb).put("lsb",choice.lsb).put("program",choice.program)
+    .put("modeVerified",mode==0).put("sent",true)
+    .put("message","Seleção Patch enviada no canal "+channel+". Confira o som no Roland."));}
+   catch(Exception ignored){}
+  }else emit("status","Falha na transmissão MIDI Patch; seleção incompleta. Reconecte o XPS-10 e repita.");
+ }
+
  private MidiLooper liveLooper;
  private PhraseSequencer phraseSequencer;
  private final Runnable phraseTick=new Runnable(){public void run(){if(phraseSequencer==null)return;phraseSequencer.tick(System.nanoTime());if(phraseSequencer.playing())loopClock.postDelayed(this,4);else publishPhrase();}};
@@ -208,7 +302,11 @@ getWindow().addFlags(128);
  emit("status",t);
  if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível")))
   if(xpsAudition!=null)xpsAudition.disconnect();
+ if(t!=null&&(t.startsWith("USB desconectado")||t.startsWith("Porta MIDI indisponível")||t.startsWith("Entrada ou saída USB-MIDI indisponível"))){
+  pendingToneChoice=null;physicalPatchRxChannel=-1;
+ }
  if(t!=null&&t.startsWith("USB conectado")&&midi.isConnected()){
+  pendingToneChoice=null;physicalPatchRxChannel=-1;
   stopLiveLoop();liveLooper.retrySilence();publishLoopState();stopDrone();stopAssist();padTokens.clear();if(sequencer!=null)sequencer.stop();xps.reset();
   armed=true;emit("armed",true);emit("xpsConnection",true);
   autoUserRead=false; // USER catalog is explicit; keep sync short and caches intact.
@@ -220,7 +318,20 @@ getWindow().addFlags(128);
   emit("armed",false);emit("xpsConnection",false);emit("clear","");
  }
 }public void event(int s,int a,int b){try{emit("midi",new JSONArray(new int[]{s,a,b}));}catch(Exception ignored){}}
- public void eventAt(long receivedNs,int s,int a,int b){liveLooper.input(receivedNs,s,a,b);if(XpsProtocol.patchSelectionMessage(s,a))runOnUiThread(()->xps.patchSelectionInput());event(s,a,b);}
+ public void eventAt(long receivedNs,int s,int a,int b){
+  liveLooper.input(receivedNs,s,a,b);
+  if(XpsProtocol.patchSelectionMessage(s,a))runOnUiThread(()->xps.patchSelectionInput());
+  if((s&0xf0)==0x90&&b>0){
+   final int observed=(s&0x0f)+1;
+   runOnUiThread(()->{
+    if(midi!=null&&midi.isConnected()&&xps!=null&&xps.observedSoundMode()!=1){
+     physicalPatchRxChannel=observed;
+     if(pendingToneChoice!=null)applyPendingTone(pendingToneChoice);
+    }
+   });
+  }
+  event(s,a,b);
+ }
  });
   sequencer=new DrumSequencer(new DrumSequencer.Output(){public void hit(int c,int n,int v){new Bridge().padHit(c,n,v);}public void state(int step){emit("sequenceStep",step);}});
   audio=new AudioAnalyzer(new AudioAnalyzer.Callback(){public void onError(String t){emit("status",t);}public void onResult(PitchDetector.Result p,MusicBrain.Harmony h){try{JSONObject o=new JSONObject();o.put("root",h.root);o.put("mode",h.mode);o.put("confidence",h.confidence);o.put("midi",h.midi);o.put("rms",p.rms);o.put("degree",h.degree);o.put("heardChord",h.heardChord);o.put("heardQuality",h.heardQuality);o.put("chord1",h.chord1);o.put("quality1",h.quality1);o.put("chord2",h.chord2);o.put("quality2",h.quality2);emit("audio",o);}catch(Exception ignored){}}});
@@ -757,20 +868,12 @@ getWindow().addFlags(128);
   }
   @JavascriptInterface public void restoreCachedTones(){runOnUiThread(()->emitCachedUsers());}
   @JavascriptInterface public void selectToneWithVolume(int msb,int lsb,int program,int part,int volume){
-   runOnUiThread(()->{
-    if(volume<0||volume>127||msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>15){emit("status","Dados inválidos para testar timbre.");return;}
-    if(midi==null||!midi.isConnected()){emit("status","Conecte o USB-MIDI para trocar o timbre.");return;}
-    if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){
-     xpsAudition.restoreThen(()->new Bridge().selectToneWithVolume(msb,lsb,program,part,volume));
-     return;
-    }
-    if(xps.hasPerformancePart(part))xps.auditionToneConfig(part,msb,lsb,program,volume);
-    else emit("status","Para testar volume e timbre juntos, primeiro leia uma Performance válida. Não alterei a configuração.");
-   });
+   requestToneChange(msb,lsb,program,part,volume);
   }
   @JavascriptInterface public void selectPerformance(int number,boolean user){
     runOnUiThread(()->{
       stopLiveLoop();
+      pendingToneChoice=null;
       if(number<1||number>(user?128:16)){emit("status","Número de Performance fora da faixa.");return;}
       if(midi==null||!midi.isConnected()){emit("status","Conecte o teclado para selecionar a Performance.");return;}
       if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){
@@ -789,24 +892,7 @@ getWindow().addFlags(128);
     });
   }
   @JavascriptInterface public void selectTone(int msb,int lsb,int program,int part){
-   runOnUiThread(()->{
-    if(msb<0||msb>127||lsb<0||lsb>127||program<1||program>128||part<0||part>=16){
-     emit("status","Dados de timbre inválidos.");return;
-    }
-    if(midi==null||!midi.isConnected()){emit("status","Conecte o USB-MIDI para trocar o timbre.");return;}
-    if(xpsAudition!=null&&(xpsAudition.busy()||xpsAudition.ready())){
-     xpsAudition.restoreThen(()->new Bridge().selectTone(msb,lsb,program,part));
-     return;
-    }
-    if(xps.hasPerformancePart(part)){xps.auditionTone(part,msb,lsb,program);return;}
-    // Patch mode / unverified performance: transmit a standard bank+program change
-    // to the keyboard's receiving MIDI channel. This may not switch the local panel sound.
-    int channel=0;
-    boolean ok=midi.send(0xb0+channel,0,msb);
-    if(ok)ok=midi.send(0xb0+channel,32,lsb);
-    if(ok)ok=midi.sendProgram(channel+1,program-1);
-    emit("status",ok?"Banco e programa enviados ao canal MIDI 1. Sem leitura SysEx, não é possível confirmar a mudança do som no painel; verifique o modo Patch/Performance e o canal de recepção.":"Sem porta USB-MIDI de saída. Conecte o XPS-10.");
-   });
+   requestToneChange(msb,lsb,program,part,-1);
   }
 
   @JavascriptInterface public void cancelHardware(){runOnUiThread(()->{if(xpsAudition!=null&&xpsAudition.busy())xpsAudition.restore();xps.cancelWrites();});}
