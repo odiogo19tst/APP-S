@@ -9,7 +9,7 @@ const main=fs.readFileSync(path.join(src,'MainActivity.java'),'utf8');
 const controller=fs.readFileSync(path.join(src,'XpsController.java'),'utf8');
 const router=fs.readFileSync(path.join(src,'PatchToneRouting.java'),'utf8');
 
-assert(ux.includes('Modo Patch o Grauê usa o canal MIDI do teclado'),'Quick rig must allow Patch without Performance');
+assert(ux.includes('No modo Patch o Grauê usa o canal MIDI do teclado'),'Quick rig must allow Patch without Performance');
 assert(ux.includes('window.Native.selectToneWithVolume(draft.msb,draft.lsb,draft.program,draft.part,draft.volume)'),
  'Single Quick Rig applies direct Patch choice with volume');
 assert(!ux.includes('Leia uma Performance do XPS-10 antes da troca direta'),
@@ -29,7 +29,7 @@ assert(main.includes('requestToneChange(msb,lsb,program,part,-1)'),
  'Tone without volume must share a mode-aware dispatch');
 assert(!main.includes('int channel=0;\n    boolean ok=midi.send(0xb0+channel,0,msb)'),
  'No assumed channel 1');
-assert(main.includes('PatchToneRouting.channel(mode,xps.observedPatchRxChannel(),physicalPatchRxChannel)'),
+assert(main.includes('PatchToneRouting.channel(mode,sysExChannel,physicalPatchRxChannel)'),
  'Use verified system Rx/Tx or physical MIDI note channel');
 assert(main.includes('if((s&0xf0)==0x90&&b>0)'),'Passive real keyboard channel learning');
 assert(main.includes('pendingToneChoice=new ToneChoice('),'Only latest requested sound may be queued');
