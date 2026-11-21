@@ -103,6 +103,39 @@ async function run(){
    await page.evaluate(report=>window.receive('toneFileInspection',report),safeReport);
    assert.equal(await page.locator('#gx-store-binary-report').isVisible(),true);
    assert.match(await page.locator('#gx-store-binary-data').innerText(),/JXE_BINARY_OR_UNKNOWN/);
+
+   // A real Koa/JUNO-Di inventory is displayed as names, not just hexadecimal.
+   const koaPatches=[
+     'Imperial Pno','Imperial Pno','Imperial Pno','Imperial Pno',
+     'Mood Strings','MASSIVE PAD','CLOUD PAD','Soft Pad',
+     'Grand Pno DS','INIT PATCH','Grand Pno DS','Grand Pno DS',
+     'Grand Pno DS','Grand Pno DS','Grand Pno DS','Grand Pno DS',
+     'Grand Pno DS','INIT PATCH'
+   ].map((name,index)=>({index:index+1,name,group:index<16?'principal':'adicional',
+     sha256Block:name==='Grand Pno DS'?'c'.repeat(64):('x'+index).repeat(32)}));
+   const koaRhythms=Array.from({length:18},(_,index)=>({
+     index:index+1,name:index===9?'Pop Kit 2':'INIT RHYTHM',
+     sha256Block:index===9?'d'.repeat(64):'e'.repeat(64)
+   }));
+   await page.evaluate(koa=>{
+     window.receive('toneFileInspection',{
+       name:'ImperialV3.jxe',sha256:'a'.repeat(64),bytes:336127,
+       identifiedAs:'KOA_JUNO_DI_EDITOR_STATE',
+       readOnly:true,canApplyToKeyboard:false,convertedToPatch:false,
+       koa:{recognized:true,editorModel:'JUNO-Di',performanceNameCandidate:'Gnd Imperial',
+         patchRecordCount:18,distinctPatchRecords:11,rhythmRecordCount:18,
+         distinctRhythmRecords:3,patches:koa.patches,rhythms:koa.rhythms}
+     });
+   },{patches:koaPatches,rhythms:koaRhythms});
+   assert.equal(await page.locator('#gx-store-koa-inventory').isVisible(),true);
+   assert.match(await page.locator('#gx-store-koa-inventory h3').innerText(),/Gnd Imperial/);
+   assert.equal(await page.locator('#gx-store-koa-inventory > ol > li').count(),18);
+   assert.match(await page.locator('#gx-store-koa-inventory').innerText(),/MASSIVE PAD/);
+   assert.match(await page.locator('#gx-store-koa-inventory').innerText(),/CLOUD PAD/);
+   assert.match(await page.locator('#gx-store-import-status').innerText(),/18 registros de Patch/);
+   assert.equal((await page.evaluate(midiCalls)).length,beforeReport,
+     'JXE inventory listing cannot send MIDI or write USER');
+
    const beforeReport=(await page.evaluate(midiCalls)).length;
    await page.locator('#gx-store-export-report').click();
    const exportReport=(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='exportFile'))).at(-1);
