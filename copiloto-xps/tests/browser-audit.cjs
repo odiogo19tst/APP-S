@@ -20,10 +20,10 @@ async function boot(page,state={songs:notes,scenes:[]}){
  await page.goto(url);await page.waitForSelector('#gx-shell');
  await page.waitForFunction(()=>!!window.GraueSoundWorkspace&&!!document.getElementById('loop-import'));
 }
-async function tab(page,key){if(await page.locator('#central-exit').isVisible()){if(key==='sound')return;await page.locator('#central-exit').click();}if(['coach','backups','settings'].includes(key))await page.locator('#gx-more-menu').evaluate(n=>n.open=true);await page.locator('[data-gx-tab="'+key+'"]').click();}
+async function tab(page,key){if(await page.locator('#central-exit').isVisible()){if(key==='sound')return;await page.locator('#central-exit').click();}if(['store','coach','backups','settings'].includes(key))await page.locator('#gx-more-menu').evaluate(n=>n.open=true);await page.locator('[data-gx-tab="'+key+'"]').click();}
 async function editor(page,key){await tab(page,'sound');await page.locator('#central-existing-editors').evaluate(n=>n.open=true);await page.locator('.gx-sound-chooser').evaluate(n=>n.open=true);await page.locator('[data-gx-sound="'+key+'"]').click();}
 async function noOverflow(page,label){const value=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert(value.scroll<=value.width+2,label+': horizontal overflow '+JSON.stringify(value));}
-async function dockTab(page,key){if(['coach','backups','settings'].includes(key))await page.locator('#gx-more-menu').evaluate(n=>n.open=true);await page.locator('[data-gx-tab="'+key+'"]').click();}
+async function dockTab(page,key){if(['store','coach','backups','settings'].includes(key))await page.locator('#gx-more-menu').evaluate(n=>n.open=true);await page.locator('[data-gx-tab="'+key+'"]').click();}
 async function checkDock(page,label,size){const nav=page.locator('#gx-shell>.gx-nav');assert(await nav.isVisible(),label+': dock visible');const box=await nav.boundingBox();assert(box&&box.y>=0&&Math.abs(box.y+box.height-size.height)<=2,label+': dock fixed to viewport bottom '+JSON.stringify(box));assert.match(await page.locator('[data-gx-tab="stage"]').innerText(),/Início/);}
 async function run(){
  const executable=process.env.GRAUE_CHROME||['/usr/bin/google-chrome','/usr/bin/chromium'].find(fs.existsSync);
@@ -50,12 +50,37 @@ async function run(){
 
    assert.equal(await page.locator('[data-gx-screen].on').count(),1);
    const initial=await page.evaluate(midiCalls);assert.equal(initial.length,0,'Startup must be passive');
-   for(const key of ['repertoire','sound','drums','coach','backups','settings','stage']){
+   for(const key of ['repertoire','sound','drums','store','coach','backups','settings','stage']){
     await dockTab(page,key);await noOverflow(page,key+' '+size.width);await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));await checkDock(page,key,size);
     if(key==='drums')await page.screenshot({path:path.join(out,size.width+'-pads-dock.png')});
     await dockTab(page,'stage');assert(await page.locator('[data-gx-screen="stage"]').evaluate(n=>n.classList.contains('on')));
    }
    for(const d of await page.locator('dialog').all())assert(await d.locator('button').filter({hasText:/Fechar|Voltar|Cancelar|✕|×/i}).count(),'Each modal has an explicit close/back button');
+
+   // Live SynthXPS is in More; browsing and downloads never send MIDI.
+   assert.equal(await page.locator('#gx-more-menu [data-gx-tab="store"]').count(),1);
+   await page.locator('#gx-more-menu').evaluate(n=>n.open=true);
+   const beforeShop=(await page.evaluate(midiCalls)).length;
+   const beforeStoreOpen=await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='openToneStore').length);
+   await page.locator('#gx-more-menu [data-gx-tab="store"]').click();
+   assert(await page.locator('[data-gx-screen="store"]').evaluate(n=>n.classList.contains('on')));
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='openToneStore').length),beforeStoreOpen+1);
+   assert.equal((await page.evaluate(midiCalls)).length,beforeShop,'Opening store must be passive to Roland');
+   assert.equal(await page.locator('#gx-more-menu').evaluate(n=>n.open),false);
+   assert(await page.locator('.gx-more-menu').evaluate(n=>n.classList.contains('gx-more-active')));
+   assert.match(await page.locator('[data-gx-screen="store"]').innerText(),/SynthXPS/);
+   await page.locator('#gx-store-open').click();
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='openToneStore').length),beforeStoreOpen+2);
+   await page.locator('#gx-store-external').click();
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='openReference'&&c.args[0]==='toneStore').length),1);
+   await page.locator('#gx-store-downloads').click();
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='openToneStoreDownloads').length),1);
+   assert.equal((await page.evaluate(midiCalls)).length,beforeShop,'Store actions cannot change Roland parameters');
+   await noOverflow(page,'SynthXPS store '+size.width);
+   await page.screenshot({path:path.join(out,size.width+'-synthxps-store.png'),fullPage:true});
+   await page.locator('#gx-store-backups').click();
+   assert(await page.locator('[data-gx-screen="backups"]').evaluate(n=>n.classList.contains('on')),'Store uses existing Backups');
+   await tab(page,'stage');
 
    // Home is named and remains reachable after scrolling the central screen.
    await tab(page,'sound');assert.match(await page.locator('#central-exit').innerText(),/Menu inicial/);

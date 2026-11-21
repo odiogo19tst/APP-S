@@ -521,7 +521,15 @@ getWindow().addFlags(128);
   @JavascriptInterface public void startLouveImport(String json){runOnUiThread(()->{try{if(json==null||json.length()>70000)throw new IllegalArgumentException("Escala grande demais");org.json.JSONArray items=new org.json.JSONArray(json);showCifra();cifraPanel.importBatch(items);}catch(Exception e){emit("status","Escala: "+e.getMessage());}});}
   @JavascriptInterface public void cancelLouveImport(){runOnUiThread(()->{if(cifraPanel!=null)cifraPanel.cancelBatch();});}
   @JavascriptInterface public void pasteLouveScale(){runOnUiThread(()->{try{android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);if(clipboard==null||!clipboard.hasPrimaryClip())throw new IllegalArgumentException("Copie a escala do LouveApp primeiro");CharSequence text=clipboard.getPrimaryClip().getItemAt(0).coerceToText(MainActivity.this);if(text==null)throw new IllegalArgumentException("Texto não disponível");emit("sharedText",text.toString().substring(0,Math.min(text.length(),200000)));}catch(Exception e){emit("status",e.getMessage());}});}
-  @JavascriptInterface public void openReference(String name){runOnUiThread(()->{String url=null;if(name.equals("model"))url="https://huggingface.co/litert-community/Gemma3-1B-IT/tree/main";if(name.equals("gemmaTerms"))url="https://ai.google.dev/gemma/terms";if(name.equals("gemmaSource"))url="https://huggingface.co/72fstudio/gemma-3-270m-it";if(name.equals("effects"))url="https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf";if(name.equals("louve"))url="https://louveapp.com.br/";if(name.equals("cifra"))url="https://www.cifraclub.com.br/";if(url!=null)try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(Exception e){emit("status","Não foi possível abrir o navegador.");}});}
+  @JavascriptInterface public void openToneStore(){runOnUiThread(()->{
+    try{startActivity(new Intent(MainActivity.this,ToneStoreActivity.class));}
+    catch(Exception e){emit("status","Não foi possível abrir a Loja de Timbres: "+e.getMessage());}
+  });}
+  @JavascriptInterface public void openToneStoreDownloads(){runOnUiThread(()->{
+    try{startActivity(new Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS));}
+    catch(Exception e){emit("status","Abra o aplicativo Downloads do Android para ver os arquivos baixados.");}
+  });}
+  @JavascriptInterface public void openReference(String name){runOnUiThread(()->{String url=null;if(name.equals("model"))url="https://huggingface.co/litert-community/Gemma3-1B-IT/tree/main";if(name.equals("gemmaTerms"))url="https://ai.google.dev/gemma/terms";if(name.equals("gemmaSource"))url="https://huggingface.co/72fstudio/gemma-3-270m-it";if(name.equals("effects"))url="https://static.roland.com/assets/media/pdf/XPS-10_EffectList_e01.pdf";if(name.equals("louve"))url="https://louveapp.com.br/";if(name.equals("cifra"))url="https://www.cifraclub.com.br/";if(name.equals("toneStore"))url=ToneStoreActivity.STORE_URL;if(url!=null)try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(Exception e){emit("status","Não foi possível abrir o navegador.");}});}
   @JavascriptInterface public void testModel(){
     // Verifica explicitamente a Gemma local, sem roteamento para OpenAI.
     worker.execute(()->{
