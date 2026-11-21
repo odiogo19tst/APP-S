@@ -134,3 +134,20 @@ assert(ux.includes("auditionButton.textContent='Ouvir no XPS-10'"));
 assert(ux.includes("kind==='toneAuditionStatus'"));
 assert(ux.includes('gx-store-audition-restore'));
 console.log('v1.36.5: incremental one-tap temporary XPS MIDI audition and safe restore PASS');
+
+const importer=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/ToneZipImporter.java'),'utf8');
+for(const marker of ['ZipInputStream','MAX_ENTRIES=120','MAX_UNPACKED=240L*1024L*1024L',
+ 'library.importStream(bounded,name','backups.importOriginal','rolandRestore",false',
+ 'svdMergeExecuted",false','FilterInputStream'])
+ assert(importer.includes(marker),'Safe incremental ZIP importer missing: '+marker);
+assert(store.includes('lower.endsWith(".zip")'));
+assert(store.includes('lower.endsWith(".bin")'));
+assert(receiver.includes('ToneZipImporter.importArchive('));
+assert(receiver.includes('"last-import-id"'));
+assert(receiver.includes('"last-import-format"'));
+assert(main.includes('ToneZipImporter.importArchive('));
+assert(main.includes('recordTemporaryAudition(testedSha,device)'));
+assert(inbox.includes('recordTemporaryAudition(String sha,int deviceId)'));
+assert(ux.includes('item.temporaryAuditionConfirmed'));
+assert(ux.includes('Prévia USB confirmada'));
+console.log('v1.36.5 ZIP incremental library, verified-only audition history PASS');
