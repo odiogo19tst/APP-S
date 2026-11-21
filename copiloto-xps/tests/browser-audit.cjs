@@ -96,6 +96,18 @@ async function run(){
    page.once('dialog',d=>d.dismiss());
    await page.locator('.gx-store-import-buttons button').nth(1).click();
    assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='deleteStoreToneFile').length),0,'Cancel retains original');
+   await page.locator('.gx-store-import-buttons button').nth(2).click();
+   assert.equal(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='inspectStoreToneFile'&&c.args[0]==='a'.repeat(64)).length),1);
+   const safeReport={name:'Piano-XPS.jxe',bytes:2560,sha256:'a'.repeat(64),identifiedAs:'JXE_BINARY_OR_UNKNOWN',readOnly:true,
+     prefixHex:'00010203',canApplyToKeyboard:false,convertedToPatch:false,convertedToPerformance:false,midiSent:false,userWrite:false};
+   await page.evaluate(report=>window.receive('toneFileInspection',report),safeReport);
+   assert.equal(await page.locator('#gx-store-binary-report').isVisible(),true);
+   assert.match(await page.locator('#gx-store-binary-data').innerText(),/JXE_BINARY_OR_UNKNOWN/);
+   const beforeReport=(await page.evaluate(midiCalls)).length;
+   await page.locator('#gx-store-export-report').click();
+   const exportReport=(await page.evaluate(()=>window.nativeCalls.filter(c=>c.method==='exportFile'))).at(-1);
+   assert(exportReport&&JSON.parse(exportReport.args[0]).canApplyToKeyboard===false,'Analysis export cannot claim MIDI/USER write');
+   assert.equal((await page.evaluate(midiCalls)).length,beforeReport,'JXE analysis and export never send MIDI');
    await page.evaluate(()=>window.receive('toneImportStatus','Download concluído e preservado na biblioteca'));
    assert.match(await page.locator('#gx-store-import-status').innerText(),/Download concluído/);
    assert.equal((await page.evaluate(midiCalls)).length,beforeShop,'Catalog updates and copies cannot send MIDI');
