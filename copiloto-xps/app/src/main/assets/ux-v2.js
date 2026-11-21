@@ -441,7 +441,7 @@
    note:'Este documento reúne o inventário sem duplicar conteúdos por SHA-256. NÃO mescla bytes SVD nem instala Patch/Performance. Decodificação de slots e confirmação física são obrigatórias para futuras atualizações incrementais.',
    sourceBackupFiles:backups.map(row=>({name:row.name,sha256:row.sha256,bytes:row.bytes})),
    xpsToneFiles:xps.map(row=>({name:row.name,sha256:row.sha256,bytes:row.bytes})),
-   otherPreservedFiles:files.filter(row=>!String(row.name||'').toLowerCase().match(/\\.(xps|svd)$/))
+   otherPreservedFiles:files.filter(row=>!String(row.name||'').toLowerCase().match(/\.(xps|svd)$/))
      .map(row=>({name:row.name,sha256:row.sha256,bytes:row.bytes})),
    selectedCount:files.length
   };
