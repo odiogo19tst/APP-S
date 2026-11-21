@@ -4,6 +4,7 @@ const assets=path.resolve(__dirname,'../app/src/main/assets');
 const src=path.resolve(__dirname,'../app/src/main/java/br/com/doapps/grauelive');
 const ux=fs.readFileSync(path.join(assets,'ux-v2.js'),'utf8');
 const hardware=fs.readFileSync(path.join(assets,'hardware.js'),'utf8');
+const live=fs.readFileSync(path.join(assets,'stage-live.js'),'utf8');
 const main=fs.readFileSync(path.join(src,'MainActivity.java'),'utf8');
 const controller=fs.readFileSync(path.join(src,'XpsController.java'),'utf8');
 const router=fs.readFileSync(path.join(src,'PatchToneRouting.java'),'utf8');
@@ -16,6 +17,8 @@ assert(!ux.includes('Leia uma Performance do XPS-10 antes da troca direta'),
 assert(!ux.includes("hw['setup:0']?.[0]!==1||!hw['part:'+part]"),
  'Tone list must not require Performance part');
 assert(ux.includes("Dual/Split exige Performance ativa"),'Dual/Split must remain Performance-only');
+assert(live.includes('modo Patch: toque para trocar o som diretamente, sem Performance'), 'Stage tone picker must allow Patch');
+assert(!live.includes("!partKnown&&Number(part.value)!==0"), 'Stage must not block parts when Patch mode is active');
 assert(hardware.includes("field('applyTone').disabled=busy"),
  'Legacy single-tone apply must be available outside Performance');
 assert(hardware.includes("call('selectTone',msb,lsb,program,selected())"),
