@@ -1,4 +1,4 @@
-name: Jardim da Palavra - Harpa Crista 640 Letras 1.6.11
+name: Jardim da Palavra - Harpa Crista Formatada 1.6.12
 on:
   push:
     branches: [jardim-apk-dev]
@@ -32,8 +32,8 @@ jobs:
         working-directory: jardim-da-palavra
         run: |
           set -e
-          grep -F "versionCode 171" app/build.gradle
-          grep -F "applicationIdSuffix '.harpa171'" app/build.gradle
+          grep -F "versionCode 172" app/build.gradle
+          grep -F "applicationIdSuffix '.harpa172'" app/build.gradle
           grep -F 'android:label="Jardim da Palavra"' app/src/main/AndroidManifest.xml
           test -s app/src/main/assets/curso_data.js
           test -s app/src/main/assets/curso_ui.js
@@ -52,8 +52,8 @@ jobs:
           node test_acf_offline.js
           node test_assistente_166.js
           node test_backup_167.js
-          node test_harpa_170.js
           node test_harpa_171.js
+          node test_harpa_172.js
       - name: Compilar APK
         working-directory: jardim-da-palavra
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -65,7 +65,19 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk | head -8
       - uses: actions/upload-artifact@v4
         with:
-          name: Jardim-1.6.11-Harpa-Letras-Base-APK
+          name: Jardim-1.6.12-Harpa-Formatada-Base-APK
           path: jardim-da-palavra/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Separar ferramentas de assinatura para pacote pessoal
+        run: |
+          set -e
+          mkdir -p sign-tools
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" sign-tools/apksigner.jar
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" sign-tools/zipalign
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Android-Signing-Tools-Linux
+          path: sign-tools/*
+          if-no-files-found: error
+          retention-days: 7
