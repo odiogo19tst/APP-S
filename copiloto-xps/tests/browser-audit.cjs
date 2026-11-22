@@ -538,7 +538,7 @@ async function run(){
    assert.equal(await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='startLouveImport').length),1);
    await p.evaluate(()=>window.receive('louveProgress',{state:'failed',entryId:'entry-1',error:'Teste: cifra indisponível'}));
    assert.equal(await picks.count(),3,'WebView failure cannot remove Deus do Secreto from the setlist');
-   assert.match(await p.locator('.gx-louve-rows').innerText(),/música salva; cifra pendente/);
+   assert.match(await p.locator('.gx-louve-rows').textContent(),/música salva; cifra pendente/);
    await p.locator('#gx-louve-open').click();
    await p.locator('#gx-louve-text').fill(pasted);
    await p.locator('#gx-louve-start').click();
