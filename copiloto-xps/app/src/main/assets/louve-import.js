@@ -100,7 +100,7 @@ function ensureSongs(songs,set,Music,normalizeSong){
   songs.push(normalizeSong({
    title,artist:entry.artist,category,sourceUrl:url,youtubeUrl:entry.youtubeUrl,
    lyricsUrl:entry.lyricsUrl,audioUrl:entry.audioUrl,louveEntryId:id,louveOrder:entry.order,
-   requestedKey:requested,sourceKey:'',keyMatched:false,
+   requestedKey:requested,sourceKey:'',keyMatched:false,louvePending:true,
    chords:[reference],root:detected.root,
    minor:detected.q.startsWith('m')&&!detected.q.startsWith('maj'),
    beats:4,bpm:entry.bpm,text:'',riffs:'',sections:[],
