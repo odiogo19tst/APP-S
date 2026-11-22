@@ -6,10 +6,16 @@ android {
         applicationId 'br.com.dodigital.copilotoxps'
         minSdk 26
         targetSdk 35
-        versionCode 98
-        versionName '1.36.8-louve-token-staging'
+        versionCode 99
+        versionName '1.36.9-louve-complete-setlist'
     }
-    buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
+    buildTypes {
+        debug {
+            applicationIdSuffix '.louvefix'
+            versionNameSuffix '-teste'
+            signingConfig signingConfigs.debug
+        }
+    } // Official updates still require the permanent release signing key.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 

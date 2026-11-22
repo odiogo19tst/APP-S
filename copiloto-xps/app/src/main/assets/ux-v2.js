@@ -92,7 +92,7 @@
   if(key!==silentMusicKey){silentMusicKey=key;silentToneIndex=0;silentPending=false;$x('gx-silent-ai-text').textContent='';}
   const hidden=silentDismissedKey===key;
   $x('gx-silent-advisor').classList.toggle('gx-silent-muted',hidden);
-  const current=songs.some(m=>m?.title===song?.title)&&Array.isArray(song?.chords)?song.chords:[];
+  const current=!song?.louvePending&&songs.some(m=>m?.title===song?.title)&&Array.isArray(song?.chords)?song.chords:[];
   const next=current.length?current[(idx+1)%current.length]:null;
   $x('gx-silent-next').textContent=hidden?'Sugestão ignorada':(next||'Sem cifra');
   $x('gx-silent-detail').textContent=hidden?'Toque em Mostrar para reabrir.':(next?'Próximo acorde registrado na cifra, após '+S(current[idx]||'—')+'.':'Selecione uma música com acordes.');
@@ -111,7 +111,7 @@
  $x('gx-silent-ai').onclick=()=>{
   if(silentPending)return;
   if(!window.Native?.ask){$x('gx-silent-ai-text').textContent='IA local não disponível. Configure a Gemma em Ajustes.';return;}
-  const current=Array.isArray(song?.chords)?song.chords.slice(0,16):[];
+  const current=!song?.louvePending&&Array.isArray(song?.chords)?song.chords.slice(0,16):[];
   if(!current.length){$x('gx-silent-ai-text').textContent='Escolha uma música com cifras antes de pedir a dica.';return;}
   silentPending=true;renderSilentAdvisor();
   $x('gx-silent-ai-text').textContent='Consultando IA local — a cifra e os favoritos continuam acessíveis.';
@@ -213,6 +213,7 @@
  $x('gx-assist-channel').value=String(saved.assistChannel||3);
  $x('gx-assist-channel').onchange=()=>{saved.assistChannel=+$x('gx-assist-channel').value;persist();};
  $x('gx-assist-play').onclick=()=>{
+  if(song?.louvePending){notify('Esta música ainda não tem acordes importados. Não enviarei um acorde de referência como se fosse a cifra.');return;}
   const name=String(song.chords?.[idx]||'').trim(),notes=M.voicing(name,[60,64,67]).slice(0,5);
   if(!notes.length){notify('Selecione uma cifra com acordes identificáveis primeiro.');return;}
   if(!window.Native?.playAssistChord){notify('Controle MIDI de apoio indisponível. Atualize o APK.');return;}
@@ -233,11 +234,11 @@
   box.hidden=false;
   const details=document.createElement('details');details.className='gx-louve-details';details.open=wasOpen;
   const summary=document.createElement('summary');summary.className='gx-louve-summary';
-  const title=document.createElement('span');title.className='gx-louve-title';title.textContent=set.title;
-  const count=document.createElement('span');count.className='gx-louve-count';const done=set.items.filter(x=>x.status==='done').length;count.textContent=done+'/'+set.items.length+' importadas';
+  const title=document.createElement('span');title.className='gx-louve-title';title.textContent=set.title+(set.dateLine?' · '+set.dateLine:'');
+  const count=document.createElement('span');count.className='gx-louve-count';const done=set.items.filter(x=>x.status==='done').length;count.textContent=set.items.length+' músicas no repertório · '+done+' cifras carregadas';
   summary.append(title,count);details.append(summary);
   const rows=document.createElement('div');rows.className='gx-louve-rows';
-  set.items.forEach((item,i)=>{const line=document.createElement('p');const order=Number.isInteger(item.order)&&item.order>0?item.order:i+1;line.textContent=order+'. '+(item.status==='done'?'✓ ':item.status==='failed'?'⚠ ':'… ')+item.title+' · Tom '+(item.key||'—')+' · BPM '+item.bpm+(item.error?' · '+item.error:'')+(item.status==='done'&&!item.keyMatched?' · conferir tom da fonte':'');rows.append(line);});
+  set.items.forEach((item,i)=>{const line=document.createElement('p');const order=Number.isInteger(item.order)&&item.order>0?item.order:i+1;line.textContent=order+'. '+(item.status==='done'?'✓ ':item.status==='failed'?'⚠ ':'… ')+item.title+' · Tom '+(item.key||'—')+' · BPM '+item.bpm+(item.status==='failed'?' · música salva; cifra pendente':'')+(item.error?' · '+item.error:'')+(item.status==='done'&&!item.keyMatched?' · conferir tom da fonte':'');rows.append(line);});
   details.append(rows);box.append(details);
   $x('gx-louve-retry').hidden=!set.items.some(x=>x.status!=='done');
  };
@@ -246,7 +247,16 @@
   $x('gx-louve-cancel').hidden=false;window.Native.startLouveImport(JSON.stringify(items));
  };
  const importLouve=text=>{
-  try{const set=GraueLouve.parse(text);saved.louveSetlist={title:set.title,items:set.items.map(x=>({...x,status:'pending',error:''}))};persist();renderLouve();$x('gx-louve-dialog').close();switchTab('repertoire');startLouve(set.items);}
+  try{
+   const set=GraueLouve.parse(text);
+   const seeded=GraueLouve.ensureSongs(songs,set,M,normalize);
+   saved.louveSetlist={title:set.title,dateLine:set.dateLine,items:set.items.map(x=>({...x,status:'pending',error:''}))};
+   filter='all';$x('gx-search').value='';
+   shell.querySelectorAll('[data-gx-filter]').forEach(b=>b.classList.toggle('on',b.dataset.gxFilter==='all'));
+   persist();list();renderLouve();$x('gx-louve-dialog').close();switchTab('repertoire');
+   notify(set.items.length+' músicas cadastradas na ordem do LouveApp. '+seeded.added+' novas; carregando cifras separadamente.');
+   startLouve(set.items);
+  }
   catch(e){notify(e.message);}
  };
  $x('gx-louve-open').onclick=()=>{$x('gx-louve-dialog').showModal();renderLouve();window.Native?.louveTokenStatus?.();};
@@ -625,6 +635,7 @@
   out.textContent=actual.length?M.chord(actual)+(actual.length<3?' · notas isoladas':''):'—';
   const chosen=songs.some(m=>m&&m.title===song.title)||song.title.startsWith('Exercício');
   if(!chosen){verdict.textContent='Selecione uma cifra para comparar';return;}
+  if(song?.louvePending){verdict.textContent='Aguardando acordes reais da cifra LouveApp; comparação MIDI desabilitada.';return;}
   const expected=song.chords?.[idx]||'',target=M.tones(expected);
   if(!target.length){verdict.textContent='Acorde esperado não reconhecido';return;}
   if(!actual.length){verdict.textContent='Esperado: '+expected+' · aguardando notas';return;}
@@ -766,7 +777,7 @@
    if(section==='notes')txt=S(song.scoreNotes).trim()||'Nenhuma observação técnica identificada nesta cifra.';
    if(section==='riffs')txt=S(song.riffs).trim()||'Nenhum riff ou tablatura identificado nesta cifra.';
    if(section==='letter'&&txt)txt=window.GraueCifraView?.lyricsOnly?GraueCifraView.lyricsOnly(txt,M.parse):txt;
-   if(!txt)txt='Abra uma música no Cifra Club e toque Trazer cifra. O Grauê identifica o conteúdo sem selecionar o texto.';
+   if(!txt)txt=scaleMeta?'Cifra ainda não carregada. Esta música já está salva na escala com tom, BPM e links. Toque em Tentar novamente para buscar os acordes; você também pode abrir a cifra no navegador.':'Abra uma música no Cifra Club e toque Trazer cifra. O Grauê identifica o conteúdo sem selecionar o texto.';
    const progress=retainedScroll;
    const p=document.createElement('pre');p.className='gx-cifra-text';p.textContent=txt;content.append(p);
    if(progress&&section==='cifra')p.scrollTop=progress;
@@ -1167,6 +1178,7 @@
   const responseOK=usbConnected&&Number(hw?.validSysexPackets||0)>0&&Array.isArray(hw?.['setup:0']);
   const showHealth=$x('gx-stage-health');
   showHealth.textContent=!hasRealSong?'Escolha uma música do repertório para começar.':
+   song?.louvePending?'Escala LouveApp carregada: tom e BPM salvos, mas a cifra ainda não está disponível.':
    !usbConnected?'Modo cifra disponível · USB desconectado: mudança de timbre manual.':
    !responseOK?'USB conectado · aguardando leitura SysEx do XPS-10; timbre não confirmado.':
    !rig?'Roland respondeu SysEx · música sem Performance vinculada.':
@@ -1177,11 +1189,11 @@
   $x('gx-bpm').textContent=$x('tempo')?.value||'72';
   const loopEntry=hasRealSong?songs[matchingSong]:null;if(loopEntry&&!loopEntry.loopId){loopEntry.loopId=typeof window.crypto?.randomUUID==='function'?window.crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);persist();}if(loopEntry)song.loopId=loopEntry.loopId;
   const liveDetail={songId:loopEntry?.loopId||'',title:hasRealSong?song.title:null,bpm:Number($x('tempo')?.value)||72,meter:String(song?.timeSignature||song?.meter||song?.compasso||'4/4'),key:hasRealSong?M.names[root]:null,transpose:transposeSteps};const nextLiveStateKey=JSON.stringify(liveDetail);if(nextLiveStateKey!==liveStateKey){liveStateKey=nextLiveStateKey;document.dispatchEvent(new CustomEvent('graue:live-state',{detail:liveDetail}));}
-  $x('gx-next-chord').textContent=hasRealSong?(song.chords?.[(idx+1)%song.chords.length]||'—'):'—';
+  $x('gx-next-chord').textContent=hasRealSong&&!song?.louvePending?(song.chords?.[(idx+1)%song.chords.length]||'—'):'—';
   $x('gx-section').textContent=hasRealSong?'Acorde '+String(idx+1):'Aguardando cifra';
   $x('gx-progress-bar').style.width=((idx+1)/Math.max(1,song.chords.length)*100)+'%';
-  $x('gx-next-line').textContent=hasRealSong?(song.chords?.[idx]||'Sem acorde'):'Selecione uma música';
-  $x('gx-assist-chord').textContent=hasRealSong?(song.chords?.[idx]||'—'):'—';
+  $x('gx-next-line').textContent=hasRealSong?(song?.louvePending?'Cifra pendente':(song.chords?.[idx]||'Sem acorde')):'Selecione uma música';
+  $x('gx-assist-chord').textContent=hasRealSong&&!song?.louvePending?(song.chords?.[idx]||'—'):'—';
   renderPlayedChord();
   renderSilentAdvisor();
   $x('gx-transpose').textContent=(transposeSteps>0?'+':'')+transposeSteps;
@@ -1630,6 +1642,6 @@
   home:()=>{for(const d of document.querySelectorAll('dialog[open]'))d.close();document.body.classList.remove('gx-legacy');const menu=document.getElementById('gx-more-menu');if(menu)menu.open=false;goToTab('stage');return true;},
   back:()=>{const dialog=document.querySelector('dialog[open]');if(dialog){dialog.close();return true;}if(document.body.classList.contains('gx-legacy')){document.getElementById('gx-return')?.click();return true;}if(liveMode){setLiveMode(false);return true;}if(active!=='stage')return window.GraueNavigation.home();const menu=document.getElementById('gx-more-menu');if(menu?.open){menu.open=false;return true;}return false;}
  };
- window.GraueCurrentChord=()=>String(song?.chords?.[idx]||'');
+ window.GraueCurrentChord=()=>song?.louvePending?'':String(song?.chords?.[idx]||'');
  setInterval(()=>{if(active==='stage'&&document.visibilityState!=='hidden')syncStage();},300);
 })();
