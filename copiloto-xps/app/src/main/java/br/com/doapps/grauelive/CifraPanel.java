@@ -64,12 +64,24 @@ final class CifraPanel extends LinearLayout {
   browser.loadUrl(batch.optJSONObject(batchIndex).optString("sourceUrl"));
   batchHandler.postDelayed(()->{if(batchLoading&&token==batchGeneration)finishBatchItem(null,"A página não disponibilizou a cifra em 25 segundos. Tente novamente no navegador.");},25000);
  }
+ /** Canonical Cifra Club paths may gain a trailing slash or drop /principal.html. */
+ static String canonicalPath(String url){
+  try{
+   Uri uri=Uri.parse(url);
+   if(uri.getPath()==null)return "";
+   String path=uri.getPath().toLowerCase(java.util.Locale.ROOT);
+   if(path.endsWith("/principal.html"))path=path.substring(0,path.length()-"/principal.html".length());
+   while(path.endsWith("/")&&path.length()>1)path=path.substring(0,path.length()-1);
+   return path;
+  }catch(Exception ignored){return "";}
+ }
  private void attemptBatch(int token,int attempt){
   if(!batchLoading||batch==null||token!=batchGeneration)return;
   String current=browser.getUrl()==null?"":browser.getUrl();
-  String expected=Uri.parse(batch.optJSONObject(batchIndex).optString("sourceUrl")).getPath();
-  String actual=Uri.parse(current).getPath();
-  if(expected==null||actual==null||!actual.replace("principal.html","").equals(expected.replace("principal.html","")))return;
+  String expected=batch.optJSONObject(batchIndex).optString("sourceUrl");
+  // Do not extract content from unrelated pages or a different song, even if HTTPS.
+  if(!safeCifra(current)||canonicalPath(expected).isEmpty()||
+      !canonicalPath(expected).equals(canonicalPath(current)))return;
   extractCurrent(data->{
    if(!batchLoading||batch==null||token!=batchGeneration)return;
    if(data.optBoolean("ok")){finishBatchItem(data,"");return;}

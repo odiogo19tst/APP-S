@@ -455,7 +455,7 @@ async function run(){
   // library after its details wrapper broke the old direct-child CSS fix.
   for(const size of [{width:390,height:844},{width:360,height:740},{width:844,height:390},{width:1366,height:900}]){
    const page=await browser.newPage({viewport:size});page.on('pageerror',e=>errors.push('library '+size.width+': '+e.stack));
-   const songs=Array.from({length:35},(_,i)=>({...notes[0],loopId:'library-'+i,title:'Música '+String(i+1).padStart(2,'0')+' — Louvor e Adoração'}));
+   const songs=Array.from({length:35},(_,i)=>({...notes[0],loopId:'library-'+i,category:'Louvor e Adoração',title:'Música '+String(i+1).padStart(2,'0')+' — Louvor e Adoração'}));
    const items=songs.slice(0,3).map((s,i)=>({title:s.title,key:'C',bpm:72,status:i===2?'failed':'done',keyMatched:true,error:i===2?'Importação pendente':''}));
    await boot(page,{songs,scenes:[],louveSetlist:{title:'Louvor e Adoração',items}});await tab(page,'repertoire');
    const list=page.locator('#gx-songs');assert.equal(await list.locator('.gx-song-pick').count(),35);assert(await page.locator('#gx-louve-retry').isVisible());
@@ -487,12 +487,14 @@ async function run(){
    await boot(p,{songs:imported,scenes:[],louveSetlist:{title,items:meta}});
    await tab(p,'repertoire');
    const picks=p.locator('#gx-songs .gx-song-pick');
-   assert.equal(await picks.count(),3);
+   assert.equal(await picks.count(),4,'Migration must restore the missing third scale song while retaining the unrelated local song');
    assert.match(await picks.nth(0).innerText(),/1\. 1000 Graus/);
    assert.equal(await picks.nth(0).locator('.gx-song-key').innerText(),'Tom E');
    assert.match(await picks.nth(1).innerText(),/2\. Alfa e Ômega/);
    assert.equal(await picks.nth(1).locator('.gx-song-key').innerText(),'Tom G');
-   assert.equal(await picks.nth(2).locator('.gx-song-key').innerText(),'Tom C');
+   assert.match(await picks.nth(2).innerText(),/3\. Terceira pendente/);
+   assert.equal(await picks.nth(2).locator('.gx-song-key').innerText(),'Tom D');
+   assert.equal(await picks.nth(3).locator('.gx-song-key').innerText(),'Tom C');
    assert(!/3\. Deus/.test(await picks.nth(2).innerText()));
    const options=await p.locator('#gx-live-song-select option').allTextContents();
    assert.match(options[0],/1\. 1000 Graus.*Tom E/);
@@ -502,12 +504,49 @@ async function run(){
    await tab(p,'stage');await p.locator('#gx-next').click();
    assert.match(await p.locator('#gx-song-name').innerText(),/Alfa e Ômega/);
    await tab(p,'repertoire');await p.locator('[data-gx-filter="setlist"]').click();
-   assert.equal(await p.locator('#gx-songs .gx-song-pick').count(),2);
+   assert.equal(await p.locator('#gx-songs .gx-song-pick').count(),3,'Scale filter must show pending metadata-only song');
    await p.locator('#gx-louve-state summary').click();
    assert.match(await p.locator('.gx-louve-rows').innerText(),/3\. .*Terceira pendente.*Tom D/);
    await noOverflow(p,'scale order/key phone');await p.screenshot({path:path.join(out,'390-scale-order-key.png'),fullPage:true});
    assert.equal((await p.evaluate(midiCalls)).length,0,'Setlist numbering and key never send MIDI');
    results.push({scaleOrder:true,pass:true});await p.close();
+  }
+  // Regression: the exact 22 Nov LouveApp text creates all 3 songs BEFORE the browser fetches any cifra.
+  {
+   const p=await browser.newPage({viewport:{width:390,height:844}});
+   p.on('pageerror',e=>errors.push('louve 22 nov: '+e.stack));
+   const pasted=fs.readFileSync(path.join(__dirname,'fixtures/louve-scale-2026-11-22.txt'),'utf8');
+   await boot(p,{songs:[],scenes:[]});
+   await tab(p,'repertoire');
+   await p.locator('#gx-louve-open').click();
+   await p.locator('#gx-louve-text').fill(pasted);
+   await p.locator('#gx-louve-start').click();
+   const picks=p.locator('#gx-songs .gx-song-pick');
+   assert.equal(await picks.count(),3,'All 3 songs must be saved immediately without waiting for Cifra Club');
+   for(const [i,title,key] of [[0,'1000 Graus','C'],[1,'Deus do Secreto','F'],[2,'Alfa e Ômega','E']]){
+    assert.match(await picks.nth(i).innerText(),new RegExp('^'+(i+1)+'\\. .*'+title));
+    assert.equal(await picks.nth(i).locator('.gx-song-key').innerText(),'Tom '+key);
+   }
+   const state=await p.evaluate(()=>window.lastSaved);
+   assert.deepEqual(state.songs.map(x=>x.bpm),[153,65,146]);
+   assert.equal(state.songs.length,3);
+   assert.equal(state.louveSetlist.items.length,3);
+   assert.match(state.louveSetlist.dateLine,/22 de novembro de 2026/);
+   assert(state.songs[1].sourceUrl.endsWith('/deus-do-secreto'));
+   assert(state.songs.every(x=>x.scoreNotes.includes('não é a harmonia')),'No invented score may be presented as real');
+   assert.match(await p.locator('#gx-louve-state').innerText(),/3 músicas no repertório.*0 cifras carregadas/s);
+   assert.equal(await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='startLouveImport').length),1);
+   await p.evaluate(()=>window.receive('louveProgress',{state:'failed',entryId:'entry-1',error:'Teste: cifra indisponível'}));
+   assert.equal(await picks.count(),3,'WebView failure cannot remove Deus do Secreto from the setlist');
+   assert.match(await p.locator('.gx-louve-rows').textContent(),/música salva; cifra pendente/);
+   await p.locator('#gx-louve-open').click();
+   await p.locator('#gx-louve-text').fill(pasted);
+   await p.locator('#gx-louve-start').click();
+   assert.equal(await picks.count(),3,'Pasting twice must not duplicate a single song');
+   await noOverflow(p,'Louve 22 Nov 3 songs');
+   await p.screenshot({path:path.join(out,'390-louve-22-nov-all-3.png'),fullPage:true});
+   results.push({louveAllThree:true,pass:true});
+   await p.close();
   }
   // Show Guardian: preflight and version vault never transmit without a fresh and confirmed Performance.
   {
