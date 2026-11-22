@@ -233,11 +233,11 @@
   box.hidden=false;
   const details=document.createElement('details');details.className='gx-louve-details';details.open=wasOpen;
   const summary=document.createElement('summary');summary.className='gx-louve-summary';
-  const title=document.createElement('span');title.className='gx-louve-title';title.textContent=set.title;
-  const count=document.createElement('span');count.className='gx-louve-count';const done=set.items.filter(x=>x.status==='done').length;count.textContent=done+'/'+set.items.length+' importadas';
+  const title=document.createElement('span');title.className='gx-louve-title';title.textContent=set.title+(set.dateLine?' · '+set.dateLine:'');
+  const count=document.createElement('span');count.className='gx-louve-count';const done=set.items.filter(x=>x.status==='done').length;count.textContent=set.items.length+' músicas no repertório · '+done+' cifras carregadas';
   summary.append(title,count);details.append(summary);
   const rows=document.createElement('div');rows.className='gx-louve-rows';
-  set.items.forEach((item,i)=>{const line=document.createElement('p');const order=Number.isInteger(item.order)&&item.order>0?item.order:i+1;line.textContent=order+'. '+(item.status==='done'?'✓ ':item.status==='failed'?'⚠ ':'… ')+item.title+' · Tom '+(item.key||'—')+' · BPM '+item.bpm+(item.error?' · '+item.error:'')+(item.status==='done'&&!item.keyMatched?' · conferir tom da fonte':'');rows.append(line);});
+  set.items.forEach((item,i)=>{const line=document.createElement('p');const order=Number.isInteger(item.order)&&item.order>0?item.order:i+1;line.textContent=order+'. '+(item.status==='done'?'✓ ':item.status==='failed'?'⚠ ':'… ')+item.title+' · Tom '+(item.key||'—')+' · BPM '+item.bpm+(item.status==='failed'?' · música salva; cifra pendente':'')+(item.error?' · '+item.error:'')+(item.status==='done'&&!item.keyMatched?' · conferir tom da fonte':'');rows.append(line);});
   details.append(rows);box.append(details);
   $x('gx-louve-retry').hidden=!set.items.some(x=>x.status!=='done');
  };
@@ -246,7 +246,16 @@
   $x('gx-louve-cancel').hidden=false;window.Native.startLouveImport(JSON.stringify(items));
  };
  const importLouve=text=>{
-  try{const set=GraueLouve.parse(text);saved.louveSetlist={title:set.title,items:set.items.map(x=>({...x,status:'pending',error:''}))};persist();renderLouve();$x('gx-louve-dialog').close();switchTab('repertoire');startLouve(set.items);}
+  try{
+   const set=GraueLouve.parse(text);
+   const seeded=GraueLouve.ensureSongs(songs,set,M,normalize);
+   saved.louveSetlist={title:set.title,dateLine:set.dateLine,items:set.items.map(x=>({...x,status:'pending',error:''}))};
+   filter='all';$x('gx-search').value='';
+   shell.querySelectorAll('[data-gx-filter]').forEach(b=>b.classList.toggle('on',b.dataset.gxFilter==='all'));
+   persist();list();renderLouve();$x('gx-louve-dialog').close();switchTab('repertoire');
+   notify(set.items.length+' músicas cadastradas na ordem do LouveApp. '+seeded.added+' novas; carregando cifras separadamente.');
+   startLouve(set.items);
+  }
   catch(e){notify(e.message);}
  };
  $x('gx-louve-open').onclick=()=>{$x('gx-louve-dialog').showModal();renderLouve();window.Native?.louveTokenStatus?.();};
@@ -766,7 +775,7 @@
    if(section==='notes')txt=S(song.scoreNotes).trim()||'Nenhuma observação técnica identificada nesta cifra.';
    if(section==='riffs')txt=S(song.riffs).trim()||'Nenhum riff ou tablatura identificado nesta cifra.';
    if(section==='letter'&&txt)txt=window.GraueCifraView?.lyricsOnly?GraueCifraView.lyricsOnly(txt,M.parse):txt;
-   if(!txt)txt='Abra uma música no Cifra Club e toque Trazer cifra. O Grauê identifica o conteúdo sem selecionar o texto.';
+   if(!txt)txt=scaleMeta?'Cifra ainda não carregada. Esta música já está salva na escala com tom, BPM e links. Toque em Tentar novamente para buscar os acordes; você também pode abrir a cifra no navegador.':'Abra uma música no Cifra Club e toque Trazer cifra. O Grauê identifica o conteúdo sem selecionar o texto.';
    const progress=retainedScroll;
    const p=document.createElement('pre');p.className='gx-cifra-text';p.textContent=txt;content.append(p);
    if(progress&&section==='cifra')p.scrollTop=progress;
