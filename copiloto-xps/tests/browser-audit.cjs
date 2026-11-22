@@ -455,7 +455,7 @@ async function run(){
   // library after its details wrapper broke the old direct-child CSS fix.
   for(const size of [{width:390,height:844},{width:360,height:740},{width:844,height:390},{width:1366,height:900}]){
    const page=await browser.newPage({viewport:size});page.on('pageerror',e=>errors.push('library '+size.width+': '+e.stack));
-   const songs=Array.from({length:35},(_,i)=>({...notes[0],loopId:'library-'+i,title:'Música '+String(i+1).padStart(2,'0')+' — Louvor e Adoração'}));
+   const songs=Array.from({length:35},(_,i)=>({...notes[0],loopId:'library-'+i,category:'Louvor e Adoração',title:'Música '+String(i+1).padStart(2,'0')+' — Louvor e Adoração'}));
    const items=songs.slice(0,3).map((s,i)=>({title:s.title,key:'C',bpm:72,status:i===2?'failed':'done',keyMatched:true,error:i===2?'Importação pendente':''}));
    await boot(page,{songs,scenes:[],louveSetlist:{title:'Louvor e Adoração',items}});await tab(page,'repertoire');
    const list=page.locator('#gx-songs');assert.equal(await list.locator('.gx-song-pick').count(),35);assert(await page.locator('#gx-louve-retry').isVisible());
