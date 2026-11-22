@@ -74,6 +74,12 @@ function ensureSongs(songs,set,Music,normalizeSong){
   const id=String(entry.id||'').slice(0,40);
   let at=songs.findIndex(song=>song&&song.category===category&&
    ((url&&song.sourceUrl===url)||(id&&song.louveEntryId===id&&song.title===title)));
+  // Legacy saved scales sometimes had no entry id or URL: reuse a uniquely
+  // matching song in the same category, never an unrelated music with that title.
+  if(at<0&&!url&&!id){
+   const matches=songs.map((song,i)=>({song,i})).filter(x=>x.song?.category===category&&x.song.title===title);
+   if(matches.length===1)at=matches[0].i;
+  }
   if(at>=0){
    // A new paste must not erase annotations, downloaded score, saved rig or favorites.
    const song=songs[at];
