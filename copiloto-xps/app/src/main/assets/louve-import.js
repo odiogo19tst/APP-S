@@ -5,6 +5,7 @@ function cifraUrl(value){try{const u=new URL(value);return u.protocol==='https:'
 function parse(input){
  const text=String(input||'').replace(/\r\n?/g,'\n');if(text.length>200000)throw Error('Escala maior que o limite.');
  const title=(text.split('\n').find(x=>x.trim())||'Escala LouveApp').replace(/^\*+|\*+$/g,'').trim().slice(0,150);
+ const dateLine=(text.split('\n').find(x=>/^\s*📅\s*/u.test(x))||'').replace(/^\s*📅\s*/u,'').trim().slice(0,120);
  const items=[];let item=null;
  for(const line of text.split('\n')){
   const heading=line.match(/^\s*(\d+)[.)]\s+(.+?)(?:\s+[—–]\s+(.+))?\s*$/);
@@ -20,7 +21,7 @@ function parse(input){
  }
  if(!items.length)throw Error('Não encontrei músicas numeradas na escala.');
  if(items.some(x=>!x.sourceUrl))throw Error('Cada música precisa de um link HTTPS do Cifra Club.');
- return {title,items};
+ return {title,dateLine,items};
 }
 function prepareScore(data,M,parseScore,transposeText){
  const parsed=parseScore(data.text,M.parse),meta=data.louve||{};
@@ -54,5 +55,55 @@ function orderedIndexes(songs,set){
    (a.meta&&b.meta?a.meta.order-b.meta.order:0)||a.i-b.i).map(x=>x.i);
 }
 function cleanScoreText(text){return String(text||'').split('\n').filter(line=>!/^\s*Parte\s+\d+\s+de\s+\d+\s*$/i.test(line)).join('\n');}
-const api={parse,cifraUrl,prepareScore,songMeta,orderedIndexes,cleanScoreText};g.GraueLouve=api;if(typeof module==='object')module.exports=api;
+
+/**
+ * Import metadata for every Louve item immediately. A Cifra Club page might be
+ * redirected, rate-limited, offline or missing chords; it must not control
+ * whether the musician can see their setlist. Keep existing user edits, rigs,
+ * notes and already-imported scores. Placeholder chord = stated reference key
+ * only (NOT a transcribed musical progression).
+ */
+function ensureSongs(songs,set,Music,normalizeSong){
+ if(!Array.isArray(songs)||!set||!Array.isArray(set.items)||typeof normalizeSong!=='function')
+  throw Error('Escala ou repertório inválido.');
+ const category=String(set.title||'LouveApp').slice(0,60);
+ let added=0,reused=0;
+ for(const entry of set.items){
+  const title=String(entry.title||'').trim().slice(0,150);
+  const url=String(entry.sourceUrl||'');
+  const id=String(entry.id||'').slice(0,40);
+  let at=songs.findIndex(song=>song&&song.category===category&&
+   ((url&&song.sourceUrl===url)||(id&&song.louveEntryId===id&&song.title===title)));
+  if(at>=0){
+   // A new paste must not erase annotations, downloaded score, saved rig or favorites.
+   const song=songs[at];
+   if(!song.sourceUrl&&url)song.sourceUrl=url;
+   if(!song.youtubeUrl&&entry.youtubeUrl)song.youtubeUrl=entry.youtubeUrl;
+   if(!song.lyricsUrl&&entry.lyricsUrl)song.lyricsUrl=entry.lyricsUrl;
+   if(!song.audioUrl&&entry.audioUrl)song.audioUrl=entry.audioUrl;
+   song.requestedKey=String(entry.key||song.requestedKey||'').slice(0,5);
+   song.louveOrder=entry.order;
+   song.louveEntryId=id;
+   reused++;
+   continue;
+  }
+  const requested=String(entry.key||'').trim();
+  const parsed=Music.parse(requested);
+  const reference=parsed?requested:'C';
+  const detected=parsed||Music.parse('C');
+  songs.push(normalizeSong({
+   title,artist:entry.artist,category,sourceUrl:url,youtubeUrl:entry.youtubeUrl,
+   lyricsUrl:entry.lyricsUrl,audioUrl:entry.audioUrl,louveEntryId:id,louveOrder:entry.order,
+   requestedKey:requested,sourceKey:'',keyMatched:false,
+   chords:[reference],root:detected.root,
+   minor:detected.q.startsWith('m')&&!detected.q.startsWith('maj'),
+   beats:4,bpm:entry.bpm,text:'',riffs:'',sections:[],
+   scoreNotes:'Cifra ainda não carregada. O acorde exibido representa somente o tom de referência do LouveApp; não é a harmonia da música. Tente importar a cifra novamente.'
+  }));
+  added++;
+ }
+ return {added,reused,total:set.items.length};
+}
+
+const api={parse,cifraUrl,prepareScore,songMeta,orderedIndexes,cleanScoreText,ensureSongs};g.GraueLouve=api;if(typeof module==='object')module.exports=api;
 })(typeof window==='object'?window:globalThis);
