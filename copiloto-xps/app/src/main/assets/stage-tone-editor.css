@@ -1,0 +1,53 @@
+/* Grauê XPS 1.37.0 — accessible tone editor right beside Timbres on the stage. */
+#gx-shell .gx-live-quick{grid-template-columns:repeat(5,minmax(0,1fr))}
+#gx-shell .gx-live-quick #gx-stage-edit{border:1px solid #73c7ac;background:#19392f;color:#b9f5df;font-weight:750}
+#gx-shell .gx-live-quick #gx-stage-edit:focus-visible{outline:3px solid #b6f5cf;outline-offset:2px}
+#gx-shell .gx-stage-editor-dialog{width:min(95vw,850px);max-height:min(90dvh,980px);overflow-y:auto;overscroll-behavior:contain;padding:14px 16px 24px}
+#gx-shell .gx-stage-editor-dialog .gx-live-dialog-head{z-index:5;top:-14px;border-bottom:1px solid #385060}
+#gx-shell .gx-stage-editor-dialog .gx-live-dialog-head h2{font-size:20px}
+#gx-shell .gx-stage-edit-help{font-size:12px;color:#c1d8d2;line-height:1.5;margin:6px 0 12px}
+#gx-shell .gx-stage-edit-meta{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+#gx-shell .gx-stage-edit-meta label{min-width:180px;flex:1;display:grid;align-items:stretch;gap:5px;margin:0}
+#gx-shell .gx-stage-edit-meta select,#gx-shell .gx-stage-edit-meta button{min-height:46px;font-size:15px}
+#gx-shell .gx-stage-edit-meta button{padding:8px 13px}
+#gx-shell .gx-stage-edit-status{font-size:13px;line-height:1.5;color:#cfefe4;background:#172e2b;border:1px solid #3e665a;padding:10px 11px;border-radius:10px;margin:12px 0;min-height:44px;box-sizing:border-box;overflow-wrap:anywhere}
+#gx-shell .gx-stage-edit-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding:4px 0 9px}
+#gx-shell .gx-stage-edit-tabs button{white-space:nowrap;min-height:44px;flex:1 0 auto;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700}
+#gx-shell .gx-stage-edit-tabs button[aria-selected=true]{background:#9ce8c7;color:#102d24;border-color:#9ce8c7}
+#gx-shell .gx-stage-edit-pane{padding:6px 1px 12px}
+#gx-shell .gx-stage-edit-pane[hidden]{display:none!important}
+#gx-shell .gx-stage-edit-pane h3{font-size:18px;margin:10px 0}
+#gx-shell .gx-stage-edit-pane h4{font-size:14px;margin:9px 0}
+#gx-shell .gx-stage-edit-caption{font-size:12px;color:#b6c8d4;line-height:1.5;margin:5px 0 14px}
+#gx-shell .gx-stage-edit-control{display:flex;flex-direction:column;gap:6px;border:1px solid #304453;border-radius:11px;background:#18242f;padding:11px;margin:9px 0}
+#gx-shell .gx-stage-edit-control-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#gx-shell .gx-stage-edit-control strong{font-size:14px;font-weight:700;color:#f0f6f4}
+#gx-shell .gx-stage-edit-control output{font-variant-numeric:tabular-nums;color:#b9f5db;font-size:12px;text-align:right}
+#gx-shell .gx-stage-edit-control input[type=range]{width:100%;min-height:34px;accent-color:#9ce8c7}
+#gx-shell .gx-stage-edit-control small{font-size:11px;color:#b4cbd2;line-height:1.4}
+#gx-shell .gx-stage-stereo-note{background:#1f2b35;border:1px solid #4b6672;padding:12px;border-radius:11px;line-height:1.5;font-size:12px;margin:12px 0}
+#gx-shell .gx-stage-stereo-note p{margin:5px 0 0}
+#gx-shell .gx-stage-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+#gx-shell .gx-stage-edit-grid label{display:grid;align-items:start;gap:6px;margin:0;color:#e0e8e8;font-size:12px;min-width:0}
+#gx-shell .gx-stage-edit-grid input,#gx-shell .gx-stage-edit-grid select,#gx-shell .gx-stage-edit-pane>label select{display:block;box-sizing:border-box;min-width:0;width:100%;min-height:46px;padding:8px 10px;font-size:16px;color:#eefaf4;background:#101a23;border:1px solid #425b65;border-radius:8px}
+#gx-shell .gx-stage-edit-pane>label{display:grid;gap:7px;margin:10px 0;align-items:stretch}
+#gx-shell .gx-stage-edit-pane button{min-height:44px;margin:5px 5px 5px 0;padding:10px 12px;font-size:13px}
+#gx-shell .gx-stage-edit-pane>button[id$=apply]{background:#9ce8c7;color:#153a2c;border:1px solid #9ce8c7;font-weight:800}
+#gx-shell .gx-stage-edit-pane button:disabled,#gx-shell .gx-stage-edit-pane input:disabled,#gx-shell .gx-stage-edit-pane select:disabled{opacity:.53}
+#gx-shell .gx-stage-edit-zone{border:1px solid #425d66;background:#152530;padding:12px;border-radius:11px;margin:14px 0}
+#gx-shell .gx-stage-edit-zone>strong{display:block;font-size:13px;margin-bottom:9px;color:#c1f4df}
+#gx-shell .gx-stage-edit-range{height:16px;background:repeating-linear-gradient(90deg,#d4dde3 0,#d4dde3 8px,#576673 8px,#576673 9px);border:1px solid #83959b;border-radius:6px;position:relative;overflow:hidden;margin-bottom:10px}
+#gx-shell .gx-stage-edit-range span{position:absolute;left:0;width:0;top:0;bottom:0;background:#4ac89db6}
+#gx-shell .gx-stage-edit-zone label:has(input[type=checkbox]){display:flex;align-items:center;gap:8px;font-size:13px}
+#gx-shell .gx-stage-edit-zone input[type=checkbox]{width:18px;height:18px;accent-color:#7fd9b8}
+@media(max-width:650px){
+ #gx-shell .gx-live-quick{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #gx-shell .gx-live-quick #gx-stage-looper{grid-column:1}
+ #gx-shell .gx-live-quick #gx-next{grid-column:2/span 2!important}
+ #gx-shell .gx-live-quick button{font-size:12px;padding:8px 3px;min-height:48px}
+ #gx-shell .gx-stage-editor-dialog{width:calc(100vw - 18px);max-height:calc(100dvh - 60px);padding:10px 12px 18px;border-radius:12px}
+ #gx-shell .gx-stage-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #gx-shell .gx-stage-edit-tabs button{padding:9px;font-size:12px}
+ #gx-shell .gx-stage-edit-meta{flex-direction:column;align-items:stretch}
+ #gx-shell .gx-stage-edit-meta label{width:100%}
+}
