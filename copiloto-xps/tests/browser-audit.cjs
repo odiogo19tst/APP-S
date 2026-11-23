@@ -490,7 +490,7 @@ async function run(){
    assert(edits.some(e=>e.section==='zone'&&e.index===0&&e.offset===12&&e.value===42));
    assert(edits.some(e=>e.section==='zone'&&e.index===0&&e.offset===13&&e.value===79));
    await p.locator('[role="tab"]').filter({hasText:'Efeitos'}).click();
-   await p.locator('.gx-stage-edit-grid input[type="number"]').first().fill('97');
+   await p.locator('[data-editor-pane="efeitos"] .gx-stage-edit-grid input[type="number"]').first().fill('97');
    await p.locator('#gx-stage-edit-fx-apply').click();
    calls=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='editHardware'));
    const fxEdits=JSON.parse(calls.at(-1).args[0]);
