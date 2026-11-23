@@ -10,7 +10,7 @@ assert(index.includes('<script src="stage-tone-editor.js"></script>'),'Register 
 assert(index.indexOf('stage-tone-editor.js')>index.indexOf('stage-live.js'),'Load after stage toolbar');
 assert(index.includes('stage-tone-editor.css'),'Load editor styles');
 assert(js.includes("quick.insertBefore(button,quick.querySelector('#gx-stage-scenes')"),'Place editor beside timbres');
-for(const word of ['Editar timbre','Som ao vivo','Efeitos','Região','Síntese','Mono / Poly','L/MONO e R','Panorama L','Ganho / nível','Saída direta','MFX 1','Região física','Região inicial do Tone','Região final do Tone','Chorus','Reverb','Cutoff','Ressonância','Attack','Release'])
+for(const word of ['Editar timbre','Som ao vivo','Efeitos','Região','Síntese','Mono / Poly','L/MONO e R','Panorama L','Ganho / nível','Saída direta','MFX 1','Zona física','Região inicial do Tone','Região final do Tone','Chorus','Reverb','Cutoff','Ressonância','Attack','Release'])
  assert(js.includes(word),'Editor UI missing: '+word);
 assert(js.includes('input.oninput=')&&js.includes('setTimeout(dispatch,90)'),'Realtime CC must be throttled');
 assert(js.includes('window.Native.liveEffectCc(selected(),cc,v)'),'Send CC via native channel resolver');
