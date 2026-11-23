@@ -63,3 +63,9 @@
 #gx-shell .gx-stage-edit-advanced-host .gx-deep-editor input,
 #gx-shell .gx-stage-edit-advanced-host .gx-deep-editor select{box-sizing:border-box;max-width:100%;font-size:16px;min-height:44px}
 @media(max-width:650px){#gx-shell .gx-stage-edit-advanced-host .gx-deep-grid{grid-template-columns:1fr}}
+
+
+/* Every tone in "Timbres para tocar agora" also offers Editar, without hiding ★. */
+#gx-shell .gx-live-tone-row{grid-template-columns:minmax(0,1fr) 68px 48px;gap:6px}
+#gx-shell .gx-live-tone-row>.gx-stage-tone-edit{font-size:12px;min-height:58px;padding:7px 4px;text-align:center;background:#1c4034;color:#c3f9dd;border:1px solid #549f80;font-weight:750}
+#gx-shell .gx-live-tone-row>.gx-stage-tone-edit:focus-visible{outline:3px solid #b6f5cf}
