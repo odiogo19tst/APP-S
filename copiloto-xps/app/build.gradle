@@ -9,7 +9,13 @@ android {
         versionCode 100
         versionName '1.37.0-stage-timbre-editor'
     }
-    buildTypes { debug { signingConfig null } } // Releases are signed with the permanent private key after CI.
+    buildTypes {
+        debug {
+            applicationIdSuffix '.liveeditor'
+            versionNameSuffix '-teste'
+            signingConfig signingConfigs.debug
+        }
+    } // Official app remains signed with its permanent key.
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 
