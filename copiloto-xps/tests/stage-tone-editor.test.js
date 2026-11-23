@@ -3,9 +3,15 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const assets=path.join(__dirname,'../app/src/main/assets');
 const read=p=>fs.readFileSync(path.join(assets,p),'utf8');
 const js=read('stage-tone-editor.js'),css=read('stage-tone-editor.css'),index=read('index.html');
+const picker=read('stage-live.js');
 const java=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/MainActivity.java'),'utf8');
 const proto=fs.readFileSync(path.join(__dirname,'../app/src/main/java/br/com/doapps/grauelive/XpsProtocol.java'),'utf8');
 const defs=read('patch-parameters.js');
+assert(picker.includes("edit.dataset.stageToneEdit=t.code"),'Every tone row must have Editar');
+assert(picker.includes('window.GraueStageToneEditor?.open?.()'),'Tone row Editor must open this module');
+assert(picker.includes('row.append(pick,edit,star)'),'Keep favorite star beside Editar');
+assert(css.includes('gx-live-tone-row>.gx-stage-tone-edit'),'Mobile row keeps an explicit Editar button');
+assert(js.includes("advancedEngine.render(advancedHost,advancedGroup,selected())"),'Full validated WG/TVA/TVF/LFO/Matrix panel must render within the stage');
 assert(index.includes('<script src="stage-tone-editor.js"></script>'),'Register on-stage editor');
 assert(index.indexOf('stage-tone-editor.js')>index.indexOf('stage-live.js'),'Load after stage toolbar');
 assert(index.includes('stage-tone-editor.css'),'Load editor styles');
