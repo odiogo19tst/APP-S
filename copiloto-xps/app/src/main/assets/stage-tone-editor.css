@@ -41,10 +41,10 @@
 #gx-shell .gx-stage-edit-zone label:has(input[type=checkbox]){display:flex;align-items:center;gap:8px;font-size:13px}
 #gx-shell .gx-stage-edit-zone input[type=checkbox]{width:18px;height:18px;accent-color:#7fd9b8}
 @media(max-width:650px){
- #gx-shell .gx-live-quick{grid-template-columns:repeat(3,minmax(0,1fr))!important}
- #gx-shell .gx-live-quick #gx-stage-looper{grid-column:1}
- #gx-shell .gx-live-quick #gx-next{grid-column:2/span 2!important}
- #gx-shell .gx-live-quick button{font-size:12px;padding:8px 3px;min-height:48px}
+ #gx-shell .gx-live-quick{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px}
+ #gx-shell .gx-live-quick #gx-stage-looper{grid-column:auto}
+ #gx-shell .gx-live-quick #gx-next{grid-column:auto!important}
+ #gx-shell .gx-live-quick button{font-size:11px;padding:8px 2px;min-height:48px}
  #gx-shell .gx-stage-editor-dialog{width:calc(100vw - 18px);max-height:calc(100dvh - 60px);padding:10px 12px 18px;border-radius:12px}
  #gx-shell .gx-stage-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  #gx-shell .gx-stage-edit-tabs button{padding:9px;font-size:12px}
