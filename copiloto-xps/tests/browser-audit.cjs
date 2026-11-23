@@ -465,6 +465,12 @@ async function run(){
    assert(await p.locator('#gx-stage-editor-dialog').isVisible(),'Editor opens on the current stage');
    assert(await p.locator('[data-live-cc="74"]').isDisabled(),'No MIDI before USB connection');
    assert.match(await p.locator('#gx-stage-edit-status').innerText(),/USB desconectado/);
+   await p.locator('#gx-stage-editor-dialog .gx-live-dialog-head button').click();
+   await p.locator('#gx-stage-tones').click();
+   assert.equal(await p.locator('[data-stage-tone-edit]').count(),40,'Every visible tone row needs Editar');
+   await p.locator('[data-stage-tone-edit]').first().click();
+   assert(await p.locator('#gx-stage-editor-dialog').isVisible(),'Editar from the tone list must open the module');
+   assert.equal(await p.locator('#gx-stage-tone-dialog').evaluate(n=>n.open),false);
    const passive=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='liveEffectCc').length);
    await p.evaluate(()=>{
     const hw={validSysexPackets:60,completeBlocks:60,availableBlocks:60,'setup:0':Array(54).fill(0),'common:0':Array(56).fill(0)};
