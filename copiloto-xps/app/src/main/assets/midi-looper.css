@@ -1,0 +1,17 @@
+#gx-shell .gx-midi-looper{margin:12px 0;padding:14px;min-width:0;border:1px solid #415574;border-radius:14px;background:#101d30;color:#f2f6ff}#gx-shell .gx-midi-looper .loop-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:12px}#gx-shell .gx-midi-looper .loop-heading strong{color:#7de2ce}#gx-shell .gx-midi-looper .loop-heading span,#gx-shell .gx-midi-looper small{font-size:12px;color:#b6c6dc}#gx-shell .gx-midi-looper .loop-tracks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}#gx-shell .gx-midi-looper button{min-height:48px;white-space:normal;background:#1c304d;border:1px solid #4b6487;color:#f2f6ff;border-radius:8px;padding:10px}#gx-shell .gx-midi-looper button:disabled{opacity:.45}#gx-shell .gx-midi-looper button.loop-selected{border:2px solid #57d8b7;background:#17473f}#gx-shell .gx-midi-looper button.loop-recording{background:#681d34;border-color:#ff7090}#gx-shell .gx-midi-looper .loop-settings,#gx-shell .gx-midi-looper .loop-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}#gx-shell .gx-midi-looper label{display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:82px}#gx-shell .gx-midi-looper input,#gx-shell .gx-midi-looper select{width:100%;min-height:44px;border:1px solid #4b6487;border-radius:8px;background:#172941;color:#f2f6ff;padding:6px;box-sizing:border-box}#gx-shell .gx-midi-looper #loop-rec{background:#792540}#gx-shell .gx-midi-looper #loop-play{background:#195344}#gx-shell .gx-midi-looper #loop-stop{background:#413955}#gx-shell .gx-midi-looper progress{display:block;width:100%;height:10px;margin-top:12px;accent-color:#57d8b7}#gx-shell .gx-midi-looper #loop-status{font-size:13px;min-height:20px;margin:10px 0}#gx-shell .gx-midi-looper small{display:block;line-height:1.5}#gx-shell.gx-live-mode .gx-midi-looper{display:block}@media(max-width:450px){#gx-shell .gx-midi-looper .loop-tracks{grid-template-columns:repeat(2,minmax(0,1fr))}#gx-shell .gx-midi-looper .loop-actions button{flex:1 0 27%}}#gx-shell .gx-midi-looper button:focus-visible,#gx-shell .gx-midi-looper input:focus-visible,#gx-shell .gx-midi-looper select:focus-visible{outline:3px solid #a6eaff;outline-offset:2px}
+#gx-shell [data-gx-screen="stage"]>.gx-midi-looper{order:25;margin:0}
+
+#gx-shell.gx-layout-v3 .gx-loop-secondary{flex-wrap:wrap}
+#gx-shell.gx-layout-v3 #loop-clear-all{background:#38252c;border-color:#70424e;color:#ffb2bd}
+
+#gx-shell .loop-library{margin-top:12px;border-top:1px solid var(--gx-line,#344c3f);padding-top:8px}
+#gx-shell .loop-library>summary{min-height:44px;padding:10px 0;font-size:12px;cursor:pointer}
+#gx-shell .loop-library .loop-library-buttons{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}
+#gx-shell .loop-library .loop-library-buttons button{min-height:44px;font-size:11px;padding:8px 10px}
+#gx-shell .loop-library .loop-link-label{display:flex;flex-direction:row;align-items:center;gap:8px}
+#gx-shell .loop-library input[type=checkbox]{width:22px;min-height:22px;height:22px}
+#gx-shell .loop-library #loop-name,#gx-shell .loop-library #loop-saved{width:100%;max-width:100%;min-height:44px}
+#gx-shell .loop-library:not([open])>:not(summary){display:none!important}
+
+#gx-shell .gx-midi-looper .loop-countin-label{display:flex;flex-direction:row;align-items:center;gap:8px}
+#gx-shell .gx-midi-looper .loop-countin-label input{width:22px;min-height:22px;height:22px}
