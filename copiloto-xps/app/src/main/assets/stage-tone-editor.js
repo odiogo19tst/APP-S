@@ -166,6 +166,33 @@
  const applyDeep=el('button','Aplicar parâmetros internos do Patch');applyDeep.id='gx-stage-edit-deep-apply';applyDeep.type='button';
  synthesis.append(readPatch,undoPatch,deepToneLabel,deepGrid,applyDeep,el('small','A gravação aqui é temporária. Não executa WRITE USER, não restaura backup e não altera outros timbres sem seleção.'));
 
+ // All deep parameters reuse the existing validated editor; no speculative SysEx.
+ const advancedDetails=el('details',null,'gx-stage-edit-advanced');
+ const advancedSummary=el('summary','Edição completa: WG · TVA · TVF · LFO · Matrix · Vel/Key');
+ const advancedTabs=el('div',null,'gx-stage-edit-tabs'),advancedHost=el('div',null,'gx-stage-edit-advanced-host');
+ advancedDetails.append(advancedSummary,advancedTabs,advancedHost);synthesis.append(advancedDetails);
+ const advancedEngine=window.GraueDeepPatch?.create({
+  readDeep:at=>window.Native?.readDeepPatch?.(at),
+  editDeep:req=>window.Native?.editDeepPatch?.(JSON.stringify(req)),
+  undoDeep:()=>window.Native?.undoDeepPatch?.()
+ });
+ let advancedGroup='WG';
+ function advancedRender(){
+  if(!advancedDetails.open||!advancedEngine)return;
+  advancedEngine.render(advancedHost,advancedGroup,selected());
+  for(const b of advancedTabs.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.group===advancedGroup));
+ }
+ for(const [key,label]of [['WG','Wave / Pitch'],['TVA','TVA / Envelope'],['TVF','TVF / Envelope'],['LFO','LFO 1/2'],['MTX','Matrix'],['PCH','Patch / Mistura'],['Vel/Key','Velocidade / Teclas']]){
+  const b=el('button',label);b.type='button';b.dataset.group=key;b.onclick=()=>{advancedGroup=key;advancedRender();};advancedTabs.append(b);
+ }
+ advancedDetails.addEventListener('toggle',()=>{
+  if(!advancedDetails.open||!advancedEngine)return;
+  advancedEngine.receive('xpsConnection',connected());
+  advancedEngine.receive('hardwareBusy',busy);
+  if(deep)advancedEngine.receive('deepPatch',deep);
+  advancedRender();
+ });
+
  function performanceReady(){const h=hw(),p=h['part:'+selected()];return connected()&&!busy&&h['setup:0']?.[0]===1&&Number(h.validSysexPackets)>0&&Array.isArray(p);}
  function currentZone(){const p=hw()['part:'+selected()];return p?hw()['zone:'+p[0]]:null;}
  const numeric=(input,min,max)=>{const v=Number(input.value);if(input.value===''||!Number.isInteger(v)||v<min||v>max)throw Error('Valor fora da faixa '+min+'–'+max);return v;};
@@ -206,7 +233,7 @@
   }catch(e){message(e.message);}
  };
  function renderFX(){const fx=hw()['mfx:'+unit.value],ready=performanceReady()&&Array.isArray(fx)&&Array.isArray(hw()['common:0']);fxType.disabled=!ready;applyFX.disabled=!ready;for(const inp of fxValues.values())inp.disabled=!ready;if(!ready){fxType.value='0';for(const inp of fxValues.values())inp.value='';return;}fxType.value=String(fx[0]);fxValues.get('dry').value=String(fx[1]);fxValues.get('chorus').value=String(fx[2]);fxValues.get('reverb').value=String(fx[3]);}
- unit.onchange=renderFX;part.onchange=()=>{const source=doc.getElementById('gx-stage-tone-part')||doc.getElementById('gx-tone-part');if(source){source.value=part.value;source.onchange?.();}deep=null;sync(true);};
+ unit.onchange=renderFX;part.onchange=()=>{const source=doc.getElementById('gx-stage-tone-part')||doc.getElementById('gx-tone-part');if(source){source.value=part.value;source.onchange?.();}deep=null;sync(true);advancedRender();};
  deepTone.onchange=()=>renderDeep();
  function renderDeep(){
   const ready=performanceReady()&&deep?.ready&&deep.part===selected()&&deep.source==='midi-live';
@@ -265,6 +292,7 @@
   if(prior)prior(kind,data);
   if(kind==='hardwareBusy')busy=!!data;
   if(kind==='deepPatch'){deep=data;if(modal.open)renderDeep();}
+  if(advancedEngine&&['deepPatch','hardwareBusy','hardwareReset','xpsConnection'].includes(kind))advancedEngine.receive(kind,data);
   if(kind==='hardwareReset'||kind==='xpsConnection'&&data===false){deep=null;busy=false;}
   if(kind==='liveEffectCcResult'&&modal.open)message(data?.ok?'CC'+data.cc+' enviado no canal MIDI '+data.channel+'. Confira o som no Roland.':String(data?.reason||'Controle CC não confirmado.'));
   if(kind==='hardwareOperation'&&modal.open&&data?.status){const state=String(data.status);if(state==='confirmed')message('SysEx confirmado pelo Roland (leitura de retorno). Toque e confira o som.');else if(['failed','unconfirmed','cancelled'].includes(state))message('Edição não confirmada. Releia o XPS antes de continuar.');}
