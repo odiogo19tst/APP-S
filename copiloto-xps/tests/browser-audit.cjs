@@ -485,7 +485,7 @@ async function run(){
    await p.waitForTimeout(130);
    let calls=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='liveEffectCc'));
    assert.deepEqual(calls.at(-1).args,[0,74,88],'Cutoff is sent to the safe native channel router');
-   await p.locator('[role="tab"]').filter({hasText:'Região'}).click();
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Região'}).click();
    await p.locator('[data-perf-field="pan"]').fill('-12');
    await p.locator('.gx-stage-edit-zone input[type="number"]').first().fill('42');
    await p.locator('.gx-stage-edit-zone input[type="number"]').nth(1).fill('79');
@@ -495,13 +495,13 @@ async function run(){
    assert(edits.some(e=>e.section==='part'&&e.offset===8&&e.value===52),'Pan uses signed display and MIDI bias');
    assert(edits.some(e=>e.section==='zone'&&e.index===0&&e.offset===12&&e.value===42));
    assert(edits.some(e=>e.section==='zone'&&e.index===0&&e.offset===13&&e.value===79));
-   await p.locator('[role="tab"]').filter({hasText:'Efeitos'}).click();
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Efeitos'}).click();
    await p.locator('[data-editor-pane="efeitos"] .gx-stage-edit-grid input[type="number"]').first().fill('97');
    await p.locator('#gx-stage-edit-fx-apply').click();
    calls=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='editHardware'));
    const fxEdits=JSON.parse(calls.at(-1).args[0]);
    assert(fxEdits.some(e=>e.section==='mfx'&&e.index===0&&e.offset===1&&e.value===97));
-   await p.locator('[role="tab"]').filter({hasText:'Síntese'}).click();
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Síntese'}).click();
    await p.locator('#gx-stage-edit-patch-read').click();
    assert.equal((await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='readDeepPatch'))).at(-1).args[0],0);
    await p.evaluate(()=>{
@@ -519,9 +519,9 @@ async function run(){
    assert.equal(deepRequest.revision,21);
    assert(deepRequest.operations.some(x=>x.field==='common_patch_level'&&x.value===106));
    await p.evaluate(()=>{window.stageEditorHardware['setup:0'][0]=0;window.receive('hardware',window.stageEditorHardware);});
-   await p.locator('[role="tab"]').filter({hasText:'Região'}).click();
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Região'}).click();
    assert(await p.locator('#gx-stage-edit-part-apply').isDisabled(),'No Performance zone write in Patch mode');
-   await p.locator('[role="tab"]').filter({hasText:'Som ao vivo'}).click();
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Som ao vivo'}).click();
    assert.equal(await p.locator('[data-live-cc="10"]').isDisabled(),false,'Live stereo pan CC remains usable in Patch');
    await p.locator('#gx-stage-editor-dialog .gx-live-dialog-head button').click();
    assert.equal((await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='liveEffectCc').length)),1,'No hidden MIDI after closing editor');
