@@ -451,6 +451,82 @@ async function run(){
    const beforeLoop=(await page.evaluate(midiCalls)).length;await page.locator('#gx-stage-looper').click();assert.equal((await page.evaluate(midiCalls)).length,beforeLoop,'Looper shortcut must not start recording');assert(await page.locator('#loop-rec').evaluate(n=>n===document.activeElement));
    await page.evaluate(()=>window.scrollTo(0,0));await noOverflow(page,'direct stage '+size.width);await page.screenshot({path:path.join(out,size.width+'-stage-direct.png'),fullPage:true});results.push({viewport:size,directStage:true,pass:true});await page.close();
   }
+  // On-stage sound editor stays beside Timbres and edits only documented
+  // temporary CC/SysEx targets. In this test the Android bridge is simulated.
+  {
+   const p=await browser.newPage({viewport:{width:390,height:844}});
+   p.on('pageerror',e=>errors.push('stage editor: '+e.stack));
+   await boot(p);
+   const edit=p.locator('#gx-stage-edit');
+   assert(await edit.isVisible(),'Editar timbre must be visible beside Timbres');
+   const ordered=await p.locator('.gx-live-quick button').evaluateAll(nodes=>nodes.map(n=>n.id));
+   assert.deepEqual(ordered.slice(0,3),['gx-stage-tones','gx-stage-edit','gx-stage-scenes']);
+   await edit.click();
+   assert(await p.locator('#gx-stage-editor-dialog').isVisible(),'Editor opens on the current stage');
+   assert(await p.locator('[data-live-cc="74"]').isDisabled(),'No MIDI before USB connection');
+   assert.match(await p.locator('#gx-stage-edit-status').innerText(),/USB desconectado/);
+   await p.locator('#gx-stage-editor-dialog .gx-live-dialog-head button').click();
+   await p.locator('#gx-stage-tones').click();
+   assert.equal(await p.locator('[data-stage-tone-edit]').count(),40,'Every visible tone row needs Editar');
+   await p.locator('[data-stage-tone-edit]').first().click();
+   assert(await p.locator('#gx-stage-editor-dialog').isVisible(),'Editar from the tone list must open the module');
+   assert.equal(await p.locator('#gx-stage-tone-dialog').evaluate(n=>n.open),false);
+   const passive=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='liveEffectCc').length);
+   await p.evaluate(()=>{
+    const hw={validSysexPackets:60,completeBlocks:60,availableBlocks:60,'setup:0':Array(54).fill(0),'common:0':Array(56).fill(0)};
+    hw['setup:0'][0]=1;
+    for(let i=0;i<16;i++){hw['part:'+i]=Array(49).fill(0);hw['part:'+i][0]=i;hw['part:'+i][1]=1;hw['part:'+i][4]=87;hw['part:'+i][5]=64;hw['part:'+i][6]=0;hw['part:'+i][7]=100;hw['part:'+i][8]=64;hw['part:'+i][11]=2;hw['part:'+i][21]=64;hw['part:'+i][28]=64;hw['part:'+i][29]=40;hw['part:'+i][30]=30;hw['part:'+i][32]=0;hw['zone:'+i]=Array(27).fill(0);hw['zone:'+i][1]=1;hw['zone:'+i][12]=36;hw['zone:'+i][13]=84;}
+    for(let i=0;i<3;i++){hw['mfx:'+i]=Array(145).fill(0);hw['mfx:'+i][0]=1;hw['mfx:'+i][1]=90;hw['mfx:'+i][2]=40;hw['mfx:'+i][3]=30;}
+    window.stageEditorHardware=hw;window.receive('xpsConnection',true);window.receive('hardware',hw);
+   });
+   assert.equal(await p.locator('[data-live-cc="74"]').isDisabled(),false);
+   assert.equal(await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='liveEffectCc').length),passive,'Reading hardware does not emit CC');
+   await p.locator('[data-live-cc="74"]').evaluate(input=>{input.value='88';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
+   await p.waitForTimeout(130);
+   let calls=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='liveEffectCc'));
+   assert.deepEqual(calls.at(-1).args,[0,74,88],'Cutoff is sent to the safe native channel router');
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Região'}).click();
+   await p.locator('[data-perf-field="pan"]').fill('-12');
+   await p.locator('.gx-stage-edit-zone input[type="number"]').first().fill('42');
+   await p.locator('.gx-stage-edit-zone input[type="number"]').nth(1).fill('79');
+   await p.locator('#gx-stage-edit-part-apply').click();
+   calls=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='editHardware'));
+   const edits=JSON.parse(calls.at(-1).args[0]);
+   assert(edits.some(e=>e.section==='part'&&e.offset===8&&e.value===52),'Pan uses signed display and MIDI bias');
+   assert(edits.some(e=>e.section==='zone'&&e.index===0&&e.offset===12&&e.value===42));
+   assert(edits.some(e=>e.section==='zone'&&e.index===0&&e.offset===13&&e.value===79));
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Efeitos'}).click();
+   await p.locator('[data-editor-pane="efeitos"] .gx-stage-edit-grid input[type="number"]').first().fill('97');
+   await p.locator('#gx-stage-edit-fx-apply').click();
+   calls=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='editHardware'));
+   const fxEdits=JSON.parse(calls.at(-1).args[0]);
+   assert(fxEdits.some(e=>e.section==='mfx'&&e.index===0&&e.offset===1&&e.value===97));
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Síntese'}).click();
+   await p.locator('#gx-stage-edit-patch-read').click();
+   assert.equal((await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='readDeepPatch'))).at(-1).args[0],0);
+   await p.evaluate(()=>{
+    const common=Array(80).fill(64),tmt=Array(41).fill(0);
+    common[14]=102;common[15]=64;common[22]=1;common[25]=0;
+    for(let i=0;i<4;i++){tmt[6+i*9]=36;tmt[7+i*9]=84;}
+    window.receive('deepPatch',{ready:true,source:'midi-live',part:0,revision:21,common,tmt,readAt:Date.now()});
+   });
+   assert.equal(await p.locator('[data-deep-field="common_patch_level"]').isDisabled(),false);
+   await p.locator('[data-deep-field="common_patch_level"]').fill('106');
+   await p.locator('#gx-stage-edit-deep-apply').click();
+   calls=await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='editDeepPatch'));
+   assert(calls.length>0,'Verified deep Patch edit should use native bridge');
+   const deepRequest=JSON.parse(calls.at(-1).args[0]);
+   assert.equal(deepRequest.revision,21);
+   assert(deepRequest.operations.some(x=>x.field==='common_patch_level'&&x.value===106));
+   await p.evaluate(()=>{window.stageEditorHardware['setup:0'][0]=0;window.receive('hardware',window.stageEditorHardware);});
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Região'}).click();
+   assert(await p.locator('#gx-stage-edit-part-apply').isDisabled(),'No Performance zone write in Patch mode');
+   await p.locator('#gx-stage-editor-dialog [role="tab"]').filter({hasText:'Som ao vivo'}).click();
+   assert.equal(await p.locator('[data-live-cc="10"]').isDisabled(),false,'Live stereo pan CC remains usable in Patch');
+   await p.locator('#gx-stage-editor-dialog .gx-live-dialog-head button').click();
+   assert.equal((await p.evaluate(()=>window.nativeCalls.filter(c=>c.method==='liveEffectCc').length)),1,'No hidden MIDI after closing editor');
+   results.push({liveToneEditor:true,pass:true});await p.close();
+  }
   // Regression: Louve status/retry controls used to consume a 290px capped
   // library after its details wrapper broke the old direct-child CSS fix.
   for(const size of [{width:390,height:844},{width:360,height:740},{width:844,height:390},{width:1366,height:900}]){

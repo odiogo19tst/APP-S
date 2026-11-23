@@ -1130,6 +1130,40 @@ getWindow().addFlags(128);
     }else emit("status","Falha ao enviar Vibrato MIDI; instrumento não confirmado.");
    });
   }
+  /** Real-time stage editor CC: resolve a verified destination, never presume channel 1.
+   * Patch uses System Patch Rx/Tx Ch or a physical Note On; Performance uses
+   * a uniquely observed receiving channel to avoid changing other parts.
+   * Transmission is temporary, not a readback of the resulting sound.
+   */
+  @JavascriptInterface public void liveEffectCc(int part,int controller,int value){
+   runOnUiThread(()->{
+    int channel=-1;String error="";
+    if(midi==null||!midi.isConnected())error="USB desconectado.";
+    else if(xps==null||xps.isBusy())error="O Roland está em leitura/edição MIDI; aguarde.";
+    else if(part<0||part>=16||value<0||value>127)error="Parte ou valor fora da faixa.";
+    else if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)error="Controle MIDI não permitido.";
+    else {
+     int mode=xps.observedSoundMode();
+     if(mode==1){
+      channel=xps.isolatedToneChannel(part);
+      if(channel<1)error="Canal da parte compartilhado ou sem leitura. Leia as partes do XPS antes de editar.";
+     }else if(mode==0){
+      int observed=xps.observedPatchRxChannel();
+      channel=physicalPatchRxChannel>=1&&physicalPatchRxChannel<=16?physicalPatchRxChannel:observed;
+      if(channel<1||channel>16)error="Canal Patch desconhecido. Leia o XPS ou toque uma tecla para identificar o canal.";
+     }else error="Modo Patch/Performance não confirmado por SysEx. Leia o teclado antes de enviar efeitos.";
+    }
+    boolean ok=error.isEmpty()&&midi.send(0xB0+channel-1,controller,value);
+    if(!ok&&error.isEmpty())error="Falha na porta de saída USB-MIDI.";
+    try{
+     emit("liveEffectCcResult",new JSONObject().put("ok",ok).put("part",part)
+      .put("channel",channel).put("cc",controller).put("value",value)
+      .put("reason",error));
+    }catch(Exception ignored){}
+    if(!ok)emit("status",error);
+   });
+  }
+
   @JavascriptInterface public void cc(int channel,int controller,int value){runOnUiThread(()->{if(!armed){emit("status","Conecte o XPS-10 via USB-MIDI para aplicar controles.");return;}if(channel<1||channel>16||value<0||value>127)return;if(controller!=7&&controller!=10&&controller!=11&&controller!=71&&controller!=72&&controller!=73&&controller!=74&&controller!=91&&controller!=93)return;emit("status",midi.send(0xB0+channel-1,controller,value)?"Controle enviado; confira o resultado no teclado.":"Sem porta MIDI de saída conectada.");});}
   @JavascriptInterface public synchronized boolean save(String value){
    if(value==null||value.length()>MAX_STATE_BYTES||value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>MAX_STATE_BYTES){emit("status","Dados não salvos: limite de 10 MB atingido. Exporte e reduza o repertório antes de continuar.");return false;}
