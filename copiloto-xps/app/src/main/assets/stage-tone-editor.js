@@ -67,15 +67,15 @@
   const input=el('input');input.type='range';input.min='0';input.max='127';input.value=String(defaultValue);
   input.dataset.liveCc=String(cc);input.setAttribute('aria-label',label);input.title=hint;
   const caption=el('small',hint);wrap.append(top,input,caption);som.append(wrap);
-  let timer=null,last=-1;
-  const dispatch=()=>{if(timer){clearTimeout(timer);timer=null;}const v=Number(input.value);if(v===last||!connected()||busy)return;last=v;
+  let timer=null,last=-1,pendingPart=null;
+  const dispatch=()=>{if(timer){clearTimeout(timer);timer=null;}const v=Number(input.value);if(!modal.open||v===last||!connected()||busy||pendingPart!==selected())return;last=v;
    if(!window.Native?.liveEffectCc){message('Atualize o APK: envio contínuo seguro não disponível.');return;}
    window.Native.liveEffectCc(selected(),cc,v);
    message(label+': CC'+cc+' solicitado. Confirme ouvindo o Roland.');
   };
-  input.oninput=()=>{out.textContent=input.value+' · solicitado';if(timer)clearTimeout(timer);timer=setTimeout(dispatch,90);};
-  input.onchange=dispatch;
-  sliders.set(cc,{input,out,defaultValue,reset:()=>{last=-1;}});
+  input.oninput=()=>{pendingPart=selected();out.textContent=input.value+' · solicitado';if(timer)clearTimeout(timer);timer=setTimeout(dispatch,90);};
+  input.onchange=()=>{if(pendingPart===null)pendingPart=selected();dispatch();};
+  sliders.set(cc,{input,out,defaultValue,reset:()=>{last=-1;pendingPart=null;if(timer){clearTimeout(timer);timer=null;}}});
  }
  const stereo=el('aside',null,'gx-stage-stereo-note');
  stereo.append(el('strong','Mono / Estéreo não é Mono / Poly.'));
@@ -156,7 +156,12 @@
  const defs=window.GrauePatchParameters||[],findDef=id=>defs.find(d=>d.id===id);
  function toneField(base,tone){return base.replace(/^tmt_tmt1_/,'tmt_tmt'+tone+'_');}
  for(const [field,label,isTone]of deepDefs){
-  const row=el('label',label),input=el('input');input.type='number';input.placeholder='Ler Patch';input.dataset.deepField=field;row.append(input);deepGrid.append(row);deepFields.set(field,{input,isTone});
+  const row=el('label',label),input=(field==='common_mono_poly'||field==='common_portamento_switch')?el('select'):el('input');
+  if(input.tagName==='SELECT'){
+   const choices=field==='common_mono_poly'?[[0,'Mono · uma nota'],[1,'Poly · várias notas']]:[[0,'Portamento desligado'],[1,'Portamento ligado']];
+   for(const [value,text]of choices){const o=el('option',text);o.value=String(value);input.append(o);}
+  }else{input.type='number';input.placeholder='Ler Patch';}
+  input.dataset.deepField=field;row.append(input);deepGrid.append(row);deepFields.set(field,{input,isTone});
  }
  const applyDeep=el('button','Aplicar parâmetros internos do Patch');applyDeep.id='gx-stage-edit-deep-apply';applyDeep.type='button';
  synthesis.append(readPatch,undoPatch,deepToneLabel,deepGrid,applyDeep,el('small','A gravação aqui é temporária. Não executa WRITE USER, não restaura backup e não altera outros timbres sem seleção.'));
@@ -254,7 +259,7 @@
   else if(reset)message('Performance lida. Edições só serão enviadas ao tocar ou aplicar. Não há gravação USER automática.');
  }
  button.onclick=()=>{part.value=doc.getElementById('gx-stage-tone-part')?.value||doc.getElementById('gx-tone-part')?.value||'0';sync(true);modal.showModal();};
- modal.addEventListener('close',()=>button.focus());
+ modal.addEventListener('close',()=>{for(const entry of sliders.values())entry.reset();button.focus();});
  const prior=window.receive;
  window.receive=(kind,data)=>{
   if(prior)prior(kind,data);
